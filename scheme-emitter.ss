@@ -1,0 +1,51 @@
+; Scheme emitter for a Haskell abstract syntax tree.
+
+(module scheme-emitter mzscheme
+  (require (lib "match.ss"))
+  (provide (all-defined))
+
+  ; Haskell abstract syntax.
+  (define-struct hnum (value))
+  (define-struct hid (name))
+  (define-struct hadd (left right))
+  (define-struct hsub (left right))
+  (define-struct hmul (left right))
+  (define-struct hdiv (left right))
+  (define-struct hif (guard then else))
+  (define-struct hfun (param body))
+  (define-struct happ (fun arg))
+  (define-struct hcons (head tail))
+
+  ; Emits Scheme code as data.
+  (define emit-scheme (match-lambda (($ hnum v) `,v)
+                                    (($ hid n) `(if (eqv? (vector-ref ,(string->symbol n) 1) 'empty)
+                                                     (begin (vector-set! ,(string->symbol n) 1 ((vector-ref ,(string->symbol n) 0)))
+                                                            ;(display (string-append "[evaluated " ,n "]"))
+                                                            (vector-ref ,(string->symbol n) 1))
+                                                     (vector-ref ,(string->symbol n) 1)))
+                                    (($ hadd l r) `(+ ,(emit-scheme l) ,(emit-scheme r)))
+                                    (($ hsub l r) `(- ,(emit-scheme l) ,(emit-scheme r)))
+                                    (($ hmul l r) `(* ,(emit-scheme l) ,(emit-scheme r)))
+                                    (($ hdiv l r) `(/ ,(emit-scheme l) ,(emit-scheme r)))
+                                    (($ hif g t e) `(if (= ,(emit-scheme g) 0)
+                                                        ,(emit-scheme t)
+                                                        ,(emit-scheme e)))
+                                    (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
+                                    (($ happ f a) `(,(emit-scheme f) (vector (lambda () ,(emit-scheme a)) 'empty)))
+                                    ;(($ hcons h t) `(cons (lambda () ) (lambda () )))
+                                    ))
+  
+  (define (run-test hexp result) (eqv? (eval (emit-scheme hexp)) result))
+  
+  (define (run-tests tests) (map (lambda (test) (run-test (car test) (cdr test))) tests))
+  
+  (define tests (list (cons (make-hnum 1) 1)
+                      (cons (make-hadd (make-hnum 1) (make-hnum 2)) 3)
+                      (cons (make-hsub (make-hnum 4) (make-hnum 3)) 1)
+                      (cons (make-hadd (make-hadd (make-hnum 1) (make-hnum 2)) (make-hsub (make-hnum 4) (make-hnum 3))) 4)
+                      (cons (make-hif (make-hadd (make-hnum 1) (make-hnum 2)) (make-hnum 3) (make-hnum 4)) 4)
+                      (cons (make-hif (make-hnum 0) (make-hadd (make-hnum 2) (make-hnum 3)) (make-hnum 4)) 5)
+                      (cons (make-hif (make-hnum 1) (make-hnum 2) (make-hadd (make-hnum 1) (make-hnum 2))) 3)
+                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)
+                      (cons (make-happ (make-hfun "x" (make-hadd (make-hid "x") (make-hid "x"))) (make-hadd (make-hnum 1) (make-hnum 1))) 4)))
+)
