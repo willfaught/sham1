@@ -18,11 +18,7 @@
 
   ; Emits Scheme code as data.
   (define emit-scheme (match-lambda (($ hnum v) `,v)
-                                    (($ hid n) `(if (eqv? (vector-ref ,(string->symbol n) 1) 'empty)
-                                                     (begin (vector-set! ,(string->symbol n) 1 ((vector-ref ,(string->symbol n) 0)))
-                                                            ;(display (string-append "[evaluated " ,n "]"))
-                                                            (vector-ref ,(string->symbol n) 1))
-                                                     (vector-ref ,(string->symbol n) 1)))
+                                    (($ hid n) `(force ,(string->symbol n)))
                                     (($ hadd l r) `(+ ,(emit-scheme l) ,(emit-scheme r)))
                                     (($ hsub l r) `(- ,(emit-scheme l) ,(emit-scheme r)))
                                     (($ hmul l r) `(* ,(emit-scheme l) ,(emit-scheme r)))
@@ -31,7 +27,7 @@
                                                         ,(emit-scheme t)
                                                         ,(emit-scheme e)))
                                     (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
-                                    (($ happ f a) `(,(emit-scheme f) (vector (lambda () ,(emit-scheme a)) 'empty)))
+                                    (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))
                                     ;(($ hcons h t) `(cons (lambda () ) (lambda () )))
                                     ))
   
