@@ -26,10 +26,10 @@
     (literal (:or integer float char string))
     
     ; whitespace
-    (ws (:: whitestuff (:* whitestuff)))
+    (hwhitespace (:: whitestuff (:* whitestuff)))
     (whitestuff (:or whitechar comment ncomment))
-    (whitechar (:or newline vertab space tab))
-    (newline (:or (:: return linefeed) return linefeed formfeed))
+    (whitechar (:or hnewline vertab space tab))
+    (hnewline (:or (:: return linefeed) return linefeed formfeed))
     (return (string #\return))
     (linefeed (string #\newline))
     (vertab #\vtab)
@@ -46,10 +46,17 @@
     (ANYseq (:- ANY (:: (:* ANY) (:* (:: opencom closecom)) (:* ANY))))
     (ANY (:or graphic whitechar))
     (any (:or graphic space tab))
-    (graphic (:or small large symbol digit special ":" "#\"" "'"))
+    (hgraphic (:or small large symbol digit special ":" "#\"" "'"))
     (special (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
     
     ; characters
+    (char (:: "'" (:or (:- graphic (:or "'" (string #\\))) space (:- escape (:: (string #\\) "&")) "'")))
+    (hstring (:: (string #\") (:or (:- graphic (:or (string #\") (string #\\))) space escape gap) (string #\")))
+    (escape (:: (string #\\) (:or charesc ascii decimal (:: "o" octal) (:: "x" hexadecimal))))
+    (charesc (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&"))
+    (ascii (:or (:: "^" cntrl) "NUL" "SOH" "STX" "ETX" "EOT" "ENQ" "ACK" "BEL" "BS" "HT" "LF" "VT" "FF" "CR" "SO" "SI" "DLE" "DC1" "DC2" "DC3" "DC4" "NAK" "SYN" "ETB" "CAN" "EM" "SUB" "ESC" "FS" "GS" "RS" "US" "SP" "DEL"))
+    (cntrl (:or asc-large "@" "[" (space #\\) "]" "ˆ" "_"))
+    (gap (:: (space #\\) whitechar (:* whitechar) (space #\\)))
     (small (:or asc-small "_"))
     (asc-small (:/ #\a #\z))
     (large (:or asc-large))
@@ -103,13 +110,7 @@
     (qtycls (:: (:? modid ".") tycls))
     (qvarsym (:: (:? modid ".") varsym))
     (qconsym (:: (:? modid ".") consym))
-    (char (:: "'" (:or (:- graphic (:or "'" (string #\\))) space (:- escape (:: (string #\\) "&")) "'")))
-    (string (:: (string #\") (:or (:- graphic (:or (string #\") (string #\\))) space escape gap) (string #\")))
-    (escape (:: (string #\\) (:or charesc ascii decimal (:: "o" octal) (:: "x" hexadecimal))))
-    (charesc (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&"))
-    (ascii (:or (:: "^" cntrl) "NUL" "SOH" "STX" "ETX" "EOT" "ENQ" "ACK" "BEL" "BS" "HT" "LF" "VT" "FF" "CR" "SO" "SI" "DLE" "DC1" "DC2" "DC3" "DC4" "NAK" "SYN" "ETB" "CAN" "EM" "SUB" "ESC" "FS" "GS" "RS" "US" "SP" "DEL"))
-    (cntrl (:or asc-large "@" "[" (space #\\) "]" "ˆ" "_"))
-    (gap (:: (space #\\) whitechar (:* whitechar) (space #\\)))
+    
     (aexp (:or qvar gcon literal ()))
     (gcon (:or (:: "(" ")") (:: "[" "]") (:: "(" "," (:* ",") ")") qcon))
     (var (:or varid (:: "(" varsym ")")))
@@ -124,9 +125,8 @@
     (qop (:or qvarop qconop))
     (gconsym (:or ":" qconsym))
     (fexp (:: (:? fexp) aexp))
-    (exp (:or (:: (string #\\) (:+ apat) "->" exp) (:: exp qop exp) (:: "-" qop) (:: "if" exp "then" exp "else" exp)))
-    (qop (:or qvarop qconop))
-    (
+    (hexp (:or (:: (string #\\) (:+ apat) "->" hexp) (:: hexp qop hexp) (:: "-" qop) (:: "if" hexp "then" hexp "else" hexp)))
+    )
     
   
   (define haskell-lexer (lexer-src-pos (whitespace (return-without-pos (haskell-lexer input-port)))
