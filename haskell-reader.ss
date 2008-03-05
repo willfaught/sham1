@@ -20,12 +20,44 @@
   (define-tokens regular (varid num))
   
   (define-lex-abbrevs
+    (program (:* (:or item ws)))
+    (item (:or qvarid qconid qvarsym qconsym literal special reservedop reservedid))
+
+    (literal (:or integer float char string))
+    
+    ; whitespace
+    (ws (:: whitestuff (:* whitestuff)))
+    (whitestuff (:or whitechar comment ncomment))
+    (whitechar (:or newline vertab space tab))
+    (newline (:or (:: return linefeed) return linefeed formfeed))
+    (return (string #\return))
+    (linefeed (string #\newline))
+    (vertab #\vtab)
+    (formfeed (string #\page))
+    (space (string #\space))
+    (tab (string #\tab))
+    
+    ; comments
+    (comment (:: dashes (:? (:- any symbol) (:* any)) newline))
+    (dashes (:: "--" (:* "-")))
+    (opencom "{-")
+    (closecom "-}")
+    (ncomment (:: opencom ANYseq (:* ncomment ANYseq) closecom))
+    (ANYseq (:- ANY (:: (:* ANY) (:* (:: opencom closecom)) (:* ANY))))
+    (ANY (:or graphic whitechar))
+    (any (:or graphic space tab))
+    (graphic (:or small large symbol digit special ":" "#\"" "'"))
+    (special (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
+    
+    ; characters
     (small (:or asc-small "_"))
     (asc-small (:/ #\a #\z))
     (large (:or asc-large))
     (asc-large (:/ #\A #\Z))
+    (symbol (:or asc-symbol))
+    (asc-symbol (:or "!" "#" "$" "%" "&" "*" "+" "." "/" "<" "=" ">" "?" "@" (string #\\) "^" "|" "-" "~"))
+    (digit (:or asc-digit))
     (asc-digit (:/ #\0 #\9))
-    (digit asc-digit)
     (octit (:/ #\0 #\7))
     (hexit (:or digit (:/ #\A #\F) (:/ #\a #\f)))
     (decimal (:: digit (:* digit)))
@@ -33,7 +65,69 @@
     (hexadecimal (:: hexit (:* hexit)))
     (integer (:or decimal (:: "0o" octal) (:: "0O" octal) (:: "0x" hexadecimal) (:: "0X" hexadecimal)))
     (float (:: decimal "." decimal (:? exponent)))
-    (exponent (:: (:or "e" "E") (:? (:or "+" "-")) decimal)))
+    (exponent (:: (:or "e" "E") (:? (:or "+" "-")) decimal))
+    (varid (:- (:: small (:* (:or small large digit "'"))) reservedid))
+    (conid (large (:* (:or small large digit "'"))))
+    (reservedid (:or "case"
+                     "class"
+                     "data"
+                     "default"
+                     "deriving"
+                     "do"
+                     "else"
+                     "if"
+                     "import"
+                     "in"
+                     "infix"
+                     "infixl"
+                     "infixr"
+                     "instance"
+                     "let"
+                     "module"
+                     "newtype"
+                     "of"
+                     "then"
+                     "type"
+                     "where"
+                     "_"))
+    (varsym (:- (:: symbol (:* (:or symbol ":"))) (:or reservedop dashes)))
+    (consym (:- (:: ":" (:* (:or symbol ":"))) reservedop))
+    (reservedop (:or ".." ":" "::" "=" (string #\\) "|" "<-" "->" "@" "~" "=>"))
+    (tyvar varid)
+    (tycon conid)
+    (tycls conid)
+    (modid conid)
+    (qvarid (:: (:? modid ".") varid))
+    (qconid (:: (:? modid ".") conid))
+    (qtycon (:: (:? modid ".") tycon))
+    (qtycls (:: (:? modid ".") tycls))
+    (qvarsym (:: (:? modid ".") varsym))
+    (qconsym (:: (:? modid ".") consym))
+    (char (:: "'" (:or (:- graphic (:or "'" (string #\\))) space (:- escape (:: (string #\\) "&")) "'")))
+    (string (:: (string #\") (:or (:- graphic (:or (string #\") (string #\\))) space escape gap) (string #\")))
+    (escape (:: (string #\\) (:or charesc ascii decimal (:: "o" octal) (:: "x" hexadecimal))))
+    (charesc (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&"))
+    (ascii (:or (:: "^" cntrl) "NUL" "SOH" "STX" "ETX" "EOT" "ENQ" "ACK" "BEL" "BS" "HT" "LF" "VT" "FF" "CR" "SO" "SI" "DLE" "DC1" "DC2" "DC3" "DC4" "NAK" "SYN" "ETB" "CAN" "EM" "SUB" "ESC" "FS" "GS" "RS" "US" "SP" "DEL"))
+    (cntrl (:or asc-large "@" "[" (space #\\) "]" "ˆ" "_"))
+    (gap (:: (space #\\) whitechar (:* whitechar) (space #\\)))
+    (aexp (:or qvar gcon literal ()))
+    (gcon (:or (:: "(" ")") (:: "[" "]") (:: "(" "," (:* ",") ")") qcon))
+    (var (:or varid (:: "(" varsym ")")))
+    (qvar (:or qvarid (:: "(" qvarsym ")")))
+    (con (:or conid (:: "(" consym ")")))
+    (qcon (:or qconid (:: "(" gconsym ")")))
+    (varop (:or varsym (:: "`" varid "`")))
+    (qvarop (:or qvarsym (:: "`" qvarid "`")))
+    (conop (:or consym (:: "`" conid "`")))
+    (qconop (:or gconsym (:: "`" qconid "`")))
+    (op (:or varop conop))
+    (qop (:or qvarop qconop))
+    (gconsym (:or ":" qconsym))
+    (fexp (:: (:? fexp) aexp))
+    (exp (:or (:: (string #\\) (:+ apat) "->" exp) (:: exp qop exp) (:: "-" qop) (:: "if" exp "then" exp "else" exp)))
+    (qop (:or qvarop qconop))
+    (
+    
   
   (define haskell-lexer (lexer-src-pos (whitespace (return-without-pos (haskell-lexer input-port)))
                                        ("(" (token-lparen))
