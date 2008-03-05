@@ -23,13 +23,14 @@
                                     (($ hsub l r) `(- ,(emit-scheme l) ,(emit-scheme r)))
                                     (($ hmul l r) `(* ,(emit-scheme l) ,(emit-scheme r)))
                                     (($ hdiv l r) `(/ ,(emit-scheme l) ,(emit-scheme r)))
-                                    (($ hif g t e) `(if (= ,(emit-scheme g) 0)
-                                                        ,(emit-scheme t)
-                                                        ,(emit-scheme e)))
+                                    (($ hif g t e) `(if (= ,(emit-scheme g) 0) ,(emit-scheme t) ,(emit-scheme e)))
                                     (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
                                     (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))
-                                    ;(($ hcons h t) `(cons (lambda () ) (lambda () )))
-                                    ))
+                                    (($ hcons h t) `(list (delay ,(emit-scheme h)) (delay ,(emit-scheme t))))
+                                    )
+  
+  (define (emit-scheme-list c)
+    (define (unnest c) (if (eqv? c 'nil) () `(delay ,(emit-scheme (hcons-head c)))
   
   (define (run-test hexp result) (eqv? (eval (emit-scheme hexp)) result))
   
