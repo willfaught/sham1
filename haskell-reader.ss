@@ -20,96 +20,75 @@
   (define-tokens regular (varid num))
   
   (define-lex-abbrevs
-    (program (:* (:or item ws)))
-    (item (:or qvarid qconid qvarsym qconsym literal special reservedop reservedid))
-
-    (literal (:or integer float char string))
-    
     ; whitespace
-    (hwhitespace (:: whitestuff (:* whitestuff)))
-    (whitestuff (:or whitechar comment ncomment))
-    (whitechar (:or hnewline vertab space tab))
-    (hnewline (:or (:: return linefeed) return linefeed formfeed))
-    (return (string #\return))
-    (linefeed (string #\newline))
-    (vertab #\vtab)
-    (formfeed (string #\page))
-    (space (string #\space))
-    (tab (string #\tab))
+    (hwhitespace (:: hwhitestuff (:* hwhitestuff)))
+    (hwhitestuff (:or hwhitechar hcomment hncomment))
+    (hwhitechar (:or hnewline hvertab hspace htab))
+    (hnewline (:or (:: hreturn hlinefeed) hreturn hlinefeed hformfeed))
+    (hreturn (string #\return))
+    (hlinefeed (string #\newline))
+    (hvertab #\vtab)
+    (hformfeed (string #\page))
+    (hspace (string #\space))
+    (htab (string #\tab))
+    
+    (hprogram (:* (:or item hwhitespace)))
+    (hitem (:or qvarid qconid qvarsym qconsym literal special reservedop reservedid))
+
+    (hliteral (:or hinteger hfloat hchar hstring))
+    
+    ; numeric literals
+    (hinteger (:or hdecimal (:: "0o" hoctal) (:: "0O" hoctal) (:: "0x" hhexadecimal) (:: "0X" hhexadecimal)))
+    (hdecimal (:: hdigit (:* hdigit)))
+    (hdigit (:/ #\0 #\9))
+    (hoctal (:: hoctit (:* hoctit)))
+    (hoctit (:/ #\0 #\7))
+    (hhexadecimal (:: hhexit (:* hhexit)))
+    (hhexit (:or hdigit (:/ #\A #\F) (:/ #\a #\f)))
+    (hfloat (:: hdecimal "." hdecimal (:? hexponent)))
+    (hexponent (:: (:or "e" "E") (:? (:or "+" "-")) hdecimal))
+    
+    ; character and string literals
+    (hchar (:: "'" (:or (:- hgraphic (:or "'" (string #\\))) hspace (:- hescape (:: (string #\\) "&")) "'")))
+    (hgraphic (:or hsmall hlarge hsymbol hspecial hdigit ":" (string #\") "'"))
+    (hsmall (:or (:/ #\a #\z) "_"))
+    (hlarge (:or (:/ #\A #\Z)))
+    (hsymbol (:or "~" "!" "@" "#" "$" "%" "^" "&" "*" "-" "+" "=" (string #\\) "|" "." "/" "<" ">" "?"))
+    (hspecial (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
+    (hescape (:: (string #\\) (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&")))
+    (hstring (:: (string #\") (:* (:or (:- hgraphic (:or (string #\") (string #\\))) hspace hescape hgap)) (string #\")))
+    (hgap (:: (string #\\) hwhitechar (:* hwhitechar) (string #\\)))
     
     ; comments
-    (comment (:: dashes (:? (:- any symbol) (:* any)) newline))
-    (dashes (:: "--" (:* "-")))
-    (opencom "{-")
-    (closecom "-}")
-    (ncomment (:: opencom ANYseq (:* ncomment ANYseq) closecom))
-    (ANYseq (:- ANY (:: (:* ANY) (:* (:: opencom closecom)) (:* ANY))))
-    (ANY (:or graphic whitechar))
-    (any (:or graphic space tab))
-    (hgraphic (:or small large symbol digit special ":" "#\"" "'"))
-    (special (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
+    (hcomment (:: hdashes (:? (:- hany hsymbol) (:* hany)) hnewline))
+    (hdashes (:: "--" (:* "-")))
+    (hopencom "{-")
+    (hclosecom "-}")
+    (hncomment (:: hopencom hANYseq (:* hncomment hANYseq) hclosecom))
+    (hANYseq (:- hANY (:: (:* hANY) (:* (:: hopencom hclosecom)) (:* hANY))))
+    (hANY (:or hgraphic hwhitechar))
+    (hany (:or hgraphic hspace htab))
     
-    ; characters
-    (char (:: "'" (:or (:- graphic (:or "'" (string #\\))) space (:- escape (:: (string #\\) "&")) "'")))
-    (hstring (:: (string #\") (:or (:- graphic (:or (string #\") (string #\\))) space escape gap) (string #\")))
-    (escape (:: (string #\\) (:or charesc ascii decimal (:: "o" octal) (:: "x" hexadecimal))))
-    (charesc (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&"))
-    (ascii (:or (:: "^" cntrl) "NUL" "SOH" "STX" "ETX" "EOT" "ENQ" "ACK" "BEL" "BS" "HT" "LF" "VT" "FF" "CR" "SO" "SI" "DLE" "DC1" "DC2" "DC3" "DC4" "NAK" "SYN" "ETB" "CAN" "EM" "SUB" "ESC" "FS" "GS" "RS" "US" "SP" "DEL"))
-    (cntrl (:or asc-large "@" "[" (space #\\) "]" "ˆ" "_"))
-    (gap (:: (space #\\) whitechar (:* whitechar) (space #\\)))
-    (small (:or asc-small "_"))
-    (asc-small (:/ #\a #\z))
-    (large (:or asc-large))
-    (asc-large (:/ #\A #\Z))
-    (symbol (:or asc-symbol))
-    (asc-symbol (:or "!" "#" "$" "%" "&" "*" "+" "." "/" "<" "=" ">" "?" "@" (string #\\) "^" "|" "-" "~"))
-    (digit (:or asc-digit))
-    (asc-digit (:/ #\0 #\9))
-    (octit (:/ #\0 #\7))
-    (hexit (:or digit (:/ #\A #\F) (:/ #\a #\f)))
-    (decimal (:: digit (:* digit)))
-    (octal (:: octit (:* octit)))
-    (hexadecimal (:: hexit (:* hexit)))
-    (integer (:or decimal (:: "0o" octal) (:: "0O" octal) (:: "0x" hexadecimal) (:: "0X" hexadecimal)))
-    (float (:: decimal "." decimal (:? exponent)))
-    (exponent (:: (:or "e" "E") (:? (:or "+" "-")) decimal))
-    (varid (:- (:: small (:* (:or small large digit "'"))) reservedid))
-    (conid (large (:* (:or small large digit "'"))))
-    (reservedid (:or "case"
-                     "class"
+    ; identifiers and operators
+    (hvarid (:- (:: hsmall (:* (:or hsmall hlarge hdigit "'"))) hreservedid))
+    (hreservedid (:or "case"
                      "data"
-                     "default"
-                     "deriving"
-                     "do"
                      "else"
                      "if"
-                     "import"
                      "in"
-                     "infix"
-                     "infixl"
-                     "infixr"
-                     "instance"
                      "let"
-                     "module"
                      "newtype"
                      "of"
                      "then"
                      "type"
                      "where"
                      "_"))
-    (varsym (:- (:: symbol (:* (:or symbol ":"))) (:or reservedop dashes)))
-    (consym (:- (:: ":" (:* (:or symbol ":"))) reservedop))
-    (reservedop (:or ".." ":" "::" "=" (string #\\) "|" "<-" "->" "@" "~" "=>"))
-    (tyvar varid)
-    (tycon conid)
-    (tycls conid)
-    (modid conid)
-    (qvarid (:: (:? modid ".") varid))
-    (qconid (:: (:? modid ".") conid))
-    (qtycon (:: (:? modid ".") tycon))
-    (qtycls (:: (:? modid ".") tycls))
-    (qvarsym (:: (:? modid ".") varsym))
-    (qconsym (:: (:? modid ".") consym))
+    (hconid (hlarge (:* (:or hsmall hlarge hdigit "'"))))
+    (hvarsym (:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes)))
+    (hreservedop (:or ":" "::" "=" (string #\\) "|" "->"))
+    (hconsym (:- (:: ":" (:* (:or hsymbol ":"))) hreservedop))
+    (htyvar hvarid)
+    (htycon hconid)
     
     (aexp (:or qvar gcon literal ()))
     (gcon (:or (:: "(" ")") (:: "[" "]") (:: "(" "," (:* ",") ")") qcon))
