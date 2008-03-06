@@ -12,7 +12,6 @@
   (define-struct htype (name cons))
   ;(define-struct (hcon htype
   (define-struct hid (name))
-  (define-struct hif (guard then else))
   (define-struct hlet (bindings body))
   (define-struct hcase (exp pats))
   (define-struct hfun (param body))
@@ -22,13 +21,7 @@
   (define emit-scheme (match-lambda (($ hnum v) `,v)
                                     (($ hchar v) `,v)
                                     (($ hbool v) `,v)
-                                    (($ 
                                     (($ hid n) (emit-hid n))
-                                    (($ hadd l r) `(+ ,(emit-scheme l) ,(emit-scheme r)))
-                                    (($ hsub l r) `(- ,(emit-scheme l) ,(emit-scheme r)))
-                                    (($ hmul l r) `(* ,(emit-scheme l) ,(emit-scheme r)))
-                                    (($ hdiv l r) `(/ ,(emit-scheme l) ,(emit-scheme r)))
-                                    (($ hif g t e) `(if (= ,(emit-scheme g) 0) ,(emit-scheme t) ,(emit-scheme e)))
                                     (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
                                     (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))
                                     ;(($ hcons h t) `(list (delay ,(emit-scheme h)) (delay ,(emit-scheme t))))
