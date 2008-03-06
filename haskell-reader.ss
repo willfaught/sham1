@@ -20,7 +20,11 @@
   (define-tokens regular (varid num))
   
   (define-lex-abbrevs
-    ; whitespace
+    (hprogram (:* (:or hlexeme hwhitespace)))
+    (hlexeme (:or hqvarid hqconid hqvarsym hqconsym hliteral hspecial hreservedop hreservedid))
+    (hliteral (:or hinteger hfloat hchar hstring))
+    (hspecial (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
+    
     (hwhitespace (:: hwhitestuff (:* hwhitestuff)))
     (hwhitestuff (:or hwhitechar hcomment hncomment))
     (hwhitechar (:or hnewline hvertab hspace htab))
@@ -32,82 +36,103 @@
     (hspace (string #\space))
     (htab (string #\tab))
     
-    (hprogram (:* (:or item hwhitespace)))
-    (hitem (:or qvarid qconid qvarsym qconsym literal special reservedop reservedid))
-
-    (hliteral (:or hinteger hfloat hchar hstring))
-    
-    ; numeric literals
-    (hinteger (:or hdecimal (:: "0o" hoctal) (:: "0O" hoctal) (:: "0x" hhexadecimal) (:: "0X" hhexadecimal)))
-    (hdecimal (:: hdigit (:* hdigit)))
-    (hdigit (:/ #\0 #\9))
-    (hoctal (:: hoctit (:* hoctit)))
-    (hoctit (:/ #\0 #\7))
-    (hhexadecimal (:: hhexit (:* hhexit)))
-    (hhexit (:or hdigit (:/ #\A #\F) (:/ #\a #\f)))
-    (hfloat (:: hdecimal "." hdecimal (:? hexponent)))
-    (hexponent (:: (:or "e" "E") (:? (:or "+" "-")) hdecimal))
-    
-    ; character and string literals
-    (hchar (:: "'" (:or (:- hgraphic (:or "'" (string #\\))) hspace (:- hescape (:: (string #\\) "&")) "'")))
-    (hgraphic (:or hsmall hlarge hsymbol hspecial hdigit ":" (string #\") "'"))
-    (hsmall (:or (:/ #\a #\z) "_"))
-    (hlarge (:or (:/ #\A #\Z)))
-    (hsymbol (:or "~" "!" "@" "#" "$" "%" "^" "&" "*" "-" "+" "=" (string #\\) "|" "." "/" "<" ">" "?"))
-    (hspecial (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
-    (hescape (:: (string #\\) (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&")))
-    (hstring (:: (string #\") (:* (:or (:- hgraphic (:or (string #\") (string #\\))) hspace hescape hgap)) (string #\")))
-    (hgap (:: (string #\\) hwhitechar (:* hwhitechar) (string #\\)))
-    
-    ; comments
     (hcomment (:: hdashes (:? (:- hany hsymbol) (:* hany)) hnewline))
     (hdashes (:: "--" (:* "-")))
     (hopencom "{-")
     (hclosecom "-}")
-    (hncomment (:: hopencom hANYseq (:* hncomment hANYseq) hclosecom))
+    (hncomment (:: hopencom hANYseq (:* (:: hncomment hANYseq)) hclosecom))
     (hANYseq (:- hANY (:: (:* hANY) (:* (:: hopencom hclosecom)) (:* hANY))))
     (hANY (:or hgraphic hwhitechar))
     (hany (:or hgraphic hspace htab))
+    (hgraphic (:or hsmall hlarge hsymbol hdigit hspecial ":" (string #\") "'"))
+
+    (hsmall (:or (:/ #\a #\z) "_"))
     
-    ; identifiers and operators
+    (hlarge (:or (:/ #\A #\Z)))
+    (hsymbol (:or "~" "!" "@" "#" "$" "%" "^" "&" "*" "-" "+" "=" (string #\\) "|" "." "/" "<" ">" "?"))
+    
+    (hdigit (:/ #\0 #\9))
+    (hoctit (:/ #\0 #\7))
+    (hhexit (:or hdigit (:/ #\A #\F) (:/ #\a #\f)))
+    
     (hvarid (:- (:: hsmall (:* (:or hsmall hlarge hdigit "'"))) hreservedid))
-    (hreservedid (:or "case"
-                     "data"
-                     "else"
-                     "if"
-                     "in"
-                     "let"
-                     "newtype"
-                     "of"
-                     "then"
-                     "type"
-                     "where"
-                     "_"))
     (hconid (hlarge (:* (:or hsmall hlarge hdigit "'"))))
+    (hreservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
+    
     (hvarsym (:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes)))
-    (hreservedop (:or ":" "::" "=" (string #\\) "|" "->"))
     (hconsym (:- (:: ":" (:* (:or hsymbol ":"))) hreservedop))
+    (hreservedop (:or ":" "::" "=" (string #\\) "|" "->"))
+    
     (htyvar hvarid)
     (htycon hconid)
+    (htycls hconid)
+    (hmodid hconid)
     
-    ; variables
-    (exp (:or (:: (string #\\) (:: apat (:* apat)) "->" exp)
-              (:: "let" decls "in" exp)
-              (:: "if" exp "then" exp "else" exp)
-              (:: "case" exp "of" "{" alts "}")
-              fexp))
-    (fexp (:: (:? fexp) aexp))
-    (aexp (:or qvar gcon literal (:: "(" exp ")") (:: "(" exp (:+ exp) ")") (:: "[" (:+ exp) "]")))
-    (gcon (:or (:: "(" ")") (:: "[" "]") (:: "(" "," (:* ",") ")") qcon))
-
+    (hqvarid (:: (:: (:? hmodid) ".") hvarid))
+    (hqconid (:: (:: (:? hmodid) ".") hconid))
+    (hqtycon (:: (:: (:? hmodid) ".") htycon))
+    (hqtycls (:: (:: (:? hmodid) ".") htycls))
+    (hqvarsym (:: (:: (:? hmodid) ".") hvarsym))
+    (hqconsym (:: (:: (:? hmodid) ".") hconsym))
+    
+    (hdecimal (:: hdigit (:* hdigit)))
+    (hoctal (:: hoctit (:* hoctit)))
+    (hhexadecimal (:: hhexit (:* hhexit)))
+    
+    (hinteger (:or hdecimal (:: "0o" hoctal) (:: "0O" hoctal) (:: "0x" hhexadecimal) (:: "0X" hhexadecimal)))
+    (hfloat (:: hdecimal "." hdecimal (:? hexponent)))
+    (hexponent (:: (:or "e" "E") (:? (:or "+" "-")) hdecimal))
+    
+    (hchar (:: "'" (:or (:- hgraphic (:or "'" (string #\\))) hspace (:- hescape (:: (string #\\) "&")) "'")))
+    (hstring (:: (string #\") (:* (:or (:- hgraphic (:or (string #\") (string #\\))) hspace hescape hgap)) (string #\")))
+    (hescape (:: (string #\\) (:or hcharesc hascii hdecimal (:: "o" hoctal) (:: "x" hhexadecimal))))
+    (hcharesc (:or "a" "b" "f" "n" "r" "t" "v" (string #\\) (string #\") "'" "&"))
+    (hascii (:or (:: "^" hcntrl) "NUL" "SOH" "STX" "ETX" "EOT" "ENQ" "ACK" "BEL" "BS" "HT" "LF" "VT" "FF" "CR" "SO" "SI" "DLE" "DC1" "DC2" "DC3" "DC4" "NAK" "SYN" "ETB" "CAN" "EM" "SUB" "ESC" "FS" "GS" "RS" "US" "SP" "DEL"))
+    (hcntrl (:or hlarge "@" "[" (string #\\) "]" "^" "_"))
+    (hgap (:: (string #\\) hwhitechar (:* hwhitechar) (string #\\)))
+    
+    (hmodule (:or (:: "module" hmodid (:? hexports) "where" hbody) hbody))
+    (hbody (:or (:: "{" himpdecls ";" htopdecls "}") (:: "{" himpdecls "}") (:: "{" htopdecls "}")))
+    
+    (himpdecls (:? (:: himpdecl (:* (:: ";" himpdecl)))))
+    
+    (hexports (:: "(" hexport (:* (:: "," hexport)) (:? ",") ")"))
+    
+    (hexport (:or hqvar (:: hqtycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: hqtycls (:? (:or (:: "(" ".." ")") (:: "(" hqvar (:* (:: "," hqvar)))))) (:: "module" hmodid)))
+    
+    (himpdecl (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)))
+    
+    (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))))
+    
+    (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))))
+    (cname (:or hvar hcon))
+    
+    ;(topdecls
+    
+    
+    
     (hvar (:or hvarid (:: "(" hvarsym ")")))
     (hcon (:or hconid (:: "(" hconsym ")")))
     (hvarop (:or hvarsym (:: "`" hvarid "`")))
     (hconop (:or hconsym (:: "`" hconid "`")))
     (hop (:or hvarop hconop))
-    (gconsym (:or ":" qconsym))
-    (fexp (:: (:? fexp) aexp))
-    (hexp (:or (:: (string #\\) (:+ apat) "->" hexp) (:: hexp qop hexp) (:: "-" qop) (:: "if" hexp "then" hexp "else" hexp)))
+    (hgconsym (:or ":" hconsym))
+    
+    (haexp (:or hvar hgcon hliteral (:: "(" hexp ")") (:: "(" hexp (:+ (:: "," hexp)) ")") (:: "[" hexp (:+ (:: "," hexp)) "]")))
+    (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hcon))
+    (hfexp (:: (:? hfexp) haexp))
+    (hexp (:or (:: (string #\\) (:: hapat (:* hapat)) "->" hexp)
+               (:: "if" hexp "then" hexp "else" hexp)
+               (:: "let" hdecls "in" hexp)
+               (:: "case" hexp "of" "{" halts "}")
+               fexp
+               (:: hexp hop hexp)
+               (:: "-" hexp)))
+    (halts (:: halt (:* (::";" halt))))
+    (halt (:: hpat "->" hexp (:? (:: "where" hdecls))))
+    
+
+    
     )
     
   
