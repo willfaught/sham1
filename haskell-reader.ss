@@ -117,7 +117,7 @@
                    hdecl))
     
     (hdecls (:: "{" (:? hdecl (:* (:: "," hdecl))) "}"))
-    (hdecl (:or hgendecl (:: (:or hfunlhs hpat) hrhs)))
+    (hdecl (:or hgendecl (:: (:or hfunlhs hpat/0) hrhs)))
     
     (hcdecls (:: "{" (:? hcdecl (:* (:: "," hcdecl))) "}"))
     (hcdecl (:or hgendecl (:: (:or hfunlhs hvar) hrhs)))
@@ -155,20 +155,73 @@
     
     (hinst (:or hgtycon (:: "(" hgtycon (:* htyvar) ")") (:: "(" htyvar (:+ (:: "," htyvar)) ")") (:: "[" htyvar "]") (:: "(" htyvar "->" htyvar)))
     
-    (hfunlhs (:or (:: hvar hapat "{" hapat "}") (:: hpat hvarop hpat) (:: hlpat hvarop hpat) (:: hpat hvarop hrpat) (:: "(" hfunlhs ")" hapat "{" hapat "}")))
+    (hfunlhs (:or (:: hvar hapat "{" hapat "}")
+                  (:: hpat/i+1 hvarop/a/i hpat/i+1)
+                  (:: hlpat/i hvarop/l/i hpat/i+1)
+                  (:: hpat/i+1 hvarop/r/i hrpat/i)
+                  (:: "(" hfunlhs ")" hapat "{" hapat "}")))
     
     (hrhs (:or (:: "=" hexp (:? (:: "where" hdecls))) (:: hgdrhs (:? (:: "where" hdecls)))))
     
     (hgdrhs (:: hgd "=" hexp (:? hgdrhs)))
     
-    (hgd (:: "|" hexp))
+    (hgd (:: "|" hexp/0))
     
-    (hexp (:or (:: hexp "::" (:? (:: hcontext "=>")) htype)
-               hexp
-               (:: hexp (:? (:: hqop hexp))) ;exp^i
-               hlexp ;exp^i
-               hrexp)) ;exp^i
-    (hlexp (:: (:or hlexp hexp) hqop hexp)
+    (hexp (:or (:: hexp/0 "::" (:? (:: hcontext "=>")) htype) hexp/0))
+    (hexp/i (:or (:: hexp/i+1 (:? (:: hqop/n/i hexp/i+1))) hlexp/i hrexp/i))
+    (hexp/0 hexp)
+    (hexp/7 hexp)
+    (hexp/10 (:or (:: (string #\\) (:: hapat (:* hapat)) "->" hexp)
+                  (:: "let" hdecls "in" hexp)
+                  (:: "if" hexp "then" hexp "else" hexp)
+                  (:: "case" hexp "of" "{" halts "}")
+                  (:: "do" "{" hstmts "}")
+                  hfexp
+                  (:: hexp hop hexp)
+                  (:: "-" hexp)))
+    (hlexp/i (:: (:or hlexp/i hexp/i+1) hqop/l/i hexp/i+1))
+    (hlexp/6 (:: "-" hexp/7))
+    (hrexp/i (:: hexp/i+1 hqop/r/i (:or hrexp/i hexp/i+1)))
+    (hfexp (:: (:? hfexp) haexp))
+    
+    (haexp (:or hqvar
+                hgcon
+                hliteral
+                (:: "(" hexp ")")
+                (:: "(" hexp (:+ (:: "," hexp)) ")")
+                (:: "[" hexp (:* (:: "," hexp)) "]")
+                (:: "[" hexp (:? (:: "," hexp)) ".." (:? hexp))
+                (:: "[" hexp "|" hqual (:* (:: "," hqual)) "]")
+                (:: "(" hexp/i+1 hqop/a/i ")")
+                (:: "(" hlexp/i hqop/l/i ")")
+                (:: "(" (:- hqop/a/i "-") hexp/i+1 ")")
+                (:: "(" (:- hqop/r/i "-") hrexp/i ")")
+                (:: hqcon "{" (:? (:: hfbind (:* (:: "," hfbind)))) "}")
+                (:: (:- haexp hqcon) "{" hfbind (:* (:: "," hfbind)) "}")))
+    
+    (hqual (:or (:: hpat "<-" hexp) (:: "let" hdecls) hexp))
+    
+    (halts (:: halt (:* (::";" halt))))
+    (halt (:or (:: hpat "->" hexp (:? (:: "where" hdecls))) (:: hpat hgdpat (:? (:: "where" hdecls))) nothing))
+    
+    (hgdpat (:: hgd "->" hexp (:? hgdpat)))
+    
+    (hstmts (:: (:* hstmt) hexp (:? ";")))
+    (hstmt (:or (:: hexp ";") (:: hpat "<-" hexp ";") (:: "let" hdecls ";") ";"))
+    
+    (hfbind (:: hqvar "=" hexp))
+    
+    (hpat (:or (:: hvar "+" hinteger) hpat/0))
+    (hpat/i (:or (:: hpat/i+1 (:? (:: hqconop/n/i hpat/i+1))) hlpat/i hrpat/i))
+    (hpat/0 hpat)
+    (hpat/10 (:or hapat (:: hgcon (:+ hapat))))
+    (hlpat/i (:: (:or hlpat/i hpat/i+1) hqconop/l/i hpat/i+1))
+    (hlpat/6 (:: "-" (:or hinteger hfloat)))
+    (hrpat/i (:: hpat/i+1 hqconop/r/i (:or hrpat/i hpat/i+1)))
+    
+    ;(hapat
+    
+    
                   
     (hvar (:or hvarid (:: "(" hvarsym ")")))
     (hcon (:or hconid (:: "(" hconsym ")")))
@@ -177,18 +230,11 @@
     (hop (:or hvarop hconop))
     (hgconsym (:or ":" hconsym))
     
-    (haexp (:or hvar hgcon hliteral (:: "(" hexp ")") (:: "(" hexp (:+ (:: "," hexp)) ")") (:: "[" hexp (:+ (:: "," hexp)) "]")))
+    
     (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hcon))
     (hfexp (:: (:? hfexp) haexp))
-    (hexp (:or (:: (string #\\) (:: hapat (:* hapat)) "->" hexp)
-               (:: "if" hexp "then" hexp "else" hexp)
-               (:: "let" hdecls "in" hexp)
-               (:: "case" hexp "of" "{" halts "}")
-               fexp
-               (:: hexp hop hexp)
-               (:: "-" hexp)))
-    (halts (:: halt (:* (::";" halt))))
-    (halt (:: hpat "->" hexp (:? (:: "where" hdecls))))
+    
+    
     
 
     
