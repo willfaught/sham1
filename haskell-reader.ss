@@ -94,23 +94,82 @@
     (hmodule (:or (:: "module" hmodid (:? hexports) "where" hbody) hbody))
     (hbody (:or (:: "{" himpdecls ";" htopdecls "}") (:: "{" himpdecls "}") (:: "{" htopdecls "}")))
     
-    (himpdecls (:? (:: himpdecl (:* (:: ";" himpdecl)))))
+    (himpdecls (:: himpdecl (:* (:: ";" himpdecl))))
     
     (hexports (:: "(" hexport (:* (:: "," hexport)) (:? ",") ")"))
     
     (hexport (:or hqvar (:: hqtycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: hqtycls (:? (:or (:: "(" ".." ")") (:: "(" hqvar (:* (:: "," hqvar)))))) (:: "module" hmodid)))
     
-    (himpdecl (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)))
+    (himpdecl (:or (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)) nothing))
     
     (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))))
     
     (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))))
     (cname (:or hvar hcon))
     
-    ;(topdecls
+    (htopdecls (:? (:: htopdecl (:* (:: ";" htopdecl)))))
+    (htopdecl (:or (:: "type" hsimpletype "=" htype)
+                   (:: "data" (:? (:: hcontext "=>")) hsimpletype "=" hconstrs (:? hderiving))
+                   (:: "newtype" (:? (:: hcontext "=>")) hsimpletype "=" hnewconstr (:? hderiving))
+                   (:: "class" (:? (:: hscontext "=>")) htycls htyvar (:? (:: "where" hcdecls)))
+                   (:: "instance" (:? (:: hscontext "=>")) hqtycls hinst (:? (:: "where" hidecls)))
+                   (:: "default" "(" (:? htype (:* (:: "," htype))) ")")
+                   hdecl))
     
+    (hdecls (:: "{" (:? hdecl (:* (:: "," hdecl))) "}"))
+    (hdecl (:or hgendecl (:: (:or hfunlhs hpat) hrhs)))
     
+    (hcdecls (:: "{" (:? hcdecl (:* (:: "," hcdecl))) "}"))
+    (hcdecl (:or hgendecl (:: (:or hfunlhs hvar) hrhs)))
     
+    (hgendecl (:or (:: hvars "::" (:? (:: hcontext "=>")) htype) (:: hfixity (:? hinteger) hops) nothing))
+    
+    (hops (:: hop (:* (:: "," hop))))
+    (hvars (:: hvar (:* (:: "," hvar))))
+    (hfixity (:or "infixl" "infixr" "infix"))
+    
+    (htype (:: hbtype (:? (:: "->" htype))))
+    
+    (hbtype (:: (:? hbtype) hatype))
+    
+    (hatype (:or hgtycon htyvar (:: "(" htype (:+ (:: "," htype)) ")") (:: "[" htype "]") (:: "(" htype ")")))
+    
+    (hgtycon (:or hqtycon "()" "[]" (:: "(" "->" ")") (:: "(" (:+ ",") ")")))
+    
+    (hcontext (:or hclass (:: "(" (:? (:: hclass (:* (:: "," hclass)))) ")")))
+    (hclass (:or (:: hqtycls htyvar) (:: hqtycls "(" htyvar hatype (:* (:: "," hatype)) ")")))
+    (hscontext (:or hsimpleclass (:: "(" (:? (:: hsimpleclass (:* (:: "," hsimpleclass)))) ")")))
+    (hsimpleclass (:or hqtycls htyvar))
+    
+    (hsimpletype (:: htycon (:* htyvar)))
+    
+    (hconstrs (:: hconstr (:* (:: "|" hconstr))))
+    
+    (hconstr (:or (:: hcon (:* (:: (:? "!") hatype)))
+                  (:: (:or hbtype (:: "!" hatype)) hconop (:or hbtype (:: "!" hatype)))
+                  (:: hcon "{" (:? hfielddecl (:* (:: "," hfielddecl "}"))))))
+    (hnewconstr (:or (:: hcon hatype) (:: hcon "{" hvar "::" htype "}")))
+    (hfielddecl (:: hvars "::" (:or htype (:: "!" hatype))))
+    (hderiving (:: "deriving" (:or hdclass (:: "(" hdclass (:* (:: "," hdclass)) ")"))))
+    (hdclass hqtycls)
+    
+    (hinst (:or hgtycon (:: "(" hgtycon (:* htyvar) ")") (:: "(" htyvar (:+ (:: "," htyvar)) ")") (:: "[" htyvar "]") (:: "(" htyvar "->" htyvar)))
+    
+    (hfunlhs (:or (:: hvar hapat "{" hapat "}") (:: hpat hvarop hpat) (:: hlpat hvarop hpat) (:: hpat hvarop hrpat) (:: "(" hfunlhs ")" hapat "{" hapat "}")))
+    
+    (hrhs (:or (:: "=" hexp (:? (:: "where" hdecls))) (:: hgdrhs (:? (:: "where" hdecls)))))
+    
+    (hgdrhs (:: hgd "=" hexp (:? hgdrhs)))
+    
+    (hgd (:: "|" hexp))
+    
+    (hexp (:or (:: hexp "::" (:? (:: hcontext "=>")) htype)
+               hexp
+               (:: hexp (:? (:: hqop hexp))) ;exp^i
+               hlexp ;exp^i
+               hrexp)) ;exp^i
+    (hlexp (:: (:or hlexp hexp) hqop hexp)
+                  
     (hvar (:or hvarid (:: "(" hvarsym ")")))
     (hcon (:or hconid (:: "(" hconsym ")")))
     (hvarop (:or hvarsym (:: "`" hvarid "`")))
