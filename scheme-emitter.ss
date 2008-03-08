@@ -1,28 +1,25 @@
-; Scheme emitter for a Haskell abstract syntax tree.
-
 (module scheme-emitter mzscheme
   (require (lib "match.ss"))
   (provide (all-defined))
 
-  ; Haskell abstract syntax.
-  (define-struct hnum (value))
-  (define-struct hchar (value))
-  (define-struct hlist (head tail))
-  (define-struct htup (values))
-  (define-struct htype (name cons))
-  ;(define-struct (hcon htype
-  (define-struct hid (name))
-  (define-struct hlet (bindings body))
-  (define-struct hcase (exp pats))
-  (define-struct hfun (param body))
-  (define-struct happ (fun arg))
-
-  ; Emits Scheme code as data.
-  (define emit-scheme (match-lambda (($ hnum v) `,v)
-                                    (($ hchar v) `,v)
-                                    (($ hid n) (emit-hid n))
-                                    (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
-                                    (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))))
+  (define-struct term (syntax))
+  (define-struct (tapp term) (function argument))
+  (define-struct (tcase term) (expression patterns))
+  (define-struct (tchar term) (value))
+  (define-struct (tfun term) (parameter body))
+  (define-struct (tid term) (name))
+  (define-struct (tlet term) (bindings body))
+  (define-struct (tlist term) (head tail))
+  (define-struct (tboundary term) (expression))
+  (define-struct (tnum term) (value))
+  (define-struct (ttup term) (elements))
+  (define-struct (ttype term) (name constructors))
+  
+  (define emit-scheme (match-lambda (($ tnum s v) `,v)
+                                    (($ tchar s v) `,v)
+                                    (($ tid s n) (emit-hid n))
+                                    (($ tfun s p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
+                                    (($ tapp s f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))))
   
   (define (emit-hid id) (cond ((equal? id "+") '+)
                               ((equal? id "-") '-)
@@ -37,6 +34,6 @@
   
   (define (run-tests tests) (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
-  (define tests (list (cons (make-hnum 1) 1)
-                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
+  ;(define tests (list (cons (make-hnum 1) 1)
+  ;                    (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
 )
