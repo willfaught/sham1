@@ -7,34 +7,62 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (lparen
-                                 rparen
-                                 bslash
-                                 arrow
-                                 plus
-                                 minus
-                                 asterisk
-                                 fslash
-                                 eof))
+  (define-empty-tokens keywords (case class data default deriving do else if import in infix infixl infixr instance let module newtype of then type where underscore eof))
   
-  (define-tokens regular (varid num))
+  (define-tokens regular (id hinteger hfloat hchar hstring))
+  
+  (define haskell-lexer (lexer-src-pos ("case" (token-case))
+                                       ("class" (token-class))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       ("case" (token-case))
+                                       (hwhitespace (return-without-pos (haskell-lexer input-port)))
+                                       (hinteger (token-hinteger))
+                                       (hfloat (token-hfloat))
+                                       (hchar (token-hchar))
+                                       (hstring (token-hstring))
+                                       ((eof) (token-eof))))
+
+  (define (haskell-parser source-name) (parser (src-pos)
+                                               (tokens keywords regular)
+                                               (start term)
+                                               (end eof)
+                                               (error (lambda (token-ok token-name token-value start-pos end-pos)
+                                                        (raise-read-error "parse error"
+                                                                          source-name
+                                                                          (position-line start-pos)
+                                                                          (position-col start-pos)
+                                                                          (position-offset start-pos)
+                                                                          (- (position-offset end-pos) (position-offset start-pos)))))
+                                               (grammar (hliteral ((hinteger) null)
+                                                                  ((hfloat) null)
+                                                                  ((hchar) null)
+                                                                  ((hstring) null))
+                                                        (
   
   (define-lex-abbrevs
-    (hprogram (:* (:or hlexeme hwhitespace)))
-    (hlexeme (:or hqvarid hqconid hqvarsym hqconsym hliteral hspecial hreservedop hreservedid))
-    (hliteral (:or hinteger hfloat hchar hstring))
+    ;(hliteral (:or hinteger hfloat hchar hstring))
     (hspecial (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
     
     (hwhitespace (:: hwhitestuff (:* hwhitestuff)))
     (hwhitestuff (:or hwhitechar hcomment hncomment))
     (hwhitechar (:or hnewline hvertab hspace htab))
     (hnewline (:or (:: hreturn hlinefeed) hreturn hlinefeed hformfeed))
-    (hreturn (string #\return))
-    (hlinefeed (string #\newline))
+    (hreturn #\return)
+    (hlinefeed #\newline)
     (hvertab #\vtab)
-    (hformfeed (string #\page))
-    (hspace (string #\space))
-    (htab (string #\tab))
+    (hformfeed #\page)
+    (hspace #\space)
+    (htab #\tab)
     
     (hcomment (:: hdashes (:? (:- hany hsymbol) (:* hany)) hnewline))
     (hdashes (:: "--" (:* "-")))
@@ -44,12 +72,12 @@
     (hANYseq (:- hANY (:: (:* hANY) (:* (:: hopencom hclosecom)) (:* hANY))))
     (hANY (:or hgraphic hwhitechar))
     (hany (:or hgraphic hspace htab))
-    (hgraphic (:or hsmall hlarge hsymbol hdigit hspecial ":" (string #\") "'"))
+    (hgraphic (:or hsmall hlarge hsymbol hdigit hspecial ":" #\" "'"))
 
     (hsmall (:or (:/ #\a #\z) "_"))
     
     (hlarge (:or (:/ #\A #\Z)))
-    (hsymbol (:or "~" "!" "@" "#" "$" "%" "^" "&" "*" "-" "+" "=" (string #\\) "|" "." "/" "<" ">" "?"))
+    (hsymbol (:or "~" "!" "@" "#" "$" "%" "^" "&" "*" "-" "+" "=" #\\ "|" "." "/" "<" ">" "?"))
     
     (hdigit (:/ #\0 #\9))
     (hoctit (:/ #\0 #\7))
@@ -105,7 +133,7 @@
     (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))))
     
     (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))))
-    (cname (:or hvar hcon))
+    (hcname (:or hvar hcon))
     
     (htopdecls (:? (:: htopdecl (:* (:: ";" htopdecl)))))
     (htopdecl (:or (:: "type" hsimpletype "=" htype)
@@ -244,49 +272,10 @@
     (hop (:or hvarop hconop))
     (hqop (:or hqvarop hqconop))
     (hgconsym (:or ":" hqconsym)))
-    
   
-  (define haskell-lexer (lexer-src-pos (whitespace (return-without-pos (haskell-lexer input-port)))
-                                       ("(" (token-lparen))
-                                       (")" (token-rparen))
-                                       ("\\" (token-bslash))
-                                       ("->" (token-arrow))
-                                       ("+" (token-plus))
-                                       ("-" (token-minus))
-                                       ("*" (token-asterisk))
-                                       ("/" (token-fslash))
-                                       ((eof) (token-eof))
-                                       ((:: small (:* (:or small large digit "'"))) (token-varid lexeme))
-                                       ((:or integer float) (token-num lexeme))))
   
-  (define (haskell-parser source-name) (parser (src-pos)
-                                               (tokens keywords regular)
-                                               (start term)
-                                               (end eof)
-                                               (error (lambda (token-ok token-name token-value start-pos end-pos)
-                                                        (raise-read-error "parse error"
-                                                                          source-name
-                                                                          (position-line start-pos)
-                                                                          (position-col start-pos)
-                                                                          (position-offset start-pos)
-                                                                          (- (position-offset end-pos) (position-offset start-pos)))))
-                                               (grammar (term ((identifier) $1)
-                                                              ((abstraction) $1)
-                                                              ((application) $1)
-                                                              ((addition) $1)
-                                                              ((subtraction) $1)
-                                                              ((multiplication) $1)
-                                                              ((division) $1)
-                                                              ((lparen term rparen) $2)
-                                                              ((primitive-value) $1))
-                                                        (identifier ((varid) (make-hid $1)))
-                                                        (abstraction ((bslash varid arrow term) (make-hfun $2 $4)))
-                                                        (application ((term term) (make-happ $1 $2)))
-                                                        (addition ((plus term term) (make-hadd $2 $3)))
-                                                        (subtraction ((minus term term) (make-hsub $2 $3)))
-                                                        (multiplication ((asterisk term term) (make-hmul $2 $3)))
-                                                        (division ((fslash term term) (make-hdiv $2 $3)))
-                                                        (primitive-value ((num) (make-hnum (string->number $1)))))))
+  
+  
   
   (define (parse) ((haskell-parser "prompt") (lambda () (haskell-lexer (current-input-port)))))
   
