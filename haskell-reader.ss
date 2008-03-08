@@ -219,26 +219,31 @@
     (hlpat/6 (:: "-" (:or hinteger hfloat)))
     (hrpat/i (:: hpat/i+1 hqconop/r/i (:or hrpat/i hpat/i+1)))
     
-    ;(hapat
+    (hapat (:or (:: hvar (:? (:: "@" hapat)))
+                gcon
+                (:: hqcon "{" (:? hfpat (:* (:: "," hfpat ))) "}" )
+                hliteral
+                "_"
+                (:: "(" hpat ")")
+                (:: "(" hpat (:+ (:: "," hpat)) ")")
+                (:: "[" hpat (:* (:: "," hpat)) "]")
+                (:: "~" hapat)))
     
+    (hfpat (:: hqvar "=" hpat))
     
-                  
+    (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hqcon))
+    
     (hvar (:or hvarid (:: "(" hvarsym ")")))
+    (hqvar (:or hqvarid (:: "(" hqvarsym ")")))
     (hcon (:or hconid (:: "(" hconsym ")")))
+    (hqcon (:or hqconid (:: "(" hgconsym ")")))
     (hvarop (:or hvarsym (:: "`" hvarid "`")))
+    (hqvarop (:or hqvarsym (:: "`" hqvarid "`")))
     (hconop (:or hconsym (:: "`" hconid "`")))
+    (hqconop (:or hgconsym (:: "`" hqconid "`")))
     (hop (:or hvarop hconop))
-    (hgconsym (:or ":" hconsym))
-    
-    
-    (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hcon))
-    (hfexp (:: (:? hfexp) haexp))
-    
-    
-    
-
-    
-    )
+    (hqop (:or hqvarop hqconop))
+    (hgconsym (:or ":" hqconsym)))
     
   
   (define haskell-lexer (lexer-src-pos (whitespace (return-without-pos (haskell-lexer input-port)))
