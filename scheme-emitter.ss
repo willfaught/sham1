@@ -6,6 +6,7 @@
   (define-struct (tapp term) (function argument))
   (define-struct (tcase term) (expression patterns))
   (define-struct (tchar term) (value))
+  (define-struct (tcon term) (name type))
   (define-struct (tfun term) (parameter body))
   (define-struct (tid term) (name))
   (define-struct (tlet term) (bindings body))
