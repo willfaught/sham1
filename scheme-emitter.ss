@@ -20,12 +20,9 @@
   ; Emits Scheme code as data.
   (define emit-scheme (match-lambda (($ hnum v) `,v)
                                     (($ hchar v) `,v)
-                                    (($ hbool v) `,v)
                                     (($ hid n) (emit-hid n))
                                     (($ hfun p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
-                                    (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))
-                                    ;(($ hcons h t) `(list (delay ,(emit-scheme h)) (delay ,(emit-scheme t))))
-                                    ))
+                                    (($ happ f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))))
   
   (define (emit-hid id) (cond ((equal? id "+") '+)
                               ((equal? id "-") '-)
@@ -41,12 +38,5 @@
   (define (run-tests tests) (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
   (define tests (list (cons (make-hnum 1) 1)
-                      (cons (make-hadd (make-hnum 1) (make-hnum 2)) 3)
-                      (cons (make-hsub (make-hnum 4) (make-hnum 3)) 1)
-                      (cons (make-hadd (make-hadd (make-hnum 1) (make-hnum 2)) (make-hsub (make-hnum 4) (make-hnum 3))) 4)
-                      (cons (make-hif (make-hadd (make-hnum 1) (make-hnum 2)) (make-hnum 3) (make-hnum 4)) 4)
-                      (cons (make-hif (make-hnum 0) (make-hadd (make-hnum 2) (make-hnum 3)) (make-hnum 4)) 5)
-                      (cons (make-hif (make-hnum 1) (make-hnum 2) (make-hadd (make-hnum 1) (make-hnum 2))) 3)
-                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)
-                      (cons (make-happ (make-hfun "x" (make-hadd (make-hid "x") (make-hid "x"))) (make-hadd (make-hnum 1) (make-hnum 1))) 4)))
+                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
 )
