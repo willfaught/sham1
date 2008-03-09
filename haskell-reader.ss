@@ -7,50 +7,92 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (case class data default deriving do else if import in infix infixl infixr instance let module newtype of then type where underscore eof))
+  (define-empty-tokens keywords (eof t-comma t-dotdot t-lcbracket t-lrbracket t-module t-rcbracket t-rrbracket t-semicolon t-where))
   
-  (define-tokens regular (id hinteger hfloat hchar hstring))
+  (define-tokens regular (t-conid t-consym t-varid t-varsym))
   
-  (define haskell-lexer (lexer-src-pos ("case" (token-case))
-                                       ("class" (token-class))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
-                                       ("case" (token-case))
+  (define haskell-lexer (lexer-src-pos ("," (token-t-comma))
+                                       (".." (token-t-dotdot))
+                                       ("{" (token-t-lcbracket))
+                                       ("(" (token-t-lrbracket))
+                                       ("module" (token-t-module))
+                                       ("}" (token-t-rcbracket))
+                                       (")" (token-t-rrbracket))
+                                       (";" (token-t-semicolon))
+                                       ("where" (token-t-where))
+                                       ((:: hlarge (:* (:or hsmall hlarge hdigit "'"))) (token-t-conid lexeme))
+                                       ((:- (:: ":" (:* (:or hsymbol ":"))) hreservedop) (token-t-consym))
+                                       ((:- (:: hsmall (:* (:or hsmall hlarge hdigit "'"))) hreservedid) (token-t-varid lexeme))
+                                       ((:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes)) (token-t-varsym lexeme))
                                        (hwhitespace (return-without-pos (haskell-lexer input-port)))
-                                       (hinteger (token-hinteger))
-                                       (hfloat (token-hfloat))
-                                       (hchar (token-hchar))
-                                       (hstring (token-hstring))
                                        ((eof) (token-eof))))
 
+  
+  
+  
   (define (haskell-parser source-name) (parser (src-pos)
+                                               ;(debug "debug.txt")
                                                (tokens keywords regular)
-                                               (start term)
+                                               (start nt-module)
                                                (end eof)
                                                (error (lambda (token-ok token-name token-value start-pos end-pos)
-                                                        (raise-read-error "parse error"
+                                                        (raise-read-error (format "parser: malformed token: source ~a, line ~a, column ~a: ~a: ~a"
+                                                                                  source-name
+                                                                                  (position-line start-pos)
+                                                                                  (position-col start-pos)
+                                                                                  token-name
+                                                                                  token-value)
                                                                           source-name
                                                                           (position-line start-pos)
                                                                           (position-col start-pos)
                                                                           (position-offset start-pos)
                                                                           (- (position-offset end-pos) (position-offset start-pos)))))
-                                               (grammar (hliteral ((hinteger) null)
-                                                                  ((hfloat) null)
-                                                                  ((hchar) null)
-                                                                  ((hstring) null))
-                                                        (
+                                               (grammar (nt-module ((t-module nt-modid nt-exports t-where nt-body) null)
+                                                                   ((t-module nt-modid t-where nt-body) null)
+                                                                   ((nt-body) null))
+                                                        (nt-modid ((t-conid) null))
+                                                        (nt-exports ((t-lrbracket nt-export nt-exports-2 t-rrbracket) null)
+                                                                    ((t-lrbracket nt-export nt-exports-2 t-comma t-rrbracket) null))
+                                                        (nt-exports-2 (() null)
+                                                                      ((t-comma nt-export nt-exports-2) null))
+                                                        (nt-export ((nt-qvar) null)
+                                                                   ((nt-qtycon) null)
+                                                                   ((nt-qtycon t-lrbracket t-dotdot t-rrbracket) null)
+                                                                   ((nt-qtycon t-lrbracket nt-cname nt-export-2 t-rrbracket) null)
+                                                                   ((nt-qtycls) null)
+                                                                   ((nt-qtycls t-lrbracket t-dotdot t-rrbracket) null)
+                                                                   ((nt-qtycls t-lrbracket nt-qvar nt-export-3 t-rrbracket) null)
+                                                                   ((t-module nt-modid) null))
+                                                        (nt-export-2 (() null)
+                                                                     ((t-comma nt-cname nt-export-2) null))
+                                                        (nt-export-3 (() null)
+                                                                     ((t-comma nt-qvar nt-export-3) null))
+                                                        (nt-body ((t-lcbracket nt-impdecls t-semicolon nt-topdecls t-rcbracket) null)
+                                                                 ((t-lcbracket nt-impdecls t-rcbracket) null)
+                                                                 ((t-lcbracket nt-topdecls t-rcbracket) null))
+                                                        (nt-impdecls (() null))
+                                                        (nt-topdecls (() null))
+                                                        (nt-cname ((nt-var) null)
+                                                                  ((nt-con) null))
+                                                        (nt-qvar ((t-module) null))
+                                                        (nt-qtycon ((t-module) null))
+                                                        (nt-qtycls ((t-module) null))
+                                                        
+                                                        
+                                                        
+                                                        (nt-var ((t-varid) null)
+                                                                ((t-lrbracket t-varsym t-rrbracket) null))
+                                                        (nt-con ((t-conid) null)
+                                                                ((t-lrbracket t-consym t-rrbracket) null))
+                                                        
+                                                        )))
+  
+  
+    
+  
   
   (define-lex-abbrevs
-    ;(hliteral (:or hinteger hfloat hchar hstring))
+    (hliteral (:or hinteger hfloat hchar hstring))
     (hspecial (:or "(" ")" "," ";" "[" "]" "`" "{" "}"))
     
     (hwhitespace (:: hwhitestuff (:* hwhitestuff)))
@@ -68,7 +110,7 @@
     (hdashes (:: "--" (:* "-")))
     (hopencom "{-")
     (hclosecom "-}")
-    (hncomment (:: hopencom hANYseq (:* (:: hncomment hANYseq)) hclosecom))
+    (hncomment nothing);(:: hopencom hANYseq (:* (:: hncomment hANYseq)) hclosecom))
     (hANYseq (:- hANY (:: (:* hANY) (:* (:: hopencom hclosecom)) (:* hANY))))
     (hANY (:or hgraphic hwhitechar))
     (hany (:or hgraphic hspace htab))
@@ -84,17 +126,17 @@
     (hhexit (:or hdigit (:/ #\A #\F) (:/ #\a #\f)))
     
     (hvarid (:- (:: hsmall (:* (:or hsmall hlarge hdigit "'"))) hreservedid))
-    (hconid (hlarge (:* (:or hsmall hlarge hdigit "'"))))
+    (hconid (:: hlarge (:* (:or hsmall hlarge hdigit "'"))));done
     (hreservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
     
-    (hvarsym (:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes)))
-    (hconsym (:- (:: ":" (:* (:or hsymbol ":"))) hreservedop))
-    (hreservedop (:or ":" "::" "=" (string #\\) "|" "->"))
+    (hvarsym (:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes))); done
+    (hconsym (:- (:: ":" (:* (:or hsymbol ":"))) hreservedop)); done
+    (hreservedop (:or ":" "::" "=" #\\ "|" "->"))
     
     (htyvar hvarid)
     (htycon hconid)
     (htycls hconid)
-    (hmodid hconid)
+    (hmodid hconid);done
     
     (hqvarid (:: (:: (:? hmodid) ".") hvarid))
     (hqconid (:: (:: (:? hmodid) ".") hconid))
@@ -119,21 +161,21 @@
     (hcntrl (:or hlarge "@" "[" (string #\\) "]" "^" "_"))
     (hgap (:: (string #\\) hwhitechar (:* hwhitechar) (string #\\)))
     
-    (hmodule (:or (:: "module" hmodid (:? hexports) "where" hbody) hbody))
-    (hbody (:or (:: "{" himpdecls ";" htopdecls "}") (:: "{" himpdecls "}") (:: "{" htopdecls "}")))
+    (hmodule (:or (:: "module" hmodid (:? hexports) "where" hbody) hbody));done
+    (hbody (:or (:: "{" himpdecls ";" htopdecls "}") (:: "{" himpdecls "}") (:: "{" htopdecls "}")));done
     
     (himpdecls (:: himpdecl (:* (:: ";" himpdecl))))
     
-    (hexports (:: "(" hexport (:* (:: "," hexport)) (:? ",") ")"))
+    (hexports (:: "(" hexport (:* (:: "," hexport)) (:? ",") ")"));done
     
-    (hexport (:or hqvar (:: hqtycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: hqtycls (:? (:or (:: "(" ".." ")") (:: "(" hqvar (:* (:: "," hqvar)))))) (:: "module" hmodid)))
+    (hexport (:or hqvar (:: hqtycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: hqtycls (:? (:or (:: "(" ".." ")") (:: "(" hqvar (:* (:: "," hqvar)))))) (:: "module" hmodid)));done
     
     (himpdecl (:or (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)) nothing))
     
     (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))))
     
     (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))))
-    (hcname (:or hvar hcon))
+    (hcname (:or hvar hcon));done
     
     (htopdecls (:? (:: htopdecl (:* (:: ";" htopdecl)))))
     (htopdecl (:or (:: "type" hsimpletype "=" htype)
@@ -261,9 +303,9 @@
     
     (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hqcon))
     
-    (hvar (:or hvarid (:: "(" hvarsym ")")))
+    (hvar (:or hvarid (:: "(" hvarsym ")"))); done
     (hqvar (:or hqvarid (:: "(" hqvarsym ")")))
-    (hcon (:or hconid (:: "(" hconsym ")")))
+    (hcon (:or hconid (:: "(" hconsym ")"))); done
     (hqcon (:or hqconid (:: "(" hgconsym ")")))
     (hvarop (:or hvarsym (:: "`" hvarid "`")))
     (hqvarop (:or hqvarsym (:: "`" hqvarid "`")))
