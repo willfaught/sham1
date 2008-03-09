@@ -7,11 +7,12 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (eof t-comma t-dotdot t-lcbracket t-lrbracket t-module t-rcbracket t-rrbracket t-semicolon t-where))
+  (define-empty-tokens keywords (eof t-colon t-comma t-dotdot t-lcbracket t-lrbracket t-module t-rcbracket t-rrbracket t-semicolon t-where))
   
   (define-tokens regular (t-conid t-consym t-varid t-varsym))
   
-  (define haskell-lexer (lexer-src-pos ("," (token-t-comma))
+  (define haskell-lexer (lexer-src-pos (":" (token-t-colon))
+                                       ("," (token-t-comma))
                                        (".." (token-t-dotdot))
                                        ("{" (token-t-lcbracket))
                                        ("(" (token-t-lrbracket))
@@ -50,7 +51,6 @@
                                                (grammar (nt-module ((t-module nt-modid nt-exports t-where nt-body) null)
                                                                    ((t-module nt-modid t-where nt-body) null)
                                                                    ((nt-body) null))
-                                                        (nt-modid ((t-conid) null))
                                                         (nt-exports ((t-lrbracket nt-export nt-exports-2 t-rrbracket) null)
                                                                     ((t-lrbracket nt-export nt-exports-2 t-comma t-rrbracket) null))
                                                         (nt-exports-2 (() null)
@@ -72,18 +72,52 @@
                                                                  ((t-lcbracket nt-topdecls t-rcbracket) null))
                                                         (nt-impdecls (() null))
                                                         (nt-topdecls (() null))
+                                                        
+                                                        (nt-tyvar ((t-varid) null))
+                                                        (nt-tycon ((t-conid) null))
+                                                        (nt-tycls ((t-conid) null))
+                                                        (nt-modid ((t-conid) null))
+                                                        
                                                         (nt-cname ((nt-var) null)
                                                                   ((nt-con) null))
-                                                        (nt-qvar ((t-module) null))
-                                                        (nt-qtycon ((t-module) null))
-                                                        (nt-qtycls ((t-module) null))
-                                                        
-                                                        
-                                                        
                                                         (nt-var ((t-varid) null)
                                                                 ((t-lrbracket t-varsym t-rrbracket) null))
                                                         (nt-con ((t-conid) null)
                                                                 ((t-lrbracket t-consym t-rrbracket) null))
+                                                        
+                                                        (nt-qtycon ((nt-modid t-period nt-tycon) null)
+                                                                   ((nt-tycon) null))
+                                                        (nt-qtycls ((nt-modid t-period nt-tycls) null)
+                                                                   ((nt-tycls) null))
+                                                        
+                                                        (nt-qvar ((nt-qvarid) null)
+                                                                 ((t-lrbracket nt-qvarsym t-rrbracket) null))
+                                                        (nt-qvarid ((nt-modid t-period t-varid) null)
+                                                                   ((t-varid) null))
+                                                        (nt-qvarsym ((nt-modid t-period t-varsym) null)
+                                                                    ((t-varsym) null))
+                                                        
+                                                        (nt-qcon ((nt-qconid) null)
+                                                                 ((t-lrbracket nt-gconsym t-rrbracket)))
+                                                        (nt-qconid ((nt-modid t-period t-conid) null)
+                                                                   ((t-conid) null))
+                                                        (nt-gconsym ((t-colon) null)
+                                                                    ((nt-qconsym) null))
+                                                        (nt-qconsym ((nt-modid t-period t-consym) null)
+                                                                    ((t-consym) null))
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        ;(hvarop (:or hvarsym (:: "`" hvarid "`")))
+                                                        ;(hqvarop (:or hqvarsym (:: "`" hqvarid "`")))
+                                                        ;(hconop (:or hconsym (:: "`" hconid "`")))
+                                                        ;(hqconop (:or hgconsym (:: "`" hqconid "`")))
+                                                        ;(hop (:or hvarop hconop))
+                                                        ;(hqop (:or hqvarop hqconop))
+                                                        
+                                                        
                                                         
                                                         )))
   
@@ -133,17 +167,17 @@
     (hconsym (:- (:: ":" (:* (:or hsymbol ":"))) hreservedop)); done
     (hreservedop (:or ":" "::" "=" #\\ "|" "->"))
     
-    (htyvar hvarid)
-    (htycon hconid)
-    (htycls hconid)
+    (htyvar hvarid);done
+    (htycon hconid);done
+    (htycls hconid);done
     (hmodid hconid);done
     
-    (hqvarid (:: (:: (:? hmodid) ".") hvarid))
-    (hqconid (:: (:: (:? hmodid) ".") hconid))
-    (hqtycon (:: (:: (:? hmodid) ".") htycon))
-    (hqtycls (:: (:: (:? hmodid) ".") htycls))
-    (hqvarsym (:: (:: (:? hmodid) ".") hvarsym))
-    (hqconsym (:: (:: (:? hmodid) ".") hconsym))
+    (hqvarid (:: (:: (:? hmodid) ".") hvarid)); done
+    (hqconid (:: (:: (:? hmodid) ".") hconid)); done
+    (hqtycon (:: (:: (:? hmodid) ".") htycon)); done
+    (hqtycls (:: (:: (:? hmodid) ".") htycls)); done
+    (hqvarsym (:: (:: (:? hmodid) ".") hvarsym)); done
+    (hqconsym (:: (:: (:? hmodid) ".") hconsym)); done
     
     (hdecimal (:: hdigit (:* hdigit)))
     (hoctal (:: hoctit (:* hoctit)))
@@ -304,16 +338,17 @@
     (hgcon (:or (:: "(" ")") (:: "[" "]") (:: "(" (:+ ",") ")") hqcon))
     
     (hvar (:or hvarid (:: "(" hvarsym ")"))); done
-    (hqvar (:or hqvarid (:: "(" hqvarsym ")")))
+    (hqvar (:or hqvarid (:: "(" hqvarsym ")"))); done
     (hcon (:or hconid (:: "(" hconsym ")"))); done
-    (hqcon (:or hqconid (:: "(" hgconsym ")")))
-    (hvarop (:or hvarsym (:: "`" hvarid "`")))
-    (hqvarop (:or hqvarsym (:: "`" hqvarid "`")))
-    (hconop (:or hconsym (:: "`" hconid "`")))
-    (hqconop (:or hgconsym (:: "`" hqconid "`")))
-    (hop (:or hvarop hconop))
-    (hqop (:or hqvarop hqconop))
-    (hgconsym (:or ":" hqconsym)))
+    (hqcon (:or hqconid (:: "(" hgconsym ")"))); done
+    (hvarop (:or hvarsym (:: "`" hvarid "`"))); done
+    (hqvarop (:or hqvarsym (:: "`" hqvarid "`"))); done
+    (hconop (:or hconsym (:: "`" hconid "`"))); done
+    (hqconop (:or hgconsym (:: "`" hqconid "`"))); done
+    (hop (:or hvarop hconop)); done
+    (hqop (:or hqvarop hqconop)); done
+    (hgconsym (:or ":" hqconsym)); done
+    )
   
   
   
