@@ -7,16 +7,21 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (eof t-colon t-comma t-dotdot t-lcbracket t-lrbracket t-module t-rcbracket t-rrbracket t-semicolon t-where))
+  (define-empty-tokens keywords (eof t-as t-colon t-comma t-dotdot t-hiding t-import t-lcbracket t-lrbracket t-module t-period t-qualified t-rcbracket t-rrbracket t-semicolon t-where))
   
   (define-tokens regular (t-conid t-consym t-varid t-varsym))
   
-  (define haskell-lexer (lexer-src-pos (":" (token-t-colon))
+  (define haskell-lexer (lexer-src-pos ("as" (token-t-as))
+                                       (":" (token-t-colon))
                                        ("," (token-t-comma))
                                        (".." (token-t-dotdot))
+                                       ("hiding" (token-t-hiding))
+                                       ("import" (token-t-import))
                                        ("{" (token-t-lcbracket))
                                        ("(" (token-t-lrbracket))
                                        ("module" (token-t-module))
+                                       ("." (token-t-period))
+                                       ("qualified" (token-t-qualified))
                                        ("}" (token-t-rcbracket))
                                        (")" (token-t-rrbracket))
                                        (";" (token-t-semicolon))
@@ -70,8 +75,44 @@
                                                         (nt-body ((t-lcbracket nt-impdecls t-semicolon nt-topdecls t-rcbracket) null)
                                                                  ((t-lcbracket nt-impdecls t-rcbracket) null)
                                                                  ((t-lcbracket nt-topdecls t-rcbracket) null))
-                                                        (nt-impdecls (() null))
+                                                        (nt-impdecls ((nt-impdecl nt-impdecls-2) null))
+                                                        (nt-impdecls-2 (() null)
+                                                                       ((t-semicolon nt-impdecl nt-impdecls-2) null))
+                                                        (nt-impdecl ((t-import nt-impdecl-2 nt-modid nt-impdecl-3 nt-impdecl-4) null)
+                                                                    (() null))
+                                                        (nt-impdecl-2 (() null)
+                                                                      ((t-qualified) null))
+                                                        (nt-impdecl-3 (() null)
+                                                                      ((t-as nt-modid) null))
+                                                        (nt-impdecl-4 (() null)
+                                                                      ((nt-impspec) null))
+                                                        (nt-impspec ((nt-impspec-2) null)
+                                                                    ((t-hiding nt-impspec-2) null))
+                                                        (nt-impspec-2 ((t-lrbracket nt-import nt-impspec-3 nt-impspec-4 t-rrbracket) null))
+                                                        (nt-impspec-3 (() null)
+                                                                      ((t-comma nt-import nt-impspec-3) null))
+                                                        (nt-impspec-4 (() null)
+                                                                      ((t-comma) null))
+                                                        (nt-import ((nt-var) null)
+                                                                   ((nt-tycon nt-import-2) null)
+                                                                   ((nt-tycls nt-import-3) null))
+                                                        (nt-import-2 (() null)
+                                                                     ((t-lrbracket t-dotdot t-rrbracket) null)
+                                                                     ((t-lrbracket nt-cname nt-import-2-2 t-rrbracket) null))
+                                                        (nt-import-2-2 (() null)
+                                                                       ((t-comma nt-cname) null))
+                                                        (nt-import-3 (() null)
+                                                                     ((t-lrbracket t-dotdot t-rrbracket) null)
+                                                                     ((t-lrbracket nt-var nt-import-3-2 t-rrbracket) null))
+                                                        (nt-import-3-2 (() null)
+                                                                       ((t-comma nt-var) null))
+                                                        
                                                         (nt-topdecls (() null))
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
                                                         
                                                         (nt-tyvar ((t-varid) null))
                                                         (nt-tycon ((t-conid) null))
@@ -98,7 +139,7 @@
                                                                     ((t-varsym) null))
                                                         
                                                         (nt-qcon ((nt-qconid) null)
-                                                                 ((t-lrbracket nt-gconsym t-rrbracket)))
+                                                                 ((t-lrbracket nt-gconsym t-rrbracket) null))
                                                         (nt-qconid ((nt-modid t-period t-conid) null)
                                                                    ((t-conid) null))
                                                         (nt-gconsym ((t-colon) null)
@@ -198,17 +239,17 @@
     (hmodule (:or (:: "module" hmodid (:? hexports) "where" hbody) hbody));done
     (hbody (:or (:: "{" himpdecls ";" htopdecls "}") (:: "{" himpdecls "}") (:: "{" htopdecls "}")));done
     
-    (himpdecls (:: himpdecl (:* (:: ";" himpdecl))))
+    (himpdecls (:: himpdecl (:* (:: ";" himpdecl))));done
     
     (hexports (:: "(" hexport (:* (:: "," hexport)) (:? ",") ")"));done
     
     (hexport (:or hqvar (:: hqtycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: hqtycls (:? (:or (:: "(" ".." ")") (:: "(" hqvar (:* (:: "," hqvar)))))) (:: "module" hmodid)));done
     
-    (himpdecl (:or (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)) nothing))
+    (himpdecl (:or (:: "import" (:? "qualified") hmodid (:? "as" hmodid) (:? himpspec)) nothing));done
     
-    (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))))
+    (himpspec (:or (:: "(" himport (:* (:: "," himport)) (:? himport) ")") (:: "hiding" (:: "(" himport (:* (:: "," himport)) (:? himport) ")"))));done
     
-    (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))))
+    (himport (:or hvar (:: htycon (:? (:or (:: "(" ".." ")") (:: "(" hcname (:* (:: "," hcname)) ")")))) (:: htycls (:? (:or (:: "(" ".." ")") (:: "(" hvar (:* (:: "," hvar))))))));done
     (hcname (:or hvar hcon));done
     
     (htopdecls (:? (:: htopdecl (:* (:: ";" htopdecl)))))
