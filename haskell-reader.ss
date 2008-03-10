@@ -7,7 +7,7 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (eof t-as t-backtick t-bang t-class t-colon t-coloncolon t-comma t-darrow t-data t-default t-deriving t-periodperiod t-equal t-hiding t-import t-instance t-lcbracket t-lrbracket t-lsbracket t-module t-newtype t-ocrbrackets t-ocsbrackets t-period t-pipe t-qualified t-rcbracket t-rrbracket t-rsbracket t-sarrow t-semicolon t-type t-where))
+  (define-empty-tokens keywords (eof t-as t-backtick t-bang t-class t-colon t-coloncolon t-comma t-darrow t-data t-default t-deriving t-periodperiod t-equal t-hiding t-import t-infix t-infixl t-infixr t-instance t-lcbracket t-lrbracket t-lsbracket t-module t-newtype t-ocrbrackets t-ocsbrackets t-period t-pipe t-qualified t-rcbracket t-rrbracket t-rsbracket t-sarrow t-semicolon t-type t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
@@ -26,6 +26,9 @@
                                        ("=" (token-t-equal))
                                        ("hiding" (token-t-hiding))
                                        ("import" (token-t-import))
+                                       ("infix" (token-t-infix))
+                                       ("infixl" (token-t-infixl))
+                                       ("infixr" (token-t-infixr))
                                        ("instance" (token-t-instance))
                                        ("{" (token-t-lcbracket))
                                        ("(" (token-t-lrbracket))
@@ -55,14 +58,6 @@
                                        (hwhitespace (return-without-pos (haskell-lexer input-port)))
                                        ((eof) (token-eof))))
   
-  
-  
-    
-    
-    
-  
-  
-
   (define (haskell-parser source-name) (parser (src-pos)
                                                ;(debug "debug.txt")
                                                (tokens keywords regular)
@@ -196,7 +191,7 @@
                                                                    ((nt-tyvar nt-inst-2) null))
                                                         (nt-inst-3 ((t-comma nt-tyvar) null)
                                                                    ((t-comma nt-tyvar nt-inst-3) null))
-                                                        (nt-idecls ((t-lcbrace nt-idecls-2 t-rcbrace) null))
+                                                        (nt-idecls ((t-lcbracket nt-idecls-2 t-rcbracket) null))
                                                         (nt-topdecl-8 (() null)
                                                                       ((t-comma nt-type nt-topdecl-8) null))
                                                         (nt-gendecl ((nt-vars t-coloncolon nt-gendecl-2 nt-type) null)
@@ -241,9 +236,36 @@
                                                                      ((nt-cdecl nt-cdecls-3) null))
                                                         (nt-gtycon-2 (() null)
                                                                      ((t-comma nt-gtycon-2) null))
+                                                        (nt-idecls-2 (() null)
+                                                                     ((nt-idecl nt-idecls-3) null))
+                                                        (nt-vars ((nt-var nt-vars-2) null))
+                                                        (nt-gendecl-2 (() null)
+                                                                      ((nt-context t-darrow) null))
+                                                        (nt-fixity ((t-infixl) null)
+                                                                   ((t-infixr) null)
+                                                                   ((t-infix) null))
+                                                        (nt-gendecl-3 (() null)
+                                                                      ((t-integer) null))
+                                                        (nt-ops ((nt-op nt-ops-2) null))
+                                                        (nt-funlhs ((nt-var nt-apat nt-funlhs-2) null)
+                                                                   ((nt-pat/i+1 nt-varop/a/i nt-hpat/i+1) null))
+                                                        
+                                                        ;todo:finish funlhs
+                                                        
+                                                        (nt-funlhs-2 (() null)
+                                                                     ((nt-apat) null))
                                                         
                                                         
                                                         
+                                                        (hfunlhs (:or (:: hvar hapat "{" hapat "}")
+                                                                      (:: hpat/i+1 hvarop/a/i hpat/i+1)
+                                                                      (:: hlpat/i hvarop/l/i hpat/i+1)
+                                                                      (:: hpat/i+1 hvarop/r/i hrpat/i)
+                                                                      (:: "(" hfunlhs ")" hapat "{" hapat "}")))
+                                                        
+                                                        
+                                                        ;(nt-ops-2 (() null)
+                                                        ;          ((t-comma nt-op nt-ops-2) null))
                                                         
                                                         ;(nt-class-2 (() null)
                                                         ;            ((t-comma nt-atype nt-class-2) null))
@@ -253,13 +275,10 @@
                                                         ;(nt-rhs-3 (() null)
                                                         ;          ((t-where nt-decls) null))
                                                         
-                                                        ;(nt-gendecl-2 (() null)
-                                                        ;              ((nt-context t-darrow) null))
-                                                        ;(nt-gendecl-3 (() null)
-                                                        ;              ((t-integer) null))
                                                         
-                                                        ;(nt-idecls-2 (() null)
-                                                        ;             ((nt-idecl nt-idecls-3) null))
+                                                        
+                                                        
+                                                        
                                                         ;(nt-idecls-3 (() null)
                                                         ;             ((t-semicolon nt-idecl nt-idecls-3) null))
                                                         
@@ -271,25 +290,19 @@
                                                         ;(nt-scontext-3 (() null)
                                                         ;              ((t-comma nt-simpleclass nt-scontext-3) null))
                                                         
-                                                        
                                                         ;(nt-deriving-3 (() null)
                                                         ;               ((nt-dclass nt-deriving-4) null))
                                                         ;(nt-deriving-4 (() null)
                                                         ;               ((t-comma nt-dclass nt-deriving-4) null))
                                                         
-                                                        
                                                         ;(nt-context-3 (() null)
                                                         ;              ((t-comma nt-class nt-context-3) null))
-                                                        
                                                         
                                                         ;(nt-export-2-2-2 (() null)
                                                         ;                 ((t-comma nt-cname nt-export-2-2-2) null))
                                                         
-                                                        
                                                         ;(nt-export-3-2-2 (() null)
                                                         ;                 ((t-comma nt-qvar nt-export-3-2-2) null))
-                                                        
-                                                        
                                                         
                                                         ;(nt-qvarid-2 (() null)
                                                         ;             ((nt-modid t-period) null))
@@ -298,11 +311,6 @@
                                                         ;              ((nt-modid t-period) null))
                                                         ;(nt-cname ((nt-var) null)
                                                         ;          ((nt-con) null))
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
                                                         
                                                         ;(nt-impspec-2-2 (() null)
                                                         ;                ((nt-import nt-impspec-2-2-2) null))
@@ -328,65 +336,28 @@
                                                         ;(nt-import-3-2-2 (() null)
                                                         ;                 ((t-comma nt-var nt-import-3-2-2) null))
                                                         
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
                                                         ;(nt-constr-2-2 (() null)
                                                         ;               ((t-bang) null))
-                                                        
                                                         
                                                         ;(nt-constr-4-2 (() null)
                                                         ;               ((t-comma nt-fielddecl nt-constr-4-2) null))
                                                         ;(nt-fielddecl ((nt-vars t-coloncolon nt-fielddecl-2) null))
                                                         ;(nt-fielddecl-2 ((nt-type) null)
                                                         ;                ((t-bang nt-atype) null))
-                                                        ;(nt-vars ((nt-var nt-vars-2) null))
+                                                        
                                                         ;(nt-vars-2 (() null)
                                                         ;           ((t-comma nt-var nt-vars-2) null))
                                                         
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
     
-    (hfunlhs (:or (:: hvar hapat "{" hapat "}")
-                  (:: hpat/i+1 hvarop/a/i hpat/i+1)
-                  (:: hlpat/i hvarop/l/i hpat/i+1)
-                  (:: hpat/i+1 hvarop/r/i hrpat/i)
-                  (:: "(" hfunlhs ")" hapat "{" hapat "}")))
     (hpat/0 hpat)
     (hpat (:or (:: hvar "+" hinteger) hpat/0))
     
     
     
-    (hfixity (:or "infixl" "infixr" "infix"))
     
     
-    (hops (:: hop (:* (:: "," hop))))
+    
+    
     (hop (:or hvarop hconop))
     (hapat (:or (:: hvar (:? (:: "@" hapat)))
                 gcon

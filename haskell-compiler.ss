@@ -16,19 +16,27 @@
   (define-struct (ttup term) (elements))
   (define-struct (ttype term) (name constructors))
   
-  (define emit-scheme (match-lambda (($ tnum s v) `,v)
+  (define emit-scheme (match-lambda (($ tapp s f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))
+                                    ;(($ tcase e p) )
                                     (($ tchar s v) `,v)
-                                    (($ tid s n) (emit-hid n))
+                                    ;(($ tcon n t) )
+                                    ;(($ temb e) )
                                     (($ tfun s p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
-                                    (($ tapp s f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))))
+                                    (($ tid s n) (emit-tid n))
+                                    ;(($ tlet bi bo) )
+                                    ;(($ tlist h t) )
+                                    (($ tnum s v) `,v)
+                                    ;(($ ttup e) )
+                                    ;(($ ttype n c) )
+                                    ))
   
-  (define (emit-hid id) 0);(cond ((hash-table-get prelude (lambda () (
+  (define (emit-tid id) (hash-table-get prelude (lambda () (
   ;                            (else `(force ,(string->symbol id)))))
   
-  (define prelude (make-immutable-hash-table `((+ ,+)
-                                               (- ,-)
-                                               (* ,*)
-                                               (/ ,/)) 'equal))
+  (define prelude (make-immutable-hash-table `(("+" ,+)
+                                               ("-" ,-)
+                                               ("*" ,*)
+                                               ("/" ,/)) 'equal))
   
   ;(define (emit-scheme-list c)
   ;  (define (unnest c) (if (eqv? c 'nil) () `(delay ,(emit-scheme (hcons-head c)))
