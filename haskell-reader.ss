@@ -7,7 +7,7 @@
 
   (provide (rename read-haskell-syntax read-syntax))
   
-  (define-empty-tokens keywords (eof t-as t-backtick t-bang t-class t-colon t-coloncolon t-comma t-darrow t-data t-default t-periodperiod t-equal t-hiding t-import t-instance t-lcbracket t-lrbracket t-lsbracket t-module t-newtype t-ocrbrackets t-ocsbrackets t-period t-pipe t-qualified t-rcbracket t-rrbracket t-rsbracket t-sarrow t-semicolon t-type t-where))
+  (define-empty-tokens keywords (eof t-as t-backtick t-bang t-class t-colon t-coloncolon t-comma t-darrow t-data t-default t-deriving t-periodperiod t-equal t-hiding t-import t-instance t-lcbracket t-lrbracket t-lsbracket t-module t-newtype t-ocrbrackets t-ocsbrackets t-period t-pipe t-qualified t-rcbracket t-rrbracket t-rsbracket t-sarrow t-semicolon t-type t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
@@ -21,6 +21,7 @@
                                        ("=>" (token-t-darrow))
                                        ("data" (token-t-data))
                                        ("default" (token-t-default))
+                                       ("deriving" (token-t-deriving))
                                        (".." (token-t-periodperiod))
                                        ("=" (token-t-equal))
                                        ("hiding" (token-t-hiding))
@@ -193,58 +194,116 @@
                                                                    ((t-lrbracket t-comma nt-gtycon-2 t-rrbracket) null))
                                                         (nt-inst-2 (() null)
                                                                    ((nt-tyvar nt-inst-2) null))
+                                                        (nt-inst-3 ((t-comma nt-tyvar) null)
+                                                                   ((t-comma nt-tyvar nt-inst-3) null))
+                                                        (nt-idecls ((t-lcbrace nt-idecls-2 t-rcbrace) null))
+                                                        (nt-topdecl-8 (() null)
+                                                                      ((t-comma nt-type nt-topdecl-8) null))
+                                                        (nt-gendecl ((nt-vars t-coloncolon nt-gendecl-2 nt-type) null)
+                                                                    ((nt-fixity nt-gendecl-3 nt-ops) null)
+                                                                    (() null))
+                                                        (nt-decl-2 ((nt-funlhs) null)
+                                                                   ((nt-hpat/0) null))
+                                                        (nt-rhs ((t-equal nt-exp nt-rhs-2) null)
+                                                                ((nt-gdrhs nt-rhs-3) null))
+                                                        (nt-qvarid ((nt-qvarid-2 t-varid) null))
+                                                        (nt-qvarsym ((nt-qvarsym-2 t-varsym) null))
+                                                        (nt-qtycon-2 (() null)
+                                                                     ((nt-modid t-period) null))
+                                                        (nt-export-2-2 (() null)
+                                                                       ((nt-cname nt-export-2-2-2) null))
+                                                        (nt-export-3-2 (() null)
+                                                                       ((nt-qvar nt-export-3-2-2) null))
+                                                        (nt-impspec-2 ((t-lrbracket nt-impspec-2-2 nt-impspec-2-3 t-rrbracket) null))
+                                                        (nt-btype-2 (() null)
+                                                                    ((nt-btype) null))
+                                                        (nt-class ((nt-qtycls nt-tyvar) null)
+                                                                  ((nt-qtycls t-lrbracket nt-tyvar nt-atype nt-class-2 t-rrbracket) null))
+                                                        (nt-context-2 (() null)
+                                                                      ((nt-class nt-context-3) null))
+                                                        (nt-constr-2 (() null)
+                                                                     ((nt-constr-2-2 nt-atype nt-constr-2) null))
+                                                        (nt-constr-3 ((nt-btype) null)
+                                                                     ((t-bang nt-atype) null))
+                                                        (nt-conop ((t-consym) null)
+                                                                  ((t-backtick t-conid t-backtick) null))
+                                                        (nt-constr-4 (() null)
+                                                                     ((nt-fielddecl nt-constr-4-2) null))
+                                                        (nt-deriving-2 ((nt-dclass) null)
+                                                                       ((t-lrbracket nt-deriving-3 t-rrbracket) null))
+                                                        (nt-atype-2 (() null)
+                                                                    ((t-comma nt-type nt-atype-2) null))
+                                                        (nt-simpleclass ((nt-qtycls) null)
+                                                                        ((nt-tyvar) null))
+                                                        (nt-scontext-2 (() null)
+                                                                      ((nt-simpleclass nt-scontext-3) null))
+                                                        (nt-cdecls-2 (() null)
+                                                                     ((nt-cdecl nt-cdecls-3) null))
+                                                        (nt-gtycon-2 (() null)
+                                                                     ((t-comma nt-gtycon-2) null))
                                                         
                                                         
                                                         
                                                         
-                                                        ;(nt-cdecls-2 (() null)
-                                                        ;             ((nt-cdecl nt-cdecls-3) null))
+                                                        ;(nt-class-2 (() null)
+                                                        ;            ((t-comma nt-atype nt-class-2) null))
+                                                        
+                                                        ;(nt-rhs-2 (() null)
+                                                        ;          ((t-where nt-decls) null))
+                                                        ;(nt-rhs-3 (() null)
+                                                        ;          ((t-where nt-decls) null))
+                                                        
+                                                        ;(nt-gendecl-2 (() null)
+                                                        ;              ((nt-context t-darrow) null))
+                                                        ;(nt-gendecl-3 (() null)
+                                                        ;              ((t-integer) null))
+                                                        
+                                                        ;(nt-idecls-2 (() null)
+                                                        ;             ((nt-idecl nt-idecls-3) null))
+                                                        ;(nt-idecls-3 (() null)
+                                                        ;             ((t-semicolon nt-idecl nt-idecls-3) null))
+                                                        
+                                                        
                                                         ;(nt-cdecls-3 (() null)
                                                         ;             ((t-comma nt-cdecl nt-cdecls-3) null))
                                                         
-                                                        ;(nt-scontext-2 (() null)
-                                                        ;              ((nt-simpleclass nt-scontext-3) null))
+                                                        
                                                         ;(nt-scontext-3 (() null)
                                                         ;              ((t-comma nt-simpleclass nt-scontext-3) null))
                                                         
-                                                        ;(nt-deriving-2 ((nt-dclass) null)
-                                                        ;               ((t-lrbracket nt-deriving-3 t-rrbracket) null))
+                                                        
                                                         ;(nt-deriving-3 (() null)
                                                         ;               ((nt-dclass nt-deriving-4) null))
                                                         ;(nt-deriving-4 (() null)
                                                         ;               ((t-comma nt-dclass nt-deriving-4) null))
                                                         
-                                                        ;(nt-context-2 (() null)
-                                                        ;              ((nt-class nt-context-3) null))
+                                                        
                                                         ;(nt-context-3 (() null)
                                                         ;              ((t-comma nt-class nt-context-3) null))
                                                         
-                                                        ;(nt-export-2-2 (() null)
-                                                        ;               ((nt-cname nt-export-2-2-2) null))
+                                                        
                                                         ;(nt-export-2-2-2 (() null)
                                                         ;                 ((t-comma nt-cname nt-export-2-2-2) null))
                                                         
-                                                        ;(nt-export-3-2 (() null)
-                                                        ;               ((nt-qvar nt-export-3-2-2) null))
+                                                        
                                                         ;(nt-export-3-2-2 (() null)
                                                         ;                 ((t-comma nt-qvar nt-export-3-2-2) null))
                                                         
                                                         
-                                                        ;(nt-qvarid ((nt-qvarid-2 t-varid) null))
+                                                        
                                                         ;(nt-qvarid-2 (() null)
                                                         ;             ((nt-modid t-period) null))
-                                                        ;(nt-qvarsym ((nt-qvarsym-2 t-varsym) null))
+                                                        
                                                         ;(nt-qvarsym-2 (() null)
                                                         ;              ((nt-modid t-period) null))
                                                         ;(nt-cname ((nt-var) null)
                                                         ;          ((nt-con) null))
                                                         
                                                         
-                                                        ;(nt-conop ((t-consym) null)
-                                                        ;          ((t-backtick t-conid t-backtick) null))
                                                         
                                                         
-                                                        ;(nt-impspec-2 ((t-lrbracket nt-impspec-2-2 nt-impspec-2-3 t-rrbracket) null))
+                                                        
+                                                        
                                                         ;(nt-impspec-2-2 (() null)
                                                         ;                ((nt-import nt-impspec-2-2-2) null))
                                                         ;(nt-impspec-2-2-2 (() null)
@@ -271,37 +330,29 @@
                                                         
                                                         
                                                         
-                                                        ;(nt-topdecl-8 (() null)
-                                                        ;              ((t-comma nt-type nt-topdecl-8) null))
                                                         
                                                         
                                                         
                                                         
                                                         
-                                                        ;(nt-btype-2 (() null)
-                                                        ;            ((nt-btype) null))
-                                                        
-                                                        ;(nt-atype-2 (() null)
-                                                        ;            ((t-comma nt-type nt-atype-2) null))
-                                                        
-                                                        ;(nt-gtycon-2 (() null)
-                                                        ;             ((t-comma nt-gtycon-2) null))
-                                                        
-                                                        ;(nt-qtycon-2 (() null)
-                                                        ;             ((nt-modid t-period) null))
                                                         
                                                         
                                                         
                                                         
                                                         
-                                                        ;(nt-constr-2 (() null)
-                                                        ;             ((nt-constr-2-2 nt-atype nt-constr-2) null))
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
                                                         ;(nt-constr-2-2 (() null)
                                                         ;               ((t-bang) null))
-                                                        ;(nt-constr-3 ((nt-btype) null)
-                                                        ;             ((t-bang nt-atype) null))
-                                                        ;(nt-constr-4 (() null)
-                                                        ;             ((nt-fielddecl nt-constr-4-2) null))
+                                                        
+                                                        
                                                         ;(nt-constr-4-2 (() null)
                                                         ;               ((t-comma nt-fielddecl nt-constr-4-2) null))
                                                         ;(nt-fielddecl ((nt-vars t-coloncolon nt-fielddecl-2) null))
@@ -313,17 +364,15 @@
                                                         
                                                         
                                                         
-                                                        ;(nt-inst-3 ((t-comma nt-tyvar) null)
-                                                        ;           ((t-comma nt-tyvar nt-inst-3) null))
-                                                        
-                                                        ;(nt-decl-2 ((nt-funlhs) null)
-                                                        ;           ((nt-hpat/0) null))
                                                         
                                                         
                                                         
                                                         
                                                         
-    (hgendecl (:or (:: hvars "::" (:? (:: hcontext "=>")) htype) (:: hfixity (:? hinteger) hops) nothing))
+                                                        
+                                                        
+                                                        
+    
     (hfunlhs (:or (:: hvar hapat "{" hapat "}")
                   (:: hpat/i+1 hvarop/a/i hpat/i+1)
                   (:: hlpat/i hvarop/l/i hpat/i+1)
@@ -331,9 +380,9 @@
                   (:: "(" hfunlhs ")" hapat "{" hapat "}")))
     (hpat/0 hpat)
     (hpat (:or (:: hvar "+" hinteger) hpat/0))
-    (hrhs (:or (:: "=" hexp (:? (:: "where" hdecls))) (:: hgdrhs (:? (:: "where" hdecls)))))
     
-    (hclass (:or (:: hqtycls htyvar) (:: hqtycls "(" htyvar hatype (:* (:: "," hatype)) ")")))
+    
+    
     (hfixity (:or "infixl" "infixr" "infix"))
     
     
@@ -450,7 +499,7 @@
     (hcdecl (:or hgendecl (:: (:or hfunlhs hvar) hrhs)))
     
     
-    (hsimpleclass (:or hqtycls htyvar))
+    
     
     
     (hdclass hqtycls)
