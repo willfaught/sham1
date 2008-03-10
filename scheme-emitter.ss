@@ -22,11 +22,13 @@
                                     (($ tfun s p b) `(lambda (,(string->symbol p)) ,(emit-scheme b)))
                                     (($ tapp s f a) `(,(emit-scheme f) (delay ,(emit-scheme a))))))
   
-  (define (emit-hid id) (cond ((equal? id "+") '+)
-                              ((equal? id "-") '-)
-                              ((equal? id "*") '*)
-                              ((equal? id "/") '/)
-                              (else `(force ,(string->symbol id)))))
+  (define (emit-hid id) 0);(cond ((hash-table-get prelude (lambda () (
+  ;                            (else `(force ,(string->symbol id)))))
+  
+  (define prelude (make-immutable-hash-table `((+ ,+)
+                                               (- ,-)
+                                               (* ,*)
+                                               (/ ,/)) 'equal))
   
   ;(define (emit-scheme-list c)
   ;  (define (unnest c) (if (eqv? c 'nil) () `(delay ,(emit-scheme (hcons-head c)))
