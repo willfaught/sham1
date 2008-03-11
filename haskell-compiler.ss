@@ -10,19 +10,20 @@
   (define-struct tmod (name declarations))
   (define-struct tnum (value))
   
+  ;BUG: nomatch for 'empty-list
   (define compile-haskell
     (match-lambda (($ tapp f a) `(,(compile-haskell f) (delay ,(compile-haskell a))))
-                  (($ tchar v) `,v)
+                  (($ tchar v) (string-ref v 0))
                   (($ tfun p b) `(lambda (,(string->symbol p)) ,(compile-haskell b)))
                   (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
-                  (($ tlist h t) (compile-tlist h t))
+                  (($ tlist h t) `',(compile-tlist h t))
                   (($ tmod n d) (compile-tmod n d))
-                  (($ tnum v) `,v)))
+                  (($ tnum v) v)))
   
   (define (compile-tlist head tail)
     (cond ((equal? head 'empty-list) '())
-          ((equal? tail 'empty-list) `(,(compile-haskell head)))
-          (else (list* (compile-haskell head) (compile-tlist (tlist-head tail) (tlist-tail tail))))))
+          ((equal? tail 'empty-list) (compile-haskell head))
+          (else (cons (compile-haskell head) (compile-tlist (tlist-head tail) (tlist-tail tail))))))
   
   (define (compile-tmod name declarations)
     1)
@@ -32,7 +33,7 @@
                                  ("-" (lambda (x) (lambda (y) (- (force x) (force y)))))
                                  ("*" (lambda (x) (lambda (y) (* (force x) (force y)))))
                                  ("/" (lambda (x) (lambda (y) (/ (force x) (force y)))))
-                                 (":" (lambda (h) (lambda (t) ((make-tlist h t)))))) 'equal))
+                                 (":" (lambda (h) (lambda (t) (cons h t))))) 'equal))
   
   (define (run-test exp result)
     (equal? (eval (compile-haskell exp)) result))
