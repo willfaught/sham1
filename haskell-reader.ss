@@ -95,7 +95,7 @@
   
   (define (haskell-parser source-name)
     (parser (src-pos)
-            ;(debug "debug.txt")
+            (debug "debug.txt")
             (tokens keywords regular)
             (start nt-module)
             (end eof)
@@ -122,8 +122,7 @@
                                     ((t-semicolon nt-topdecl nt-topdecls-2) null))
                      (nt-decl ((nt-gendecl) null)
                               ((nt-decl-2 nt-rhs) null))
-                     (nt-gendecl ((nt-vars t-coloncolon nt-type) null)
-                                 (() null)) ;here
+                     (nt-gendecl ((nt-vars t-coloncolon nt-type) null))
                      (nt-decl-2 ((nt-funlhs) null))
                      (nt-rhs ((t-equal nt-exp) null))
                      (nt-vars ((nt-var nt-vars-2) null))
