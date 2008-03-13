@@ -48,7 +48,7 @@
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
-  (define (haskell-lexer source-name)
+  (define haskell-lexer
     (lexer-src-pos (#\\ (token-t-backslash))
                    ("case" (token-t-case))
                    (":" (token-t-colon))
@@ -85,19 +85,25 @@
                    ((:- (:: hsmall (:* (:or hsmall hlarge hdigit "'"))) hreservedid) (token-t-varid lexeme))
                    ((:- (:: hsymbol (:* (:or hsymbol ":"))) (:or hreservedop hdashes)) (token-t-varsym lexeme))
                    (hwhitespace (return-without-pos (haskell-lexer input-port)))
-                   (hopencom (return-without-pos ((comment-lexer source-name 1) input-port)))
-                   (hclosecom (error 'haskell-lexer "unexpected comment close"))
+                   (hopencom (return-without-pos ((comment-lexer 1) input-port)))
+                   (hclosecom (raise-read-error (format "error: unexpected comment close (~a:~a)"
+                                                        (position-line start-pos)
+                                                        (position-col start-pos))
+                                                "unknown"
+                                                (position-line start-pos)
+                                                (position-col start-pos)
+                                                (position-offset start-pos)
+                                                (- (position-offset end-pos) (position-offset start-pos))))
                    ((eof) (token-eof))))
   
-  (define (comment-lexer source-name level)
-    (lexer (hopencom ((comment-lexer source-name (+ level 1)) input-port))
-           (hclosecom (if (= level 1) (haskell-lexer source-name input-port) ((comment-lexer source-name (- level 1)) input-port)))
-           (hANY ((comment-lexer source-name level) input-port))
-           ((eof) (raise-read-error (format "error: unclosed comment (~a ~a:~a)"
-                                            source-name
+  (define (comment-lexer level)
+    (lexer (hopencom ((comment-lexer (+ level 1)) input-port))
+           (hclosecom (if (= level 1) (haskell-lexer input-port) ((comment-lexer (- level 1)) input-port)))
+           (hANY ((comment-lexer level) input-port))
+           ((eof) (raise-read-error (format "error: unclosed comment (~a:~a)"
                                             (position-line start-pos)
                                             (position-col start-pos))
-                                    source-name
+                                    "unknown"
                                     (position-line start-pos)
                                     (position-col start-pos)
                                     (position-offset start-pos)
@@ -110,7 +116,7 @@
             (start nt-module)
             (end eof)
             (error (lambda (token-ok token-name token-value start-pos end-pos)
-                     (raise-read-error (format "error: malformed token ~a (~a ~a:~a): ~a"
+                     (raise-read-error (format "error: malformed ~a (~a ~a:~a): ~a"
                                                token-name
                                                source-name
                                                (position-line start-pos)
@@ -209,7 +215,7 @@
                                  ((nt-qconsym) null))
                      (nt-qconsym ((t-consym) null)))))
   
-  (define (parse) ((haskell-parser "prompt") (lambda () ((haskell-lexer "prompt") (current-input-port)))))
+  (define (parse) ((haskell-parser "prompt") (lambda () (haskell-lexer (current-input-port)))))
   
   (define (prompt) (eval (compile-haskell (parse))))
   
