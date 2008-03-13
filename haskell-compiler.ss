@@ -14,20 +14,20 @@
   (define-struct tnum (value))
   (define-struct ttup (expressions))
   
-  ;BUG: nomatch for 'empty-list
   (define compile-haskell
     (match-lambda (($ tapp f a) `(,(compile-haskell f) (delay ,(compile-haskell a))))
-                  (($ tchar v) (string-ref v 0))
+                  (($ tchar v) (compile-tchar v))
                   (($ tfun p b) `(lambda (,(string->symbol p)) ,(compile-haskell b)))
                   (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
-                  (($ tlist e) 'TODO);`',(compile-tlist h t))
+                  (($ tlist es) (map (lambda (e) (compile-haskell e)) es))
                   (($ tmod n d) (compile-tmod n d))
-                  (($ tnum v) v)))
+                  (($ tnum v) v)
+                  (($ ttup es) (map (lambda (e) (compile-haskell e)) es))))
   
-  (define (compile-tlist l)
-    (if (null? l) l (cons (compile-haskell (car l)) (compile-tlist (cdr l)))))
+  (define (compile-tchar c)
+    (string-ref c 0))
   
-  (define (compile-tmod name declarations)
+  (define (compile-tmod n d)
     1)
   
   (define prelude
