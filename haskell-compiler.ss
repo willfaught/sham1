@@ -1,4 +1,5 @@
 (module haskell-compiler mzscheme
+  (require (lib "list.ss"))
   (require (lib "match.ss"))
   (provide (all-defined))
 
@@ -18,17 +19,14 @@
     (match-lambda (($ tapp f a) `(,(compile-haskell f) (delay ,(compile-haskell a))))
                   (($ tchar v) (compile-tchar v))
                   (($ tfun p b) `(lambda (,(string->symbol p)) ,(compile-haskell b)))
+                  (($ tfdecl n ps b) `(define (,(string->symbol n) ,@(map (lambda (p) (string->symbol (tid-name p))) ps)) ,(compile-haskell b)))
                   (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
-                  (($ tlist es) (map (lambda (e) (compile-haskell e)) es))
-                  (($ tmod n d) (compile-tmod n d))
+                  (($ tlist es) (let ((r (reverse es))) `',(foldr (lambda (l r) (compile-haskell (make-tapp (make-tapp (make-tid ":") l) r))) null es))
                   (($ tnum v) v)
-                  (($ ttup es) (map (lambda (e) (compile-haskell e)) es))))
+                  (($ ttup es) `',(map (lambda (e) (compile-haskell e)) es))))
   
-  (define (compile-tchar c)
-    (string-ref c 0))
-  
-  (define (compile-tmod n d)
-    1)
+  (define (compile-tchar v)
+    (string-ref v 0))
   
   (define prelude
     (make-immutable-hash-table `(("+" (lambda (x) (lambda (y) (+ (force x) (force y)))))

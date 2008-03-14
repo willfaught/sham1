@@ -3,6 +3,7 @@
            (prefix : (lib "lex-sre.ss" "parser-tools"))
            (lib "yacc.ss" "parser-tools")
            (lib "readerr.ss" "syntax")
+           (lib "list.ss")
            "haskell-compiler.ss")
 
   (provide (rename read-haskell-syntax read-syntax))
@@ -97,7 +98,7 @@
                    ((eof) (token-eof))))
   
   (define string-lexer
-    (lexer ((:or (:- a-graphic (:or #\" #\\)) a-space a-escape) (cons lexeme (string-lexer input-port)))
+    (lexer ((:or (:- a-graphic (:or #\" #\\)) a-space a-escape) (cons (make-tchar lexeme) (string-lexer input-port)))
            (a-gap (string-lexer input-port))
            (#\" null)
            ((eof) (raise-read-error (format "error: unexpected end of file (~a:~a)"
@@ -142,7 +143,7 @@
                                        (- (position-offset end-pos) (position-offset start-pos)))))
             ; still must do types and patterns
             (grammar (nt-module ((t-module nt-modid t-where nt-body) (make-tmod $2 $4))
-                                ((nt-body) (make-tmod "" $1)))
+                                ((nt-body) (make-tmod "none" $1)))
                      (nt-modid ((t-conid) $1))
                      (nt-body ((t-lcbracket nt-topdecls t-rcbracket) $2))
                      (nt-topdecls (() null)
@@ -151,7 +152,7 @@
                      (nt-topdecls-2 (() null)
                                     ((t-semicolon nt-topdecl nt-topdecls-2) (cons $2 $3)))
                      (nt-decl ((nt-gendecl) 'TODO)
-                              ((nt-decl-2 nt-rhs) null #;(make-tfdecl (list-ref $1 0) (list-ref $1 1) $2)))
+                              ((nt-decl-2 nt-rhs) (make-tfdecl (car $1) (cdr $1) $2)))
                      (nt-gendecl ((nt-vars t-coloncolon nt-type) 'TODO))
                      (nt-decl-2 ((nt-funlhs) $1))
                      (nt-rhs ((t-equal nt-exp) $2))
@@ -173,10 +174,10 @@
                      (nt-btype ((nt-btype-2 nt-atype) null))
                      (nt-type-2 (() null)
                                 ((t-singlearrow nt-type) null));??? TODO
-                     (nt-apat ((nt-var) $1)
-                              ((t-underscore) (make-tid "_")))
                      (nt-funlhs-2 (() null)
                                   ((nt-apat nt-funlhs-2) (cons $1 $2)))
+                     (nt-apat ((nt-var) $1)
+                              ((t-underscore) (make-tid "_")))
                      (nt-lexp ((t-minus nt-exp) (make-tapp (make-tid "-") (list (make-tnum "0") $2))))
                      (nt-exp-2 ((nt-apat) (list $1))
                                ((nt-apat nt-exp-2) (cons $1 $2)))
@@ -198,8 +199,8 @@
                      (nt-aexp ((nt-qvar) $1)
                               ((nt-gcon) $1)
                               ((nt-literal) $1)
-                              ((t-lrbracket nt-exp nt-aexp-2 t-rrbracket) (make-tlist (cons $2 $3)))
-                              ((t-lsbracket nt-exp nt-aexp-2 t-rsbracket) (make-ttup (cons $2 $3))))
+                              ((t-lrbracket nt-exp nt-aexp-2 t-rrbracket) (make-ttup (cons $2 $3)))
+                              ((t-lsbracket nt-exp nt-aexp-2 t-rsbracket) (make-tlist (cons $2 $3))))
                      (nt-tyvar ((t-varid) $1))
                      (nt-atype-2 (() null)
                                  ((t-comma nt-type nt-atype-2) null))
@@ -233,4 +234,10 @@
   
   (define (prompt) (eval (compile-haskell (parse))))
   
-  (define (read-haskell-syntax) 'incomplete))
+  (define (read-haskell-syntax source-name input-port)
+    (define haskell-module ((haskell-parser source-name) (lambda () (haskell-lexer (begin (port-count-lines! input-port) input-port)))))
+    (define function-decls (filter tfdecl? (tmod-declarations haskell-module)))
+    #`(module #,(string->symbol (tmod-name haskell-module)) mzscheme
+        (provide (all-defined))
+        #,@(map compile-haskell function-decls)))
+)
