@@ -19,7 +19,7 @@
   (define compile-haskell
     (match-lambda (($ tapp f a) `(,(compile-haskell f) (delay ,(compile-haskell a))))
                   (($ tchar v) (compile-tchar v))
-                  (($ tfun p b) (compile-tfun p b))
+                  (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdecl n ps b) `(define (,(string->symbol n) ,@(map (lambda (p) (string->symbol (tid-name p))) ps)) ,(compile-haskell b)))
                   (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
                   (($ tlist es) `',(map (lambda (e) (delay (compile-haskell e))) es))
@@ -30,11 +30,6 @@
   
   (define (compile-tchar v)
     (string-ref v 0))
-  
-  (define (compile-tfun p b)
-    (if (null? p)
-        (compile-haskell b)
-        `(lambda (,(string->symbol (car p))) ,(compile-tfun (cdr p) b))))
   
   (define prelude
     (make-immutable-hash-table `(("+" (lambda (x) (lambda (y) (+ (force x) (force y)))))
