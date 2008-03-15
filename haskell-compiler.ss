@@ -24,11 +24,11 @@
                   (($ tchar v) (car (hash-table-get characters v (lambda () (list (string-ref v 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdef n f) `(define ,(string->symbol n) ,(compile-haskell f)))
-                  (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
+                  (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n))))))) ; take out force?
                   (($ tlet bi bo) (compile-tlet bi bo))
-                  (($ tlist es) `',(map (lambda (e) (compile-haskell e)) es))
+                  (($ tlist es) `',(map (lambda (e) (compile-haskell e)) es)) ; add force?
                   (($ tnum v) v)
-                  (($ ttup es) `',(map (lambda (e) (compile-haskell e)) es))))
+                  (($ ttup es) `',(map (lambda (e) (compile-haskell e)) es)))) ; add force?
   
   (define ch compile-haskell)
   
