@@ -2,7 +2,7 @@
   (require (lib "match.ss"))
   (require (lib "haskell-prelude.ss" "hs"))
   
-  ;(provide (all-defined))
+  (provide (all-defined))
 
   (define-struct tapp (function arguments))
   ;(define-struct tcase (expression alternates))
@@ -10,19 +10,23 @@
   (define-struct tfun (parameters body))
   (define-struct tfdef (name function))
   (define-struct tid (name))
-  ;(define-struct tlet (bindings body))
+  (define-struct tlet (bindings body))
   (define-struct tlist (expressions))
   (define-struct tmod (name declarations))
   (define-struct tnum (value))
   (define-struct ttup (expressions))
   
+  ; notes:
+  ; make tuple creation a type of fun app.  support multi commas.
+  
   (define compile-haskell
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  (($ tchar v) (compile-tchar v))
+                  (($ tchar v) (car (hash-table-get characters v (lambda () (list (string-ref v 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdef n f) `(define ,(string->symbol n) ,(compile-haskell f)))
                   (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
-                  (($ tlist es) `',(map (lambda (e) (delay (compile-haskell e))) es))
+                  (($ tlet bi bo) (compile-tlet bi bo))
+                  (($ tlist es) `',(map (lambda (e) (compile-haskell e)) es))
                   (($ tnum v) v)
                   (($ ttup es) `',(map (lambda (e) (compile-haskell e)) es))))
   
@@ -31,9 +35,12 @@
   (define (compile-tapp f a)
     (if (null? a) (compile-haskell f) `(,(compile-tapp f (cdr a)) (delay ,(compile-haskell (car a))))))
   
-  (define (compile-tchar v)
-    (string-ref v 0))
+  (define (compile-tlet bis bo)
+    `(letrec ,(map (lambda (bi) `(,(string->symbol (car bi)) (compile-haskell (cdr bi)))) bis) ,(compile-haskell bo)))
   
+  (define characters
+    (make-immutable-hash-table `() 'equal))
+    
   (define prelude
     (make-immutable-hash-table `(("+" (lambda (x) (lambda (y) (+ (force x) (force y)))))
                                  ("-" (lambda (x) (lambda (y) (- (force x) (force y)))))
