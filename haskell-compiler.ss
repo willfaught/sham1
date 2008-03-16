@@ -14,23 +14,33 @@
   (define-struct tlist (expressions))
   (define-struct tmod (name declarations))
   (define-struct tnum (number))
-  (define-struct tpat (pattern))
   (define-struct ttup (expressions))
+  (define-struct ttupcon (arity))
   
   ; notes:
   ; make tuple creation a type of fun app.  support multi commas.
   
   (define compile-haskell
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  (($ tcase e as) `(match ,(compile-haskell e) ,@(map (lambda (a) `(,(car a) ,(compile-haskell (cdr a)))) as)))
+                  ;(($ tcase e as) `(match ,(compile-haskell e) ,@(map (lambda (a) `(,(car a) ,(compile-haskell (cdr a)))) as)))
                   (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdef i e) `(define ,(string->symbol i) ,(compile-haskell e)))
                   (($ tid i) (car (hash-table-get prelude i (lambda () (list `(force ,(string->symbol i)))))))
-                  (($ tlet bs e) `(letrec ,(map (lambda (b) `(,(string->symbol (car b)) (delay ,(compile-haskell (cdr b))))) bs) ,(compile-haskell e)))
+                  ;(($ tlet bs e) `(match-letrec ,(map (lambda (b) `(,(car b) (delay ,(compile-haskell (cdr b))))) bs) ,(compile-haskell e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-haskell e))) es)))
                   (($ tnum n) n)
-                  (($ ttup es) `(vector ,@(map (lambda (e) `(delay ,(compile-haskell e))) es)))))
+                  (($ ttup e) (compile-haskell (make-tapp (make-ttupcon (length e)) e)))
+                  (($ ttupcon a) (compile-ttupcon a))))
+  
+  (define (compile-ttupcon a)
+    (define (enumerate n)
+      (if (= n 0) null (cons n (enumerate (- n 1)))))
+    (define (nest n)
+      (if (= n (+ a 1))
+          `(vector ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
+          `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
+    (nest 1))
   
   (define ch compile-haskell)
   
