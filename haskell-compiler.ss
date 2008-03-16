@@ -5,15 +5,16 @@
   (provide (all-defined))
 
   (define-struct tapp (function arguments))
-  ;(define-struct tcase (expression alternates))
-  (define-struct tchar (value))
+  (define-struct tcase (expression alternates))
+  (define-struct tchar (character))
   (define-struct tfun (parameters body))
-  (define-struct tfdef (name function))
-  (define-struct tid (name))
-  (define-struct tlet (bindings body))
+  (define-struct tfdef (identifier expression))
+  (define-struct tid (identifier))
+  (define-struct tlet (bindings expression))
   (define-struct tlist (expressions))
   (define-struct tmod (name declarations))
-  (define-struct tnum (value))
+  (define-struct tnum (number))
+  (define-struct tpat (pattern))
   (define-struct ttup (expressions))
   
   ; notes:
@@ -21,14 +22,15 @@
   
   (define compile-haskell
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  (($ tchar v) (car (hash-table-get characters v (lambda () (list (string-ref v 0))))))
+                  (($ tcase e as) `(match ,(compile-haskell e) ,@(map (lambda (a) `(,(car a) ,(compile-haskell (cdr a)))) as)))
+                  (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
-                  (($ tfdef n f) `(define ,(string->symbol n) ,(compile-haskell f)))
-                  (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
-                  (($ tlet bis bo) `(letrec ,(map (lambda (bi) `(,(string->symbol (car bi)) (delay ,(compile-haskell (cdr bi))))) bis) ,(compile-haskell bo)))
-                  (($ tlist es) `',(map (lambda (e) (delay (compile-haskell e))) es))
-                  (($ tnum v) v)
-                  (($ ttup es) `',(map (lambda (e) (delay (compile-haskell e))) es))))
+                  (($ tfdef i e) `(define ,(string->symbol i) ,(compile-haskell e)))
+                  (($ tid i) (car (hash-table-get prelude i (lambda () (list `(force ,(string->symbol i)))))))
+                  (($ tlet bs e) `(letrec ,(map (lambda (b) `(,(string->symbol (car b)) (delay ,(compile-haskell (cdr b))))) bs) ,(compile-haskell e)))
+                  (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-haskell e))) es)))
+                  (($ tnum n) n)
+                  (($ ttup es) `(vector ,@(map (lambda (e) `(delay ,(compile-haskell e))) es)))))
   
   (define ch compile-haskell)
   
