@@ -160,7 +160,7 @@
                      (nt-type ((nt-btype nt-type-2) 'TODO))
                      (nt-funlhs ((nt-var nt-funlhs-2) (cons $1 $2))
                                 ((t-lrbracket nt-funlhs t-rrbracket nt-funlhs-2) 'TODO))
-                     (nt-exp #;((nt-exp t-coloncolon nt-type) 'TODO)
+                     (nt-exp #;((nt-exp t-coloncolon nt-type) 'TODO) ; creates a shift/reduce conflict
                              ((nt-lexp) $1)
                              ((t-backslash nt-exp-2 t-singlearrow nt-exp) (make-tfun $2 $4))
                              ((t-let nt-decls t-in nt-exp) (make-tlet $2 $4))
@@ -173,7 +173,7 @@
                                 ((t-comma nt-var nt-vars-2) (cons $2 $3)))
                      (nt-btype ((nt-btype-2 nt-atype) null))
                      (nt-type-2 (() null)
-                                ((t-singlearrow nt-type) null));??? TODO
+                                ((t-singlearrow nt-type) null))
                      (nt-funlhs-2 (() null)
                                   ((nt-apat nt-funlhs-2) (cons $1 $2)))
                      (nt-apat ((nt-var) $1)
@@ -221,7 +221,7 @@
                                 ((t-comma nt-exp nt-aexp-2) (cons $2 $3)))
                      (nt-qvarid ((t-varid) $1))
                      (nt-qvarsym ((t-varsym) $1))
-                     (nt-gcon-2 (() null);TODO
+                     (nt-gcon-2 (() null);
                                 ((t-comma nt-gcon-2) null))
                      (nt-qcon ((nt-qconid) $1)
                               ((t-lrbracket nt-gconsym t-rrbracket) $2))
@@ -229,10 +229,6 @@
                      (nt-gconsym ((t-colon) (make-tid ":"))
                                  ((nt-qconsym) $1))
                      (nt-qconsym ((t-consym) (make-tid $1))))))
-  
-  (define (parse) ((haskell-parser "prompt") (lambda () (haskell-lexer (current-input-port)))))
-  
-  (define (prompt) (eval (compile-haskell (parse))))
   
   (define (read-haskell-syntax source-name input-port)
     (define haskell-module ((haskell-parser source-name) (lambda () (haskell-lexer (begin (port-count-lines! input-port) input-port)))))
