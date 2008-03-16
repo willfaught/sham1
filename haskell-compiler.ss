@@ -27,7 +27,7 @@
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdef i e) `(define ,(string->symbol i) ,(compile-haskell e)))
                   (($ tid i) (car (hash-table-get prelude i (lambda () (list `(force ,(string->symbol i)))))))
-                  ;(($ tlet bs e) `(match-letrec ,(map (lambda (b) `(,(car b) (delay ,(compile-haskell (cdr b))))) bs) ,(compile-haskell e)))
+                  (($ tlet bs e) `(match-letrec ,(map (lambda (b) `(,(car b) (delay ,(compile-haskell (cdr b))))) bs) ,(compile-haskell e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-haskell e))) es)))
                   (($ tnum n) n)
                   (($ ttup e) (compile-haskell (make-tapp (make-ttupcon (length e)) e)))
