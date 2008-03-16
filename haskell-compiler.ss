@@ -24,19 +24,16 @@
                   (($ tchar v) (car (hash-table-get characters v (lambda () (list (string-ref v 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(lambda (,(string->symbol (car p))) ,(compile-haskell (make-tfun (cdr p) b)))))
                   (($ tfdef n f) `(define ,(string->symbol n) ,(compile-haskell f)))
-                  (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n))))))) ; take out force?
-                  (($ tlet bi bo) (compile-tlet bi bo))
-                  (($ tlist es) `',(map (lambda (e) (compile-haskell e)) es)) ; add force?
+                  (($ tid n) (car (hash-table-get prelude n (lambda () (list `(force ,(string->symbol n)))))))
+                  (($ tlet bis bo) `(letrec ,(map (lambda (bi) `(,(string->symbol (car bi)) (delay ,(compile-haskell (cdr bi))))) bis) ,(compile-haskell bo)))
+                  (($ tlist es) `',(map (lambda (e) (delay (compile-haskell e))) es))
                   (($ tnum v) v)
-                  (($ ttup es) `',(map (lambda (e) (compile-haskell e)) es)))) ; add force?
+                  (($ ttup es) `',(map (lambda (e) (delay (compile-haskell e))) es))))
   
   (define ch compile-haskell)
   
   (define (compile-tapp f a)
     (if (null? a) (compile-haskell f) `(,(compile-tapp f (cdr a)) (delay ,(compile-haskell (car a))))))
-  
-  (define (compile-tlet bis bo)
-    `(letrec ,(map (lambda (bi) `(,(string->symbol (car bi)) (compile-haskell (cdr bi)))) bis) ,(compile-haskell bo)))
   
   (define characters
     (make-immutable-hash-table `() 'equal))
