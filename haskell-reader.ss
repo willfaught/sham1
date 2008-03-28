@@ -165,7 +165,7 @@
                              ((t-if nt-exp t-then nt-exp t-else nt-exp) 'TODO)
                              ((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-tcase $2 $5))
                              ((nt-fexp) $1))
-                     (nt-var ((t-varid) (make-tid $1))
+                     (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) (make-tid $2)))
                      (nt-vars-2 (() null)
                                 ((t-comma nt-var nt-vars-2) (cons $2 $3)))
