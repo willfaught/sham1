@@ -4,7 +4,7 @@
            (lib "yacc.ss" "parser-tools")
            (lib "readerr.ss" "syntax")
            (lib "list.ss")
-           "haskell-compiler.ss")
+           (lib "haskell-compiler.ss" "hs"))
 
   (provide (rename read-haskell-syntax read-syntax))
   
@@ -150,7 +150,7 @@
                      (nt-topdecls-2 (() null)
                                     ((t-semicolon nt-topdecl nt-topdecls-2) (cons $2 $3)))
                      (nt-decl ((nt-gendecl) 'TODO)
-                              ((nt-decl-2 nt-rhs) (make-tfdef (car $1) (cdr $1) $2)))
+                              ((nt-decl-2 nt-rhs) (make-tfdef (car $1) (make-tfun (cdr $1) $2))))
                      (nt-gendecl ((nt-vars t-coloncolon nt-type) 'TODO))
                      (nt-decl-2 ((nt-funlhs) $1))
                      (nt-rhs ((t-equal nt-exp) $2))
