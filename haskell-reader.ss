@@ -125,7 +125,6 @@
   
   (define (haskell-parser source-name)
     (parser (src-pos)
-            #;(debug "debug.txt")
             (tokens keywords regular)
             (start nt-module)
             (end eof)
@@ -176,8 +175,8 @@
                                 ((t-singlearrow nt-type) null))
                      (nt-funlhs-2 (() null)
                                   ((nt-apat nt-funlhs-2) (cons $1 $2)))
-                     (nt-apat ((nt-var) (string->symbol $1))
-                              ((t-underscore) '_))
+                     (nt-apat ((nt-var) $1)
+                              ((t-underscore) "_"))
                      (nt-lexp ((t-minus nt-exp) (make-tapp (make-tid "-") (list (make-tnum "0") $2))))
                      (nt-exp-2 ((nt-apat) (list $1))
                                ((nt-apat nt-exp-2) (cons $1 $2)))
