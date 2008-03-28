@@ -22,7 +22,7 @@
   
   (define compile-haskell
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  ;(($ tcase e as) `(match ,(compile-haskell e) ,@(map (lambda (a) `(,(car a) ,(compile-haskell (cdr a)))) as)))
+                  (($ tcase e as) `(match ,(compile-haskell e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-haskell (cdr a))))) as)))
                   (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ tfun p b) (if (null? p) (compile-haskell b) `(match-lambda (,(string->symbol (car p)) ,(compile-haskell (make-tfun (cdr p) b))))))
                   (($ tfdef i e) `(define ,(string->symbol i) ,(compile-haskell e)))
