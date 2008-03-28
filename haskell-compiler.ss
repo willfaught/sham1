@@ -1,6 +1,6 @@
 (module haskell-compiler mzscheme
-  (require (lib "match.ss"))
-  (require (lib "haskell-prelude.ss" "hs"))
+  (require (lib "match.ss")
+           (lib "haskell-prelude.ss" "hs"))
   
   (provide (all-defined))
 
@@ -17,8 +17,7 @@
   (define-struct ttup (expressions))
   (define-struct ttupcon (arity))
   
-  ; notes:
-  ; make tuple creation a type of fun app.  support multi commas.
+  ; check if list construction syntactic sugar works for fib when conditionals done.
   
   (define compile-haskell
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
@@ -55,7 +54,11 @@
                                  ("-" (lambda (x) (lambda (y) (- (force x) (force y)))))
                                  ("*" (lambda (x) (lambda (y) (* (force x) (force y)))))
                                  ("/" (lambda (x) (lambda (y) (/ (force x) (force y)))))
-                                 (":" (lambda (h) (lambda (t) (cons h t))))) 'equal))
+                                 (":" (lambda (h) (lambda (t) (cons h t))))
+                                 ("head" (lambda (l) (car (force l))))
+                                 ("tail" (lambda (l) (cdr (force l))))
+                                 ("fst" (lambda (t) (vector-ref (force t) 0)))
+                                 ("snd" (lambda (t) (vector-ref (force t) 1)))) 'equal))
   
   (define (run-test exp result)
     (equal? (eval (compile-haskell exp)) result))
