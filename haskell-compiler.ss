@@ -24,10 +24,10 @@
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
                   (($ tcase e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-expression (cdr a))))) as)))
                   (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
-                  (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(compile-expression (make-tfun (cdr p) e)))))
+                  (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-tfun (cdr p) e))))))
                   (($ tfun p e) (if (null? p) (compile-expression e) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-tfun (cdr p) e))))))
                   (($ tid i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
-                  (($ tlet d e) `(begin ,(map compile-expression d) ,(compile-expression e)))
+                  (($ tlet ds e) `(begin ,(map compile-expression (filter (lambda (d) (not (equal? (car (tdecl-patterns d)) "_"))) ds)) ,(compile-expression e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-expression e))) es)))
                   (($ tnum n) n)
                   (($ ttup e) (compile-expression (make-tapp (make-ttupcon (length e)) e)))
@@ -53,7 +53,7 @@
   (define prelude '("+" "-" "*" "/" ":" "head" "tail" "fst" "snd"))
   
   (define (compile-haskell module)
-    (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car tdecl-patterns) "_")))) (tmod-declarations module)))
+    (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
     `(module ,(string->symbol (tmod-identifier module)) mzscheme
        (provide (all-defined))
        ,@(map compile-expression decls)))
