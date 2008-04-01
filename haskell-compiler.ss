@@ -29,7 +29,7 @@
                   (($ tid i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
                   (($ tlet ds e) `(begin ,(map compile-expression (filter (lambda (d) (not (equal? (car (tdecl-patterns d)) "_"))) ds)) ,(compile-expression e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-expression e))) es)))
-                  (($ tnum n) n)
+                  (($ tnum n) (string->number n))
                   (($ ttup e) (compile-expression (make-tapp (make-ttupcon (length e)) e)))
                   (($ ttupcon a) (compile-ttupcon a))))
   
