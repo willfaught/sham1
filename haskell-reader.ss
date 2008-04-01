@@ -150,7 +150,7 @@
                      (nt-topdecls-2 (() null)
                                     ((t-semicolon nt-topdecl nt-topdecls-2) (cons $2 $3)))
                      (nt-decl ((nt-gendecl) 'TODO)
-                              ((nt-decl-2 nt-rhs) (make-tfdef (car $1) (make-tfun (cdr $1) $2))))
+                              ((nt-decl-2 nt-rhs) (make-tdecl $1 $2)))
                      (nt-gendecl ((nt-vars t-coloncolon nt-type) 'TODO))
                      (nt-decl-2 ((nt-funlhs) $1))
                      (nt-rhs ((t-equal nt-exp) $2))
@@ -229,5 +229,4 @@
                      (nt-qconsym ((t-consym) (make-tid $1))))))
   
   (define (read-haskell-syntax source-name input-port)
-    (compile-haskell ((haskell-parser source-name) (lambda () (port-count-lines! input-port) (haskell-lexer input-port)))))
-)
+    (compile-haskell ((haskell-parser source-name) (lambda () (port-count-lines! input-port) (haskell-lexer input-port))))))

@@ -2,6 +2,6 @@
 
 module Simple where {
 
-name = "Will"
+foo = 'c'
 
 }
