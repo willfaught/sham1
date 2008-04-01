@@ -55,6 +55,8 @@
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
     `(module ,(string->symbol (tmod-identifier module)) mzscheme
+       (require (lib "match.ss")
+                (lib "haskell-prelude.ss" "hs"))
        (provide (all-defined))
        ,@(map compile-expression decls)))
   

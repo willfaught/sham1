@@ -2,6 +2,6 @@
 
 module Simple where {
 
-foo = 'c'
+foo x y = (+) x y
 
 }
