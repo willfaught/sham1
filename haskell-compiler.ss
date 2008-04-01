@@ -1,7 +1,6 @@
 (module haskell-compiler mzscheme
   (require (lib "list.ss")
-           (lib "match.ss")
-           (lib "haskell-prelude.ss" "hs"))
+           (lib "match.ss"))
   
   (provide (all-defined))
   

@@ -2,6 +2,8 @@
 
 module Simple where {
 
-foo x y = (+) x y
+foo x y = (+) x y;
+
+bar = \ x y -> (:) x y
 
 }
