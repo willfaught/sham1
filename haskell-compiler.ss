@@ -21,7 +21,7 @@
   
   (define compile-expression
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  (($ tcase e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-expression (cdr a))))) as)))
+                  (($ tcase e as) `(force (match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-expression (cdr a))))) as))))
                   (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-tfun (cdr p) e))))))
                   (($ tfun p e) (if (null? p) (compile-expression e) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-tfun (cdr p) e))))))
