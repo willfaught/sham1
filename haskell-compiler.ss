@@ -53,14 +53,11 @@
   
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
-    (define a `(module ,(string->symbol (tmod-identifier module)) mzscheme
-                 (require (lib "match.ss")
-                          (lib "haskell-prelude.ss" "hs"))
-                 (provide (all-defined))
-                 ,@(map compile-expression decls)))
-    (print a)
-    (newline)
-    a)
+    `(module ,(string->symbol (tmod-identifier module)) mzscheme
+       (require (lib "match.ss")
+                (lib "haskell-prelude.ss" "hs"))
+       (provide (all-defined))
+       ,@(map compile-expression decls)))
   
   (define (run-test exp result)
     (equal? (eval (compile-expression exp)) result))

@@ -2,6 +2,6 @@
 
 module Simple where {
 
-a = (,,,) 1 2 3
+a = a
 
 }
