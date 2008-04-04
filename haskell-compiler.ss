@@ -26,7 +26,7 @@
                   (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-tfun (cdr p) e))))))
                   (($ tfun p e) (if (null? p) (compile-expression e) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-tfun (cdr p) e))))))
                   (($ tid i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
-                  (($ tlet ds e) `(begin ,(map compile-expression (filter (lambda (d) (not (equal? (car (tdecl-patterns d)) "_"))) ds)) ,(compile-expression e)))
+                  (($ tlet ds e) `(begin ,@(map compile-expression (filter (lambda (d) (not (equal? (car (tdecl-patterns d)) "_"))) ds)) ,(compile-expression e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-expression e))) es)))
                   (($ tnum n) (string->number n))
                   (($ ttup e) (compile-expression (make-tapp (make-ttupcon (length e)) e)))
@@ -53,11 +53,14 @@
   
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
-    `(module ,(string->symbol (tmod-identifier module)) mzscheme
-       (require (lib "match.ss")
-                (lib "haskell-prelude.ss" "hs"))
-       (provide (all-defined))
-       ,@(map compile-expression decls)))
+    (define a `(module ,(string->symbol (tmod-identifier module)) mzscheme
+                 (require (lib "match.ss")
+                          (lib "haskell-prelude.ss" "hs"))
+                 (provide (all-defined))
+                 ,@(map compile-expression decls)))
+    (print a)
+    (newline)
+    a)
   
   (define (run-test exp result)
     (equal? (eval (compile-expression exp)) result))

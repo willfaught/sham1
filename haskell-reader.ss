@@ -5,7 +5,7 @@
            (lib "readerr.ss" "syntax")
            (lib "list.ss")
            (lib "haskell-compiler.ss" "hs"))
-
+  
   (provide (rename read-haskell-syntax read-syntax))
   
   (define-lex-abbrevs
