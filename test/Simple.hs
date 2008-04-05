@@ -2,7 +2,7 @@
 
 module Simple where {
 
-a = [1, 2, 3];
+--a = [1, 2, 3];
 
 --b = [4, 5, 6];
 
@@ -10,8 +10,8 @@ a = [1, 2, 3];
 
 --c = zipWith (+) a b;
 
---(!!) = 4
+(!!) = 4;
 
-elem x n = let { elem x m = if (==) m n then head x else elem (tail x) ((+) m 1) } in elem x 0
+elem x n = if (==) n 0 then head x else elem (tail x) ((-) n 1)
 
 }

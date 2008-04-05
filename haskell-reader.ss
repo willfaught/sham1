@@ -45,12 +45,13 @@
     (a-reservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
     (a-reservedop (:or ":" "::" "=" #\\ "|" "->")))
   
-  (define-empty-tokens keywords (eof t-backslash t-case t-colon t-coloncolon t-comma t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-semicolon t-then t-underscore t-where))
+  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-semicolon t-then t-underscore t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
   (define haskell-lexer
     (lexer-src-pos (#\\ (token-t-backslash))
+                   ("`" (token-t-backtick))
                    ("case" (token-t-case))
                    (":" (token-t-colon))
                    ("::" (token-t-coloncolon))
@@ -156,7 +157,7 @@
                      (nt-vars ((nt-var nt-vars-2) (cons $1 $2)))
                      (nt-type ((nt-btype nt-type-2) 'TODO))
                      (nt-funlhs ((nt-var nt-funlhs-2) (cons $1 $2))
-                                ((t-lrbracket nt-funlhs t-rrbracket nt-funlhs-2) 'TODO))
+                                ((nt-apat nt-varop nt-apat) (list $2 $1 $3)))
                      (nt-exp ((t-backslash nt-exp-2 t-singlearrow nt-exp) (make-tfun $2 $4))
                              ((t-let nt-decls t-in nt-exp) (make-tlet $2 $4))
                              ((t-if nt-exp t-then nt-exp t-else nt-exp) (make-tif $2 $4 $6))
@@ -164,7 +165,7 @@
                              ((nt-fexp) $1)
                              #;((nt-exp t-coloncolon nt-type) 'TODO)) ; creates a shift/reduce conflict
                      (nt-var ((t-varid) $1)
-                             ((t-lrbracket t-varsym t-rrbracket) (make-tid $2)))
+                             ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-vars-2 (() null)
                                 ((t-comma nt-var nt-vars-2) (cons $2 $3)))
                      (nt-btype ((nt-btype-2 nt-atype) null))
@@ -174,6 +175,8 @@
                                   ((nt-apat nt-funlhs-2) (cons $1 $2)))
                      (nt-apat ((nt-var) $1)
                               ((t-underscore) "_"))
+                     (nt-varop ((t-varsym) $1)
+                               ((t-backtick t-varid t-backtick) $2))
                      (nt-exp-2 ((nt-apat) (list $1))
                                ((nt-apat nt-exp-2) (cons $1 $2)))
                      (nt-decls ((t-lcbracket nt-decls-2 t-rcbracket) $2))
