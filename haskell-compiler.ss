@@ -18,8 +18,6 @@
   (define-struct ttup (expressions))
   (define-struct ttupcon (arity))
   
-  ; check if list construction syntactic sugar works for fib when conditionals done.
-  
   (define compile-expression
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
                   (($ tcase e as) `(force (match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-expression (cdr a))))) as))))
@@ -55,13 +53,11 @@
   
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
-    (define z `(module ,(string->symbol (tmod-identifier module)) mzscheme
+    `(module ,(string->symbol (tmod-identifier module)) mzscheme
        (require (lib "match.ss")
                 (lib "haskell-prelude.ss" "hs"))
        (provide (all-defined))
        ,@(map compile-expression decls)))
-    (print z)
-    z)
   
   (define (run-test exp result)
     (equal? (eval (compile-expression exp)) result))
@@ -69,6 +65,6 @@
   (define (run-tests tests)
     (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
-  #;(define tests (list (cons (make-hnum 1) 1)
-                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
-)
+  (define tests (list (cons (make-tnum 1) 1)
+                      (cons (make-tapp (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
+  )
