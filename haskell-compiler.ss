@@ -66,5 +66,12 @@
     (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
   (define tests (list (cons (make-tnum 1) 1)
+                      (cons (make-tchar "c") #\c)
+                      (cons (make-tid "x") '(force x))
+                      (cons (make-tid "+") '(force haskell:+))
+                      (cons (make-tlist (list (make-tnum 1) (make-tnum 2) (make-tnum 3))) '(cons (delay 1) (delay (cons (delay 2) (delay (cons (delay 3) (delay null)))))))
+                      (cons (make-ttupcon 2) '(lambda (x1) (lambda (x2) (vector x1 x2))))
+                      (cons (make-ttupcon 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector x1 x2 x3)))))
+                      (cons (make-ttup (list (make-tnum 2) (make-tchar "c"))) '(((lambda (x1) (lambda (x2) (vector x1 x2))) (delay 2)) (delay #\c)))
                       (cons (make-tapp (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
   )
