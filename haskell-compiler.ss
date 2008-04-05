@@ -51,7 +51,7 @@
   (define characters
     (make-immutable-hash-table `() 'equal))
   
-  (define prelude '("+" "-" "*" "/" ":" "head" "tail" "fst" "snd" "True" "False" "&&" "||"))
+  (define prelude '("error" "+" "-" "*" "/" ":" "head" "tail" "null" "fst" "snd" "True" "False" "&&" "||"))
   
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))

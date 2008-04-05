@@ -2,6 +2,10 @@
 
 module Simple where {
 
-a = (||) True False
+a = [1, 2, 3];
+
+b = error "test"
+
+--zipWith f x y = if (||) (null x) (null y
 
 }
