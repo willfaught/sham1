@@ -20,7 +20,7 @@
   
   (define compile-expression
     (match-lambda (($ tapp f a) (compile-tapp f (reverse a)))
-                  (($ tcase e as) `(force (match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) (delay ,(compile-expression (cdr a))))) as))))
+                  (($ tcase e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-expression (cdr a)))) as)))
                   (($ tchar c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-tfun (cdr p) e))))))
                   (($ tfun p e) (if (null? p) (compile-expression e) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-tfun (cdr p) e))))))
@@ -60,18 +60,24 @@
        ,@(map compile-expression decls)))
   
   (define (run-test exp result)
-    (equal? (eval (compile-expression exp)) result))
+    (equal? (compile-expression exp) result))
   
   (define (run-tests tests)
     (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
-  (define tests (list (cons (make-tnum 1) 1)
+  (define tests (list (cons (make-tapp (make-tid "x") (list (make-tnum "4"))) '((force x) (delay 4)))
+                      (cons (make-tapp (make-tid "x") (list (make-tnum "5") (make-tnum "6"))) '(((force x) (delay 5)) (delay 6)))
+                      (cons (make-tcase (make-tnum "2") (list (cons "x" (make-tnum "3")))) '())
+                      (cons (make-tnum "1") 1)
                       (cons (make-tchar "c") #\c)
                       (cons (make-tid "x") '(force x))
                       (cons (make-tid "+") '(force haskell:+))
-                      (cons (make-tlist (list (make-tnum 1) (make-tnum 2) (make-tnum 3))) '(cons (delay 1) (delay (cons (delay 2) (delay (cons (delay 3) (delay null)))))))
+                      (cons (make-tlist null) '())
+                      (cons (make-tlist (list (make-tnum "1") (make-tnum "2") (make-tnum "3"))) '(cons (delay 1) (delay (cons (delay 2) (delay (cons (delay 3) (delay ())))))))
                       (cons (make-ttupcon 2) '(lambda (x1) (lambda (x2) (vector x1 x2))))
                       (cons (make-ttupcon 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector x1 x2 x3)))))
-                      (cons (make-ttup (list (make-tnum 2) (make-tchar "c"))) '(((lambda (x1) (lambda (x2) (vector x1 x2))) (delay 2)) (delay #\c)))
-                      (cons (make-tapp (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
+                      (cons (make-ttup (list (make-tnum "2") (make-tchar "c"))) '(((lambda (x1) (lambda (x2) (vector x1 x2))) (delay 2)) (delay #\c)))
+                      (cons (make-tfun (list "x") (make-tid "x")) '(match-lambda (x (force x))))
+                      (cons (make-tfun (list "x" "y") (make-tid "x")) '(match-lambda (x (match-lambda (y (force x))))))
+                      ))
   )

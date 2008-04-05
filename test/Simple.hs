@@ -6,6 +6,8 @@ zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tai
 
 x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
 
-fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
+fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)));
+
+a = case 3 of { x -> print "foo" 4 }
 
 }
