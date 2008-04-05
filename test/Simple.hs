@@ -4,14 +4,14 @@ module Simple where {
 
 a = [1, 2, 3];
 
-b = [4, 5, 6];
+--b = [4, 5, 6];
 
-zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
+--zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
 
-c = zipWith (+) a b
+--c = zipWith (+) a b;
 
 --(!!) = 4
 
-elem x n = let { elem2 x m = if (==) m n then 
+elem x n = let { elem x m = if (==) m n then head x else elem (tail x) ((+) m 1) } in elem x 0
 
 }
