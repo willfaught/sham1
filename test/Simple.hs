@@ -10,6 +10,8 @@ zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tai
 
 c = zipWith (+) a b;
 
-x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1)
+x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
+
+d = (!!) c 2
 
 }
