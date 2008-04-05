@@ -95,9 +95,5 @@
           (make-test "ttupcon 1" (make-ttupcon 2) '(lambda (x1) (lambda (x2) (vector x1 x2))))
           (make-test "ttupcon 2" (make-ttupcon 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector x1 x2 x3)))))))
   
-  (define evaluation-tests
-    (list))
-  
   (define (run-all-tests)
-    (run-tests (lambda (x) (compile-expression x)) compilation-tests))
-  )
+    (run-tests (lambda (x) (compile-expression x)) compilation-tests)))
