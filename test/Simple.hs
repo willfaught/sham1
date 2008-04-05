@@ -2,6 +2,6 @@
 
 module Simple where {
 
-a = a
+a = (||) True False
 
 }

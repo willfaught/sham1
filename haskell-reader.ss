@@ -159,7 +159,7 @@
                                 ((t-lrbracket nt-funlhs t-rrbracket nt-funlhs-2) 'TODO))
                      (nt-exp ((t-backslash nt-exp-2 t-singlearrow nt-exp) (make-tfun $2 $4))
                              ((t-let nt-decls t-in nt-exp) (make-tlet $2 $4))
-                             ((t-if nt-exp t-then nt-exp t-else nt-exp) 'TODO)
+                             ((t-if nt-exp t-then nt-exp t-else nt-exp) (make-tif $2 $4 $6))
                              ((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-tcase $2 $5))
                              ((nt-fexp) $1)
                              #;((nt-exp t-coloncolon nt-type) 'TODO)) ; creates a shift/reduce conflict

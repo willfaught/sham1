@@ -10,6 +10,7 @@
   (define-struct tdecl (patterns expression))
   (define-struct tfun (patterns expression))
   (define-struct tid (identifier))
+  (define-struct tif (guard then else))
   (define-struct tlet (declarations expression))
   (define-struct tlist (expressions))
   (define-struct tmod (identifier declarations))
@@ -26,6 +27,7 @@
                   (($ tdecl p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-tfun (cdr p) e))))))
                   (($ tfun p e) (if (null? p) (compile-expression e) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-tfun (cdr p) e))))))
                   (($ tid i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
+                  (($ tif g t e) `(if ,(compile-expression g) ,(compile-expression t) ,(compile-expression e)))
                   (($ tlet ds e) `(begin ,@(map compile-expression (filter (lambda (d) (not (equal? (car (tdecl-patterns d)) "_"))) ds)) ,(compile-expression e)))
                   (($ tlist es) `(list ,@(map (lambda (e) `(delay ,(compile-expression e))) es)))
                   (($ tnum n) (string->number n))
@@ -49,7 +51,7 @@
   (define characters
     (make-immutable-hash-table `() 'equal))
   
-  (define prelude '("+" "-" "*" "/" ":" "head" "tail" "fst" "snd"))
+  (define prelude '("+" "-" "*" "/" ":" "head" "tail" "fst" "snd" "True" "False" "&&" "||"))
   
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (tdecl? x) (not (equal? (car (tdecl-patterns x)) "_")))) (tmod-declarations module)))
@@ -65,6 +67,6 @@
   (define (run-tests tests)
     (map (lambda (test) (run-test (car test) (cdr test))) tests))
   
-  ;(define tests (list (cons (make-hnum 1) 1)
-  ;                    (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
-  )
+  #;(define tests (list (cons (make-hnum 1) 1)
+                      (cons (make-happ (make-hfun "x" (make-hid "x")) (make-hnum 1)) 1)))
+)
