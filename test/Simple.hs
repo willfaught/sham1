@@ -2,16 +2,14 @@
 
 module Simple where {
 
---a = [1, 2, 3];
+a = [1, 2, 3];
 
---b = [4, 5, 6];
+b = [4, 5, 6];
 
---zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
+zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
 
---c = zipWith (+) a b;
+c = zipWith (+) a b;
 
-(!!) = 4;
-
-elem x n = if (==) n 0 then head x else elem (tail x) ((-) n 1)
+x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1)
 
 }
