@@ -40,7 +40,7 @@
       (if (= n 0) null (cons n (enumerate (- n 1)))))
     (define (nest n)
       (if (= n (+ a 1))
-          `(vector ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
+          `(vector-immutable ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
           `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
     (nest 1))
   
