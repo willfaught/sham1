@@ -1,5 +1,5 @@
 (module haskell-compiler mzscheme
-  (require (lib "list.ss")
+  (require (lib "list.ss" "srfi" "1")
            (lib "match.ss"))
   
   (provide (all-defined))
@@ -18,18 +18,28 @@
   (define-struct etup (expressions))
   (define-struct etupcon (arity))
   
-  (define-struct tabs (parameters expression))
-  (define-struct tapp (abstraction arguments))
-  (define-struct tboolean (expression))
-  (define-struct tchar (expression))
-  (define-struct tfloat (expression))
-  (define-struct tint (expression))
-  (define-struct tlist (type expressions))
-  (define-struct ttuple (types expressions))
-  (define-struct tuniversal (variable expression))
-  (define-struct tvar (identifier))
+  (define-struct type (term))
+  (define-struct (boolean-type type) ())
+  (define-struct (character-type type) ())
+  (define-struct (float-type type) ())
+  (define-struct (function-type type) (parameter-type body-type))
+  (define-struct (integer-type type) ())
+  (define-struct (list-type type) (type))
+  (define-struct (tuple-type type) (types))
+  (define-struct (type-abstraction type) (parameters))
+  (define-struct (type-application type) (term types))
+  (define-struct (type-variable type) (identifier))
+  (define-struct (universal-type type) (type-variable type))
   
-  (define (check-types expression) 0)
+  (define (well-typed context term)
+    (match term
+      (($ tboolean (? boolean? _)) #t)
+      (($ tcharacter (? char? _)) #t)
+      (($ tfloat (? number? _)) #t)
+      (($ tfunction p b) 0)
+      (($ tinteger (? integer? _)) #t)
+      
+      (_ #f)))
   
   (define (erase-types expression) 0)
   
