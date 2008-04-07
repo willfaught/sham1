@@ -20,11 +20,13 @@
   
   (define-struct tabs (parameters expression))
   (define-struct tapp (abstraction arguments))
+  (define-struct tboolean (expression))
   (define-struct tchar (expression))
   (define-struct tfloat (expression))
   (define-struct tint (expression))
   (define-struct tlist (type expressions))
   (define-struct ttuple (types expressions))
+  (define-struct tuniversal (variable expression))
   (define-struct tvar (identifier))
   
   (define (check-types expression) 0)

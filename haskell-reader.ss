@@ -163,7 +163,7 @@
                              ((t-if nt-exp t-then nt-exp t-else nt-exp) (make-eif $2 $4 $6))
                              ((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-ecase $2 $5))
                              ((nt-fexp) $1)
-                             #;((nt-exp t-coloncolon nt-type) 'TODO)) ; creates a shift/reduce conflict
+                             ((t-lrbracket nt-exp t-coloncolon nt-type t-rrbracket) 'TODO)) ; creates a shift/reduce conflict
                      (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-vars-2 (() null)
