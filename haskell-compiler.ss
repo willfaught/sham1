@@ -63,8 +63,6 @@
       (($ integer-term _) (make-integer-type))
       (($ let-term d e) (term-type (append (map (lambda (x) (list (car (declaration-term-patterns x)) (term-type context x))) d) context) e))))
   
-  (define (erase-types expression) 0)
-  
   (define compile-expression
     (match-lambda (($ application-term f a) (compile-eapp f (reverse a)))
                   (($ case-term e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-expression (cdr a)))) as)))
@@ -143,5 +141,65 @@
             (make-test "etupcon 1" (make-tuplecon-term 2) '(lambda (x1) (lambda (x2) (vector x1 x2))))
             (make-test "etupcon 2" (make-tuplecon-term 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector x1 x2 x3)))))))
   
-  #;(define (run-all-tests)
-      (run-tests (lambda (x) (compile-expression x)) compilation-tests)))
+  (define type-tests
+    (list (make-test "application-term 1"
+                     (make-application-term (make-function-term (list "x")
+                                                                (make-identifier-term "x")
+                                                                (list (make-integer-type)))
+                                            (list (make-integer-term "2")))
+                     (make-integer-type))
+          (make-test "application-term 2"
+                     (make-application-term (make-function-term (list "x" "y")
+                                                                (make-identifier-term "y")
+                                                                (list (make-integer-type)
+                                                                      (make-character-type)))
+                                            (list (make-integer-term "2")
+                                                  (make-character-term "c")))
+                     (make-character-type))
+          (make-test "application-term 3"
+                     (make-application-term (make-function-term (list "x")
+                                                                (make-character-term "c")
+                                                                (list (make-integer-type)))
+                                            (list (make-integer-term "2")))
+                     (make-character-type))
+          (make-test "case-term 1"
+                     (make-case-term (make-integer-term "2")
+                                     (list (cons "x" (make-character-term "c"))))
+                     (make-character-type))
+          (make-test "character-term 1"
+                     (make-character-term "c")
+                     (make-character-type))
+          (make-test "declaration-term 1"
+                     (make-declaration-term (list "x")
+                                            (make-integer-term "2")
+                                            (make-integer-type))
+                     (make-integer-type))
+          (make-test "declaration-term 2"
+                     (make-declaration-term (list "x" "y")
+                                            (make-integer-term "2")
+                                            (make-character-type))
+                     (make-function-type (list (make-character-type) (make-integer-type))))
+          (make-test "float-term 1"
+                     (make-float-term "c")
+                     (make-float-type))
+          (make-test "function-term 1"
+                     (make-function-term (list "x")
+                                         (make-identifier-term "x")
+                                         (list (make-integer-type)))
+                     (make-function-type (list (make-integer-type) (make-integer-type))))
+          (make-test "function-term 2"
+                     (make-function-term (list "x")
+                                         (make-integer-term "2")
+                                         (list (make-character-type)))
+                     (make-function-type (list (make-character-type) (make-integer-type))))
+          (make-test "function-term 3"
+                     (make-function-term (list "x" "y")
+                                         (make-integer-term "2")
+                                         (list (make-character-type)
+                                               (make-boolean-type)))
+                     (make-function-type (list (make-character-type) (make-boolean-type) (make-integer-type))))))
+  
+  
+  (define (run-all-tests)
+    #;(run-tests (lambda (x) (compile-expression x)) compilation-tests)
+    (run-tests (lambda (x) (term-type null x)) type-tests)))
