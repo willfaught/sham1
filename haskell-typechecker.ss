@@ -20,10 +20,13 @@
   (define (term-type context term)
     (match term
       (($ application-term f a) (let ((f-type (term-type context f))
-                                      (a-type (term-type context a)))
-                                  (if (equal? f-type a-type)
-                                      (last f-type)
-                                      (error 'term-type "arg types don't match param types"))))
+                                      (a-types (map (lambda (x) (term-type context x)) a)))
+                                  (if (function-type? f-type)
+                                      (let ((f-types (function-type-types f-type)))
+                                        (if (not (equal? (reverse (cdr (reverse f-types))) a-types))
+                                            (error 'term-type "param and arg types don't match")
+                                            (car (reverse f-types))))
+                                      (error 'term-type "applied term not a function"))))
       (($ case-term _ a) (term-type context (cdr (car a))))
       (($ character-term _) (make-character-type))
       (($ declaration-term p e t) (if (equal? (length p) 1)
@@ -33,7 +36,7 @@
                                           (error 'term-type "missing or extra param types"))))
       (($ float-term _) (make-float-type))
       (($ function-term p b t) (if (equal? (length p) (length t))
-                                   (make-function-type (append t (term-type (append (zip p t) context) b)))
+                                   (make-function-type (append t (list (term-type (append (zip p t) context) b))))
                                    (error 'term-type "missing or extra param types")))
       (($ identifier-term i) (let ((item (assoc i context)))
                                (if (pair? item)
@@ -47,7 +50,7 @@
       (($ let-term d e) (term-type (append (map (lambda (x) (list (car (declaration-term-patterns x)) (term-type context x))) d) context) e))))
   
   
-  (define type-tests
+  (define tests
     (list (make-test "application-term 1"
                      (make-application-term (make-function-term (list "x")
                                                                 (make-identifier-term "x")
@@ -104,4 +107,6 @@
                                          (list (make-character-type)
                                                (make-boolean-type)))
                      (make-function-type (list (make-character-type) (make-boolean-type) (make-integer-type))))))
-  )
+  
+  (define (run-all-tests)
+    (run-tests (lambda (x) (term-type null x)) tests)))
