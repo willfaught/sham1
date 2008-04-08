@@ -1,6 +1,7 @@
 (module haskell-compiler mzscheme
   (require (lib "list.ss" "srfi" "1")
-           (lib "match.ss"))
+           (lib "match.ss")
+           (lib "test.ss" "hs"))
   
   (provide (all-defined))
   
@@ -61,8 +62,6 @@
                 (lib "haskell-prelude.ss" "hs"))
        (provide (all-defined))
        ,@(map compile-expression decls)))
-  
-  
   
   #;(define compilation-tests
       (list (make-test "eapp 1" (make-application-term (make-identifier-term "x") (list (make-integer-term "4"))) '((force x) (delay 4)))

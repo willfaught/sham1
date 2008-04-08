@@ -1,4 +1,6 @@
 (module test mzscheme
+  (require (lib "list.ss" "srfi" "1"))
+            
   (provide (all-defined))
   
   (define-struct test (name expression result))

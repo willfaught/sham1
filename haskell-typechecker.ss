@@ -1,7 +1,8 @@
 (module haskell-typechecker mzscheme
   (require (lib "haskell-compiler.ss" "hs")
            (lib "list.ss" "srfi" "1")
-           (lib "match.ss"))
+           (lib "match.ss")
+           (lib "test.ss" "hs"))
   
   (define-struct type () #f)
   (define-struct (boolean-type type) () #f)
