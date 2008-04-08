@@ -16,52 +16,9 @@
   (define-struct (integer-term term) (integer) #f)
   (define-struct (let-term term) (declarations expression) #f)
   (define-struct (list-term term) (expressions) #f)
+  (define-struct (module-term term) (identifier declarations) #f)
   (define-struct (tuple-term term) (expressions) #f)
   (define-struct (tuplecon-term term) (arity) #f)
-  
-  (define-struct module-term (identifier declarations) #f)
-  
-  (define-struct type () #f)
-  (define-struct (boolean-type type) () #f)
-  (define-struct (character-type type) () #f)
-  (define-struct (float-type type) () #f)
-  (define-struct (function-type type) (types) #f)
-  (define-struct (integer-type type) () #f)
-  ;(define-struct (list-type type) (type) #f)
-  ;(define-struct (tuple-type type) (types) #f)
-  ;(define-struct (type-abstraction type) (parameters) #f)
-  ;(define-struct (type-application type) (term types) #f)
-  ;(define-struct (type-variable type) (identifier) #f)
-  ;(define-struct (universal-type type) (type-variable type) #f)
-  
-  (define (term-type context term)
-    (match term
-      (($ application-term f a) (let ((f-type (term-type context f))
-                                      (a-type (term-type context a)))
-                                  (if (equal? f-type a-type)
-                                      (last f-type)
-                                      (error 'term-type "arg types don't match param types"))))
-      (($ case-term _ a) (term-type context (cdr (car a))))
-      (($ character-term _) (make-character-type))
-      (($ declaration-term p e t) (if (equal? (length p) 1)
-                                      (term-type context e)
-                                      (if (equal? (- (length p) 1) (length t))
-                                          (term-type context (make-function-term (cdr p) e t))
-                                          (error 'term-type "missing or extra param types"))))
-      (($ float-term _) (make-float-type))
-      (($ function-term p b t) (if (equal? (length p) (length t))
-                                   (make-function-type (append t (term-type (append (zip p t) context) b)))
-                                   (error 'term-type "missing or extra param types")))
-      (($ identifier-term i) (let ((item (assoc i context)))
-                               (if (pair? item)
-                                   (list-ref item 1)
-                                   (error 'term-type "free variable"))))
-      (($ if-term g t e) (let ((g-type (term-type context g))
-                               (t-type (term-type context t))
-                               (e-type (term-type context e)))
-                           (if (and (equal? g-type (make-boolean-type)) (equal? t-type e-type)) t-type (error 'term-type "bad if types"))))
-      (($ integer-term _) (make-integer-type))
-      (($ let-term d e) (term-type (append (map (lambda (x) (list (car (declaration-term-patterns x)) (term-type context x))) d) context) e))))
   
   (define compile-expression
     (match-lambda (($ application-term f a) (compile-eapp f (reverse a)))
@@ -105,18 +62,7 @@
        (provide (all-defined))
        ,@(map compile-expression decls)))
   
-  (define-struct test (name expression result))
   
-  (define (run-test f)
-    (lambda (test)
-      (define result (f (test-expression test)))
-      (if (equal? result (test-result test)) #t (format "\n~a failed\n  expected: ~a\n  actual: ~a\n" (test-name test) (test-result test) result))))
-  
-  (define (run-tests f tests)
-    (define results (filter (lambda (x) (not (equal? x #t))) (map (run-test f) tests)))
-    (if (null? results)
-        (display "All passed")
-        (map display results)))
   
   #;(define compilation-tests
       (list (make-test "eapp 1" (make-application-term (make-identifier-term "x") (list (make-integer-term "4"))) '((force x) (delay 4)))
@@ -141,65 +87,6 @@
             (make-test "etupcon 1" (make-tuplecon-term 2) '(lambda (x1) (lambda (x2) (vector x1 x2))))
             (make-test "etupcon 2" (make-tuplecon-term 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector x1 x2 x3)))))))
   
-  (define type-tests
-    (list (make-test "application-term 1"
-                     (make-application-term (make-function-term (list "x")
-                                                                (make-identifier-term "x")
-                                                                (list (make-integer-type)))
-                                            (list (make-integer-term "2")))
-                     (make-integer-type))
-          (make-test "application-term 2"
-                     (make-application-term (make-function-term (list "x" "y")
-                                                                (make-identifier-term "y")
-                                                                (list (make-integer-type)
-                                                                      (make-character-type)))
-                                            (list (make-integer-term "2")
-                                                  (make-character-term "c")))
-                     (make-character-type))
-          (make-test "application-term 3"
-                     (make-application-term (make-function-term (list "x")
-                                                                (make-character-term "c")
-                                                                (list (make-integer-type)))
-                                            (list (make-integer-term "2")))
-                     (make-character-type))
-          (make-test "case-term 1"
-                     (make-case-term (make-integer-term "2")
-                                     (list (cons "x" (make-character-term "c"))))
-                     (make-character-type))
-          (make-test "character-term 1"
-                     (make-character-term "c")
-                     (make-character-type))
-          (make-test "declaration-term 1"
-                     (make-declaration-term (list "x")
-                                            (make-integer-term "2")
-                                            (make-integer-type))
-                     (make-integer-type))
-          (make-test "declaration-term 2"
-                     (make-declaration-term (list "x" "y")
-                                            (make-integer-term "2")
-                                            (make-character-type))
-                     (make-function-type (list (make-character-type) (make-integer-type))))
-          (make-test "float-term 1"
-                     (make-float-term "c")
-                     (make-float-type))
-          (make-test "function-term 1"
-                     (make-function-term (list "x")
-                                         (make-identifier-term "x")
-                                         (list (make-integer-type)))
-                     (make-function-type (list (make-integer-type) (make-integer-type))))
-          (make-test "function-term 2"
-                     (make-function-term (list "x")
-                                         (make-integer-term "2")
-                                         (list (make-character-type)))
-                     (make-function-type (list (make-character-type) (make-integer-type))))
-          (make-test "function-term 3"
-                     (make-function-term (list "x" "y")
-                                         (make-integer-term "2")
-                                         (list (make-character-type)
-                                               (make-boolean-type)))
-                     (make-function-type (list (make-character-type) (make-boolean-type) (make-integer-type))))))
-  
-  
-  (define (run-all-tests)
+  #;(define (run-all-tests)
     #;(run-tests (lambda (x) (compile-expression x)) compilation-tests)
     (run-tests (lambda (x) (term-type null x)) type-tests)))
