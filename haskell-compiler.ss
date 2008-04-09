@@ -1,5 +1,6 @@
 (module haskell-compiler mzscheme
   (require (lib "haskell-terms.ss" "hs")
+           (lib "haskell-prelude.ss" "hs")
            (lib "list.ss" "srfi" "1")
            (lib "match.ss")
            (lib "test.ss" "hs"))
@@ -38,13 +39,11 @@
   (define characters
     (make-immutable-hash-table `() 'equal))
   
-  (define prelude '("error" "print" "+" "-" "*" "/" "==" "/=" ":" "head" "tail" "null" "fst" "snd" "True" "False" "&&" "||" "not"))
-  
   (define (compile-haskell module)
     (define decls (filter (lambda (x) (and (declaration-term? x) (not (equal? (car (declaration-term-patterns x)) "_")))) (module-term-declarations module)))
     `(module ,(string->symbol (module-term-identifier module)) mzscheme
-       (require (lib "match.ss")
-                (lib "haskell-prelude.ss" "hs"))
+       (require (lib "haskell-prelude.ss" "hs")
+                (lib "match.ss"))
        (provide (all-defined))
        ,@(map compile-expression decls)))
   
