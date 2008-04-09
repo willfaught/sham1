@@ -12,6 +12,6 @@ module Simple where {
 
 --fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
 
-a = let { x = 1 :: Int } in 1
+a = (+) :: Int -> Int -> Int
 
 }

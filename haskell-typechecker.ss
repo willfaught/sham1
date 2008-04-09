@@ -29,7 +29,7 @@
                                         (let ((e-type (term-type context e)))
                                           (if (equal? translated-type e-type)
                                               translated-type
-                                              (error 'term-type "expected type '~a', found type '~a'" t e-type)))
+                                              (error 'term-type "expected type '~a', found type '~a'" translated-type e-type)))
                                         (let ((f-type (term-type context (make-function-term (cdr p) e translated-type))))
                                           (if (equal? translated-type f-type)
                                               translated-type
