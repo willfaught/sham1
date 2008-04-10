@@ -1,5 +1,5 @@
 (module haskell-typechecker mzscheme
-  (require (only (lib "1.ss" "srfi") zip unzip2)
+  (require (only (lib "1.ss" "srfi") list-tabulate unzip2 zip)
            (lib "haskell-compiler.ss" "hs")
            (lib "haskell-prelude.ss" "hs")
            (lib "haskell-terms.ss" "hs")
@@ -109,6 +109,13 @@
                                      ((d-types d-constraints) (unzip2 (map (lambda (x) (reconstruct-types context-2 x)) d)))
                                      ((e-type e-constraints) (reconstruct-types context-2 e)))
                           (list e-type (append (foldl append null d-constraints) e-constraints))))
+      (($ list-term e) (match-let ((((head-type . tail-types) e-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) e))))
+                         (list head-type (append (map (lambda (x) (make-constraint head-type x)) tail-types) (foldl append null e-constraints)))))
+      ;(($ module-term i d) 
+      (($ tuple-term e) (match-let (((e-types e-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) e))))
+                          (list (make-tuple-type e-types) e-constraints)))
+      (($ tuplecon-term a) (let ((types (list-tabulate a (lambda (x) (fresh-type-variable)))))
+                             (make-function-type (append types (list (make-tuple-type types))))))
       ))
   
   (define tests
