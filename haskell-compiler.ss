@@ -17,7 +17,7 @@
                   (($ identifier-term i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
                   (($ if-term g t e) `(if ,(compile-expression g) ,(compile-expression t) ,(compile-expression e)))
                   (($ integer-term i) (string->number i))
-                  (($ let-term ds e) `(begin ,@(map compile-expression (filter (lambda (d) (not (equal? (car (declaration-term-patterns d)) "_"))) ds)) ,(compile-expression e)))
+                  (($ let-term d e) `(begin ,@(map compile-expression d) ,(compile-expression e)))
                   (($ list-term e) (if (null? e) null `(cons (delay ,(compile-expression (car e))) (delay ,(compile-expression (make-list-term (cdr e)))))))
                   (($ tuple-term e) (compile-expression (make-application-term (make-tuplecon-term (length e)) e)))
                   (($ tuplecon-term a) (compile-etupcon a))))
@@ -40,14 +40,13 @@
     (make-immutable-hash-table `() 'equal))
   
   (define (compile-haskell module)
-    (define decls (filter (lambda (x) (and (declaration-term? x) (not (equal? (car (declaration-term-patterns x)) "_")))) (module-term-declarations module)))
     `(module ,(string->symbol (module-term-identifier module)) mzscheme
        (require (lib "haskell-prelude.ss" "hs")
                 (lib "match.ss"))
        (provide (all-defined))
-       ,@(map compile-expression decls)))
+       ,@(map compile-expression (module-term-declarations module))))
   
-  (define compilation-tests
+  (define tests
     (list (make-test "eapp 1" (make-application-term (make-identifier-term "x") (list (make-integer-term "4"))) '((force x) (delay 4)))
           (make-test "eapp 2" (make-application-term (make-identifier-term "x") (list (make-integer-term "5") (make-integer-term "6"))) '(((force x) (delay 5)) (delay 6)))
           (make-test "ecase 1" (make-case-term (make-integer-term "2") (list (cons "x" (make-integer-term "3")))) '(match 2 (x 3)))
@@ -71,4 +70,4 @@
           (make-test "etupcon 2" (make-tuplecon-term 3) '(lambda (x1) (lambda (x2) (lambda (x3) (vector-immutable x1 x2 x3)))))))
   
   (define (run-all-tests)
-    (run-tests (lambda (x) (compile-expression x)) compilation-tests)))
+    (run-tests (lambda (x) (compile-expression x)) tests)))
