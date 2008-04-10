@@ -1,9 +1,10 @@
 (module haskell-typechecker mzscheme
-  (require (lib "haskell-compiler.ss" "hs")
+  (require (only (lib "1.ss" "srfi") zip unzip2)
+           (lib "haskell-compiler.ss" "hs")
            (lib "haskell-prelude.ss" "hs")
            (lib "haskell-terms.ss" "hs")
            (lib "haskell-types.ss" "hs")
-           (lib "list.ss" "srfi" "1")
+           (only (lib "list.ss") foldl)
            (lib "match.ss")
            (lib "test.ss" "hs"))
   
@@ -13,6 +14,7 @@
     (term-type null term)
     #t)
   
+  ; check-types
   (define (term-type context term)
     (match term
       (($ application-term f a) (let ((f-type (term-type context f))
@@ -64,6 +66,50 @@
       (($ type-constructor "Float") (make-float-type))
       (($ function-type t) (make-function-type (map translate-type t)))
       (x x)))
+  
+  (define type-variable-count 0)
+  
+  (define (fresh-type-variable)
+    (set! type-variable-count (+ type-variable-count 1))
+    (make-type-variable (string-append "t" (number->string type-variable-count))))
+  
+  (define-struct constraint (left right))
+  
+  (define (reconstruct-types context term)
+    (match term
+      (($ application-term f a) (match-let* (((f-type f-constraints) (reconstruct-types context f))
+                                             ((a-types a-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) a)))
+                                             (type (fresh-type-variable))
+                                             (constraints (cons (make-constraint f-type (make-function-type (append a-types (list type))))
+                                                                (append f-constraints (foldl append null a-constraints)))))
+                                  (list type constraints)))
+      (($ case-term e a) (match-let* (((e-type e-constraints) (reconstruct-types context e))
+                                      ((a-types a-constraints) (unzip2 (map (lambda (x) (reconstruct-types (cons (list (car x) e-type) context) (cdr x))) a))))
+                           (list (car a-types) (append e-constraints (foldl append null a-constraints)))))
+      (($ character-term c) (list (make-character-type) null))
+      (($ declaration-term p e t) (if (equal? (length p) 1)
+                                      (match-let (((type constraints) (reconstruct-types context e)))
+                                        (list type (cons (make-constraint (assoc (car p) context) type) constraints)))
+                                      (match-let (((type constraints) (reconstruct-types context (make-function-term (cdr p) e t))))
+                                        (list type (cons (make-constraint (assoc (car p) context) type) constraints)))))
+      (($ float-term f) (list (make-float-type) null))
+      (($ function-term p b _) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
+                                            ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
+                                 (list (make-function-type (append p-types (list type))) constraints)))
+      (($ identifier-term i) (match (assoc i context)
+                               ((_ type) (list type null))
+                               (_ (error 'reconstruct-types "free variable: ~a" i))))
+      (($ if-term g t e) (match-let (((g-type g-constraints) (reconstruct-types context g))
+                                     ((t-type t-constraints) (reconstruct-types context t))
+                                     ((e-type e-constraints) (reconstruct-types context e)))
+                           (list t-type (append g-constraints t-constraints e-constraints (list (make-constraint g-type (make-boolean-type))
+                                                                                                (make-constraint t-type e-type))))))
+      (($ integer-term i) (list (make-integer-type) null))
+      (($ let-term d e) (match-let* ((context-2 (append (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) d) context))
+                                     ((d-types d-constraints) (unzip2 (map (lambda (x) (reconstruct-types context-2 x)) d)))
+                                     ((e-type e-constraints) (reconstruct-types context-2 e)))
+                          (list e-type (append (foldl append null d-constraints) e-constraints))))
+      ))
   
   (define tests
     (list (make-test "application-term 1"
