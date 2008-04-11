@@ -1,5 +1,5 @@
 (module haskell-typechecker mzscheme
-  (require (only (lib "1.ss" "srfi") list-tabulate unzip2 zip)
+  (require (only (lib "1.ss" "srfi") make-list unzip2 zip)
            (lib "haskell-compiler.ss" "hs")
            (lib "haskell-prelude.ss" "hs")
            (lib "haskell-terms.ss" "hs")
@@ -120,8 +120,8 @@
                                            (foldl append null e-constraints))))))
       ;(($ module-term i d) 
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
-                          (list (make-tuple-type e-types) e-constraints)))
-      (($ tuplecon-term a) (let ((types (list-tabulate a (lambda (x) (fresh-type-variable)))))
+                          (list (make-tuple-type e-types) (foldl append null e-constraints))))
+      (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
                              (list (make-function-type (append types (list (make-tuple-type types)))) null)))
       ))
   
@@ -156,13 +156,19 @@
     (match constraints
       ((($ constraint left-type right-type) . rest) (cond ((equal? left-type right-type)
                                                            (unify-constraints rest))
-                                                          ((and (type-variable? left-type) (not (contains-type? right-type left-type)))
-                                                           (cons (list left-type right-type) (unify-constraints (substitute-constraints-type rest left-type right-type))))
-                                                          ((and (type-variable? right-type) (not (contains-type? left-type right-type)))
-                                                           (cons (list right-type left-type) (unify-constraints (substitute-constraints-type rest right-type left-type))))
-                                                          ((and (function-type? left-type) (function-type? right-type))
+                                                          ((and (type-variable? left-type)
+                                                                (not (contains-type? right-type left-type)))
+                                                           (cons (list left-type right-type)
+                                                                 (unify-constraints (substitute-constraints-type rest left-type right-type))))
+                                                          ((and (type-variable? right-type)
+                                                                (not (contains-type? left-type right-type)))
+                                                           (cons (list right-type left-type)
+                                                                 (unify-constraints (substitute-constraints-type rest right-type left-type))))
+                                                          ((and (function-type? left-type)
+                                                                (function-type? right-type)
+                                                                #;(equal? (length (function-type-types left-type)) (length (function-type-types right-type))))
                                                            (unify-constraints (append (zip (function-type-types left-type) (function-type-types right-type)) rest)))
-                                                          (else (error 'unify-constraints "cannot unify constraints"))))
+                                                          (else (error 'unify-constraints "cannot unify constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
   (define tests2
