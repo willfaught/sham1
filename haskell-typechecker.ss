@@ -129,7 +129,33 @@
                  ((_ constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
       (foldl append null constraints)))
   
-  (define (unify-constraints constraints) 'TODO)
+  (define (unify-constraints constraints)
+    (define (contains-type? container-type containee-type)
+      (if (equal? container-type containee-type)
+          #t
+          (match container-type
+            (($ function-type t) (foldl (lambda (x y) (or x y)) #f (map (lambda (x) (contains-type? x containee-type)) t)))
+            (($ list-type t) (contains-type? t containee-type))
+            (($ tuple-type t) (foldl (lambda (x y) (or x y)) #f (map (lambda (x) (contains-type? x containee-type)) t)))
+            (_ #f))))
+    (define (substitute-constraints-type constraints from-type to-type)
+      (define (substitute-type from-type to-type type)
+        (if (equal? from-type type)
+            to-type
+            (match type
+              (($ function-type t) (make-function-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
+              (($ list-type t) (make-list-type (substitute-type from-type to-type t)))
+              (($ tuple-type t) (make-tuple-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
+              (t t))))
+      (map (match-lambda ((left-type right-type) (list (substitute-type from-type to-type left-type)
+                                                       (substitute-type from-type to-type right-type)))) constraints))
+    (match constraints
+      (((left-type right-type) . rest) (cond ((equal? left-type right-type)
+                                              (unify-constraints rest))
+                                             ((and (type-variable? left-type) (not (contains-type? right-type left-type)))
+                                              (cons (list left-type right-type) (unify-constraints (substitute-constraints-type rest left-type right-type))))
+                                             (else (error 'unify-constraints "cannot unify constraints"))))
+      (_ null)))
   
   (define tests2
     (list (make-test "application-term 1"
