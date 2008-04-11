@@ -113,6 +113,10 @@
     (map (match-lambda (($ constraint left-type right-type) (make-constraint (substitute-type from-type to-type left-type)
                                                                              (substitute-type from-type to-type right-type)))) constraints))
   
+  ; TODO:
+  ; - what to do with uneven applications?
+  ; - need to still perform type substs on original types
+  
   (define (unify-constraints constraints)
     (match constraints
       ((($ constraint left-type right-type) . rest)
