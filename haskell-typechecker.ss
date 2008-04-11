@@ -112,13 +112,17 @@
                                      ((d-types d-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context-2 x)) d)))
                                      ((e-type e-constraints) (reconstruct-types context-2 e)))
                           (list e-type (append (foldl append null d-constraints) e-constraints))))
-      (($ list-term e) (match-let ((((head-type . tail-types) e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
-                         (list (make-list-type head-type) (append (map (lambda (x) (make-constraint head-type x)) tail-types) (foldl append null e-constraints)))))
+      (($ list-term e) (if (null? e)
+                           (list (make-list-type (fresh-type-variable)) null)
+                           (match-let ((((head-type . tail-types) e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
+                             (list (make-list-type head-type)
+                                   (append (map (lambda (x) (make-constraint head-type x)) tail-types)
+                                           (foldl append null e-constraints))))))
       ;(($ module-term i d) 
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) e-constraints)))
       (($ tuplecon-term a) (let ((types (list-tabulate a (lambda (x) (fresh-type-variable)))))
-                             (make-function-type (append types (list (make-tuple-type types))))))
+                             (list (make-function-type (append types (list (make-tuple-type types)))) null)))
       ))
   
   (define rt reconstruct-types)
@@ -150,7 +154,7 @@
       (map (match-lambda ((left-type right-type) (list (substitute-type from-type to-type left-type)
                                                        (substitute-type from-type to-type right-type)))) constraints))
     (match constraints
-      (((left-type right-type) . rest) (cond ((equal? left-type right-type)
+      ((($ constraint left-type right-type) . rest) (cond ((equal? left-type right-type)
                                               (unify-constraints rest))
                                              ((and (type-variable? left-type) (not (contains-type? right-type left-type)))
                                               (cons (list left-type right-type) (unify-constraints (substitute-constraints-type rest left-type right-type))))
@@ -159,7 +163,7 @@
                                              ((and (function-type? left-type) (function-type? right-type))
                                               (unify-constraints (append (zip (function-type-types left-type) (function-type-types right-type)) rest)))
                                              (else (error 'unify-constraints "cannot unify constraints"))))
-      (_ null)))
+      (() null)))
   
   (define tests2
     (list (make-test "application-term 1"
