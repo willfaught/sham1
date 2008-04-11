@@ -154,6 +154,10 @@
                                               (unify-constraints rest))
                                              ((and (type-variable? left-type) (not (contains-type? right-type left-type)))
                                               (cons (list left-type right-type) (unify-constraints (substitute-constraints-type rest left-type right-type))))
+                                             ((and (type-variable? right-type) (not (contains-type? left-type right-type)))
+                                              (cons (list right-type left-type) (unify-constraints (substitute-constraints-type rest right-type left-type))))
+                                             ((and (function-type? left-type) (function-type? right-type))
+                                              (unify-constraints (append (zip (function-type-types left-type) (function-type-types right-type)) rest)))
                                              (else (error 'unify-constraints "cannot unify constraints"))))
       (_ null)))
   
