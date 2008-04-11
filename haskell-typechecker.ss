@@ -25,6 +25,11 @@
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
   
+  (define (zip-with f x y)
+    (if (equal? (length x) (length y))
+        (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
+        (error 'zip-with "lists have different lengths")))
+  
   (define (translate-type type)
     (match type
       (($ type-constructor "Bool") (make-boolean-type))
@@ -58,7 +63,7 @@
                                  (list (make-function-type (append p-types (list type))) constraints)))
       (($ identifier-term i) (match (assoc i context)
                                ((_ type) (list type null))
-                               (_ (error 'reconstruct-types "free variable: ~a" i))))
+                               (_ (error 'reconstruct-types "Not in scope: '~a'" i))))
       (($ if-term g t e) (match-let (((g-type g-constraints) (reconstruct-types context g))
                                      ((t-type t-constraints) (reconstruct-types context t))
                                      ((e-type e-constraints) (reconstruct-types context e)))
@@ -132,7 +137,7 @@
              ((and (function-type? left-type)
                    (function-type? right-type)
                    #;(equal? (length (function-type-types left-type)) (length (function-type-types right-type))))
-              (unify-constraints (append (zip (function-type-types left-type) (function-type-types right-type)) rest)))
+              (unify-constraints (append (zip-with make-constraint (function-type-types left-type) (function-type-types right-type)) rest)))
              (else (error 'unify-constraints "cannot unify constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
