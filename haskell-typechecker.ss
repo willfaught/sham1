@@ -8,9 +8,9 @@
            (lib "match.ss")
            (lib "test.ss" "hs"))
   
-  (provide valid-type)
+  (provide valid-types)
   
-  (define (valid-type module)
+  (define (valid-types module)
     (unify-constraints (reconstruct-module-types module))
     #t)
   
@@ -75,7 +75,6 @@
                              (list (make-list-type head-type)
                                    (append (map (lambda (x) (make-constraint head-type x)) tail-types)
                                            (foldl append null e-constraints))))))
-      ;(($ module-term i d) 
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
@@ -87,7 +86,7 @@
   (define (reconstruct-module-types module)
     (match-let* ((decls (module-term-declarations module))
                  (context (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) decls))
-                 ((_ constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
+                 ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
       (foldl append null constraints)))
   
   (define rmt reconstruct-module-types)
@@ -143,4 +142,4 @@
     (list))
   
   (define (run-all-tests)
-      (run-tests (lambda (x) (set! type-variable-count 0) (unify-constraints (reconstruct-types null x))) tests)))
+    (run-tests (lambda (x) (set! type-variable-count 0) (unify-constraints (reconstruct-types null x))) tests)))
