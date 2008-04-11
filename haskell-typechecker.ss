@@ -86,7 +86,7 @@
                                              (constraints (cons (make-constraint f-type (make-function-type (append a-types (list type))))
                                                                 (append f-constraints (foldl append null a-constraints)))))
                                   (list type constraints)))
-      (($ case-term e a) (match-let* (((e-type e-constraints) (reconstruct-types context e))
+      #;(($ case-term e a) (match-let* (((e-type e-constraints) (reconstruct-types context e)) ; need to add constraints between e and patterns
                                       ((a-types a-constraints) (lunzip2 (map (lambda (x) (reconstruct-types (cons (list (car x) e-type) context) (cdr x))) a))))
                            (list (car a-types) (append e-constraints (foldl append null a-constraints)))))
       (($ character-term c) (list (make-character-type) null))
@@ -122,6 +122,14 @@
       ))
   
   (define rt reconstruct-types)
+  
+  (define (reconstruct-module-types module)
+    (match-let* ((decls (module-term-declarations module))
+                 (context (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) decls))
+                 ((_ constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
+      (foldl append null constraints)))
+  
+  (define (unify-constraints constraints) 'TODO)
   
   (define tests2
     (list (make-test "application-term 1"
