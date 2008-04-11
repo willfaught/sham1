@@ -151,7 +151,7 @@
               (($ list-type t) (make-list-type (substitute-type from-type to-type t)))
               (($ tuple-type t) (make-tuple-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
               (t t))))
-      (map (match-lambda ((left-type right-type) (list (substitute-type from-type to-type left-type)
+      (map (match-lambda (($ constraint left-type right-type) (list (substitute-type from-type to-type left-type)
                                                        (substitute-type from-type to-type right-type)))) constraints))
     (match constraints
       ((($ constraint left-type right-type) . rest) (cond ((equal? left-type right-type)
