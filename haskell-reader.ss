@@ -164,7 +164,7 @@
                      (nt-exp ((t-backslash nt-exp-2 t-singlearrow nt-exp t-coloncolon nt-type) (make-function-term $2 $4 $6))
                              ((t-let nt-decls t-in nt-exp) (make-let-term $2 $4))
                              ((t-if nt-exp t-then nt-exp t-else nt-exp) (make-if-term $2 $4 $6))
-                             ((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-case-term $2 $5))
+                             #;((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-case-term $2 $5)) ; useless without pattern matching
                              ((nt-fexp) $1)
                              #;((t-lrbracket nt-exp t-coloncolon nt-type t-rrbracket) 'TODO)) ; creates a shift/reduce conflict
                      (nt-var ((t-varid) $1)

@@ -73,25 +73,28 @@
     (set! type-variable-count (+ type-variable-count 1))
     (make-type-variable (string-append "t" (number->string type-variable-count))))
   
-  (define-struct constraint (left right))
+  (define-struct constraint (left right) #f)
+  
+  (define (lunzip2 x)
+    (let-values (((x y) (unzip2 x))) (list x y)))
   
   (define (reconstruct-types context term)
     (match term
       (($ application-term f a) (match-let* (((f-type f-constraints) (reconstruct-types context f))
-                                             ((a-types a-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) a)))
+                                             ((a-types a-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) a)))
                                              (type (fresh-type-variable))
                                              (constraints (cons (make-constraint f-type (make-function-type (append a-types (list type))))
                                                                 (append f-constraints (foldl append null a-constraints)))))
                                   (list type constraints)))
       (($ case-term e a) (match-let* (((e-type e-constraints) (reconstruct-types context e))
-                                      ((a-types a-constraints) (unzip2 (map (lambda (x) (reconstruct-types (cons (list (car x) e-type) context) (cdr x))) a))))
+                                      ((a-types a-constraints) (lunzip2 (map (lambda (x) (reconstruct-types (cons (list (car x) e-type) context) (cdr x))) a))))
                            (list (car a-types) (append e-constraints (foldl append null a-constraints)))))
       (($ character-term c) (list (make-character-type) null))
       (($ declaration-term p e t) (if (equal? (length p) 1)
                                       (match-let (((type constraints) (reconstruct-types context e)))
-                                        (list type (cons (make-constraint (assoc (car p) context) type) constraints)))
+                                        (list type (cons (make-constraint (list-ref (assoc (car p) context) 1) type) constraints)))
                                       (match-let (((type constraints) (reconstruct-types context (make-function-term (cdr p) e t))))
-                                        (list type (cons (make-constraint (assoc (car p) context) type) constraints)))))
+                                        (list type (cons (make-constraint (list-ref (assoc (car p) context) 1) type) constraints)))))
       (($ float-term f) (list (make-float-type) null))
       (($ function-term p b _) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                             ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
@@ -106,19 +109,21 @@
                                                                                                 (make-constraint t-type e-type))))))
       (($ integer-term i) (list (make-integer-type) null))
       (($ let-term d e) (match-let* ((context-2 (append (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) d) context))
-                                     ((d-types d-constraints) (unzip2 (map (lambda (x) (reconstruct-types context-2 x)) d)))
+                                     ((d-types d-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context-2 x)) d)))
                                      ((e-type e-constraints) (reconstruct-types context-2 e)))
                           (list e-type (append (foldl append null d-constraints) e-constraints))))
-      (($ list-term e) (match-let ((((head-type . tail-types) e-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) e))))
-                         (list head-type (append (map (lambda (x) (make-constraint head-type x)) tail-types) (foldl append null e-constraints)))))
+      (($ list-term e) (match-let ((((head-type . tail-types) e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
+                         (list (make-list-type head-type) (append (map (lambda (x) (make-constraint head-type x)) tail-types) (foldl append null e-constraints)))))
       ;(($ module-term i d) 
-      (($ tuple-term e) (match-let (((e-types e-constraints) (unzip2 (map (lambda (x) (reconstruct-types context x)) e))))
+      (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) e-constraints)))
       (($ tuplecon-term a) (let ((types (list-tabulate a (lambda (x) (fresh-type-variable)))))
                              (make-function-type (append types (list (make-tuple-type types))))))
       ))
   
-  (define tests
+  (define rt reconstruct-types)
+  
+  (define tests2
     (list (make-test "application-term 1"
                      (make-application-term (make-function-term (list "x")
                                                                 (make-identifier-term "x")
@@ -222,5 +227,5 @@
                                     (make-integer-term "1"))
                      (make-integer-type))))
   
-  (define (run-all-tests)
-    (run-tests (lambda (x) (term-type null x)) tests)))
+  #;(define (run-all-tests)
+    (run-tests (lambda (x) (set! type-variable-count 0) (reconstruct-types null x)) tests)))
