@@ -122,6 +122,12 @@
   ; - need to still perform type substs on original types
   
   (define (unify-constraints constraints)
+    (define (zip-function-types types)
+      (match types
+        (((a . ()) (b c . d)) (list (make-constraint a (make-function-type (append (list b c) d)))))
+        (((a b . c) (d . ())) (list (make-constraint (make-function-type (append (list a b) c)) d)))
+        (((a . b) (c . d)) (cons (make-constraint a c) (zip-function-types (list b d))))
+        ((() ()) null)))
     (match constraints
       ((($ constraint left-type right-type) . rest)
        (cond ((equal? left-type right-type)
@@ -135,9 +141,8 @@
               (cons (list right-type left-type)
                     (unify-constraints (substitute-constraints-type rest right-type left-type))))
              ((and (function-type? left-type)
-                   (function-type? right-type)
-                   #;(equal? (length (function-type-types left-type)) (length (function-type-types right-type))))
-              (unify-constraints (append (zip-with make-constraint (function-type-types left-type) (function-type-types right-type)) rest)))
+                   (function-type? right-type))
+              (unify-constraints (append (zip-function-types (list (function-type-types left-type) (function-type-types right-type))) rest)))
              (else (error 'unify-constraints "cannot unify constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
