@@ -22,6 +22,8 @@
   
   (define-struct constraint (left right) #f)
   
+  (define-struct type-mapping (from-type to-type) #f)
+  
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
   
@@ -105,21 +107,18 @@
           (($ tuple-type t) (foldl (lambda (x y) (or x y)) #f (map (lambda (x) (contains-type? x containee-type)) t)))
           (_ #f))))
   
-  (define (substitute-constraints-type constraints from-type to-type)
-    (define (substitute-type from-type to-type type)
-      (if (equal? from-type type)
-          to-type
-          (match type
-            (($ function-type t) (make-function-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
-            (($ list-type t) (make-list-type (substitute-type from-type to-type t)))
-            (($ tuple-type t) (make-tuple-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
-            (t t))))
-    (map (match-lambda (($ constraint left-type right-type) (make-constraint (substitute-type from-type to-type left-type)
-                                                                             (substitute-type from-type to-type right-type)))) constraints))
+  (define (substitute-in-constraints from-type to-type constraints)
+    (map (match-lambda (($ constraint left-type right-type) (make-constraint (substitute-in-type (list (list from-type to-type)) left-type)
+                                                                             (substitute-in-type (list (list from-type to-type)) right-type)))) constraints))
   
-  ; TODO:
-  ; - what to do with uneven applications?
-  ; - need to still perform type substs on original types
+  (define (substitute-in-type mappings from-type)
+    (match (assoc from-type mappings)
+      ((_ to-type) to-type)
+      (#f (match from-type
+            (($ function-type t) (make-function-type (map (lambda (x) (substitute-in-type mappings x)) t)))
+            (($ list-type t) (make-list-type (substitute-in-type mappings t)))
+            (($ tuple-type t) (make-tuple-type (map (lambda (x) (substitute-in-type mappings x)) t)))
+            (t t)))))
   
   (define (unify-constraints constraints)
     (define (zip-function-types types)
@@ -135,21 +134,57 @@
              ((and (type-variable? left-type)
                    (not (contains-type? right-type left-type)))
               (cons (list left-type right-type)
-                    (unify-constraints (substitute-constraints-type rest left-type right-type))))
+                    (unify-constraints (substitute-in-constraints left-type right-type rest))))
              ((and (type-variable? right-type)
                    (not (contains-type? left-type right-type)))
               (cons (list right-type left-type)
-                    (unify-constraints (substitute-constraints-type rest right-type left-type))))
+                    (unify-constraints (substitute-in-constraints right-type left-type rest))))
              ((and (function-type? left-type)
                    (function-type? right-type))
               (unify-constraints (append (zip-function-types (list (function-type-types left-type) (function-type-types right-type))) rest)))
-             (else (error 'unify-constraints "cannot unify constraint: ~a = ~a" left-type right-type))))
+             (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
   (define uc unify-constraints)
   
   (define tests
-    (list))
+    (list (make-test "character-term 1"
+                     (make-character-term "a")
+                     (make-character-type))
+          (make-test "integer-term 1"
+                     (make-integer-term "1")
+                     (make-integer-type))
+          (make-test "float-term 1"
+                     (make-float-term "2.3")
+                     (make-float-type))
+          (make-test "list-term 1"
+                     (make-list-term null)
+                     (make-list-type (make-type-variable "t1")))
+          (make-test "list-term 2"
+                     (make-list-term (list (make-character-term "a")))
+                     (make-list-type (make-character-type)))
+          (make-test "list-term 3"
+                     (make-list-term (list (make-float-term "1.2") (make-float-term "3.4")))
+                     (make-list-type (make-float-type)))
+          (make-test "tuple-term 1"
+                     (make-tuple-term (list (make-character-term "a") (make-float-term "1.2")))
+                     (make-tuple-type (list (make-character-type) (make-float-type))))
+          (make-test "tuple-term 2"
+                     (make-tuple-term (list (make-character-term "a") (make-float-term "1.2") (make-integer-term "3")))
+                     (make-tuple-type (list (make-character-type) (make-float-type) (make-integer-type))))
+          (make-test "application-term 1"
+                     (make-application-term (make-function-term (list "x") (make-integer-term "1") #f)
+                                            (list (make-integer-term "1")))
+                     (make-integer-type))
+          (make-test "application-term 2"
+                     (make-application-term (make-function-term (list "x") (make-identifier-term "x") #f)
+                                            (list (make-integer-term "1")))
+                     (make-integer-type))
+          ))
   
   (define (run-all-tests)
-    (run-tests (lambda (x) (set! type-variable-count 0) (unify-constraints (reconstruct-types null x))) tests)))
+    (run-tests (lambda (x)
+                 (set! type-variable-count 0)
+                 (match-let* (((type constraints) (reconstruct-types null x)))
+                   (substitute-in-type (unify-constraints constraints) type)))
+               tests)))
