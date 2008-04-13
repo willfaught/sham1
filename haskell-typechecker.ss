@@ -1,5 +1,5 @@
 (module haskell-typechecker mzscheme
-  (require (only (lib "1.ss" "srfi") make-list unzip2 zip)
+  (require (only (lib "1.ss" "srfi") filter make-list unzip2 zip)
            (lib "haskell-compiler.ss" "hs")
            (lib "haskell-prelude.ss" "hs")
            (lib "haskell-terms.ss" "hs")
@@ -88,22 +88,33 @@
   ; map-type :: (type -> type) -> type -> type
   (define (map-type mapper type)
     (match type
-      (($ function-type t) (make-function-type (map mapper t)))
-      (($ list-type t) (make-list-type (mapper t)))
-      (($ tuple-type t) (make-tuple-type (map mapper t)))
+      (($ function-type t) (mapper (make-function-type (map mapper t))))
+      (($ list-type t) (mapper (make-list-type (mapper t))))
+      (($ tuple-type t) (mapper (make-tuple-type (map mapper t))))
       (t (mapper t))))
   
   ; generalize :: [(string, type)] -> type -> type
   (define (generalize context type)
-    ; type-in-context :: [(string, type)] -> type -> boolean
+    ; type-in-context? :: [(string, type)] -> type -> boolean
     (define (type-in-context? context type)
       (match context
         (((_ t) . tail) (if (contains-type? type t) #t (type-in-context? tail type)))
         (() #f)))
-    ; local-type-variables :: [(string, type)] -> type -> [type]
-    (define (local-type-variables context type)
-      (if (type-in-context? context type) type (match type
-                                                 (($ 
+    ; type-variables :: type -> [type]
+    (define (type-variables type)
+      (match type
+        (($ type-variable i) (list (make-type-variable i)))
+        (($ function-type t) (foldl append null (map type-variables t)))
+        (($ list-type t) (type-variables t))
+        (($ tuple-type t) (foldl append null (map type-variables t)))
+        (_ null)))
+    (make-universal-type (filter (lambda (x) (not (type-in-context? context x))) (type-variables type)) type))
+  
+  ; instantiate :: universal-type -> type
+  (define (instantiate type)
+    (match type
+      (($ universal-type (head . tail) t) (instantiate (make-universal-type tail (map-type (lambda (x) (if (equal? head x) (fresh-type-variable) x)) t))))
+      (($ universal-type () t) t)))
   
   ; reconstruct-module-types :: term -> [constraint]
   (define (reconstruct-module-types module)
