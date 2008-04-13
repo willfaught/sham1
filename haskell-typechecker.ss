@@ -85,6 +85,9 @@
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
                              (list (make-function-type (append types (list (make-tuple-type types)))) null)))))
   
+  ; generalize :: type -> type
+  (define (generalize type)
+  
   ; reconstruct-module-types :: term -> [constraint]
   (define (reconstruct-module-types module)
     (match-let* ((decls (module-term-declarations module))
