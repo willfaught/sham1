@@ -10,28 +10,25 @@
   
   (provide valid-types)
   
+  (define-struct constraint (left right) #f)
+  
+  (define type-variable-count 0)
+  
+  ; valid-types :: term -> boolean
   (define (valid-types module)
     (unify-constraints (reconstruct-module-types module))
     #t)
   
-  (define type-variable-count 0)
-  
+  ; fresh-type-variable :: type
   (define (fresh-type-variable)
     (set! type-variable-count (+ type-variable-count 1))
     (make-type-variable (string-append "t" (number->string type-variable-count))))
   
-  (define-struct constraint (left right) #f)
-  
-  (define-struct type-mapping (from-type to-type) #f)
-  
+  ; lunzip2 :: [(a, b)] -> ([a], [b])
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
   
-  (define (zip-with f x y)
-    (if (equal? (length x) (length y))
-        (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
-        (error 'zip-with "lists have different lengths")))
-  
+  ; translate-type :: type -> type
   (define (translate-type type)
     (match type
       (($ type-constructor "Bool") (make-boolean-type))
@@ -42,6 +39,7 @@
       (($ function-type t) (make-function-type (map translate-type t)))
       (x x)))
   
+  ; reconstruct-types :: [(string, type)] -> term -> (type, [constraint])
   (define (reconstruct-types context term)
     (match term
       (($ application-term f a) (match-let* (((f-type f-constraints) (reconstruct-types context f))
@@ -87,12 +85,14 @@
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
                              (list (make-function-type (append types (list (make-tuple-type types)))) null)))))
   
+  ; reconstruct-module-types :: term -> [constraint]
   (define (reconstruct-module-types module)
     (match-let* ((decls (module-term-declarations module))
                  (context (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) decls))
                  ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
       (foldl append null constraints)))
   
+  ; contains-type? :: type -> type -> boolean
   (define (contains-type? container-type containee-type)
     (if (equal? container-type containee-type)
         #t
@@ -102,11 +102,13 @@
           (($ tuple-type t) (foldl (lambda (x y) (or x y)) #f (map (lambda (x) (contains-type? x containee-type)) t)))
           (_ #f))))
   
+  ; substitute-in-constraints :: type -> type -> [constraint] -> [constraint]
   (define (substitute-in-constraints from-type to-type constraints)
     (map (match-lambda (($ constraint left-type right-type) (make-constraint (substitute-type from-type to-type left-type)
                                                                              (substitute-type from-type to-type right-type))))
          constraints))
   
+  ; substitute-type :: type -> type -> type -> type
   (define (substitute-type from-type to-type type)
     (if (equal? from-type type)
         to-type
@@ -116,12 +118,15 @@
           (($ tuple-type t) (make-tuple-type (map (lambda (x) (substitute-type from-type to-type x)) t)))
           (t t))))
   
+  ; substitute-types :: [(type, type)] -> type -> type
   (define (substitute-types mappings type)
     (match mappings
       (((from-type to-type) . tail) (substitute-types tail (substitute-type from-type to-type type)))
       (() type)))
   
+  ; unify-constraints :: [constraint] -> [(type, type)]
   (define (unify-constraints constraints)
+    ; zip-function-types :: ([type], [type]) -> [constraint]
     (define (zip-function-types types)
       (match types
         (((a . ()) (b c . d)) (list (make-constraint a (make-function-type (append (list b c) d)))))
@@ -294,7 +299,7 @@
                                                   (make-float-term "1.2")))
                      (make-float-type))))
   
-  (define (foo term)
+  (define (debug term)
     (match-let* (((type constraints) (reconstruct-types null term))
                  (mappings (unify-constraints constraints))
                  (newtype (substitute-types mappings type)))
