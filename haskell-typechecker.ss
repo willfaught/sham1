@@ -85,8 +85,25 @@
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
                              (list (make-function-type (append types (list (make-tuple-type types)))) null)))))
   
-  ; generalize :: type -> type
-  (define (generalize type)
+  ; map-type :: (type -> type) -> type -> type
+  (define (map-type mapper type)
+    (match type
+      (($ function-type t) (make-function-type (map mapper t)))
+      (($ list-type t) (make-list-type (mapper t)))
+      (($ tuple-type t) (make-tuple-type (map mapper t)))
+      (t (mapper t))))
+  
+  ; generalize :: [(string, type)] -> type -> type
+  (define (generalize context type)
+    ; type-in-context :: [(string, type)] -> type -> boolean
+    (define (type-in-context? context type)
+      (match context
+        (((_ t) . tail) (if (contains-type? type t) #t (type-in-context? tail type)))
+        (() #f)))
+    ; local-type-variables :: [(string, type)] -> type -> [type]
+    (define (local-type-variables context type)
+      (if (type-in-context? context type) type (match type
+                                                 (($ 
   
   ; reconstruct-module-types :: term -> [constraint]
   (define (reconstruct-module-types module)
