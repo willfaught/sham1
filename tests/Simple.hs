@@ -88,6 +88,7 @@ tupcon5 = (,) (,) (,);
 if1 = if True then 1 else 2;
 if2 = if False then 'a' else 'b';
 if3 = if (\x -> x) False then 1 else 2;
+if4 = if if True then True else False then 'a' else 'b';
 
 -- let tests
 
@@ -103,5 +104,9 @@ let9 = let { a x = x ; b = a 2 ; c = a 3 } in a;
 let10 = let { a = 1 } in let { b = a } in b;
 let11 = let { a x = x } in let { b = a 2 } in b;
 let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a
+
+-- prelude tests
+
+
 
 }
