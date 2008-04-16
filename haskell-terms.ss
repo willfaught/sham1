@@ -1,0 +1,18 @@
+(module haskell-terms mzscheme
+  (provide (all-defined))
+  
+  (define-struct term () #f)
+  (define-struct (application-term term) (function arguments) #f)
+  (define-struct (case-term term) (expression alternates) #f)
+  (define-struct (character-term term) (character) #f)
+  (define-struct (declaration-term term) (patterns expression) #f)
+  (define-struct (float-term term) (float) #f)
+  (define-struct (function-term term) (patterns body) #f)
+  (define-struct (identifier-term term) (identifier) #f)
+  (define-struct (if-term term) (guard then else) #f)
+  (define-struct (integer-term term) (integer) #f)
+  (define-struct (let-term term) (declarations expression) #f)
+  (define-struct (list-term term) (expressions) #f)
+  (define-struct (module-term term) (identifier declarations) #f)
+  (define-struct (tuple-term term) (expressions) #f)
+  (define-struct (tuplecon-term term) (arity) #f))

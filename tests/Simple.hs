@@ -16,19 +16,20 @@ module Simple where {
 
 -- character tests
 
---char1 = 'a';
+char1 = 'a';
 
 -- float tests
 
---float1 = 1.2;
+float1 = 1.2;
 
 -- integer tests
 
---int1 = 3;
+int1 = 3;
 
 -- boolean tests
 
 bool1 = True;
+bool2 = False;
 
 -- list tests
 
@@ -81,6 +82,12 @@ tupcon2 = (,,);
 tupcon3 = (,) 1;
 tupcon4 = (,) 'a' 2;
 tupcon5 = (,) (,) (,);
+
+-- if tests
+
+if1 = if True then 1 else 2;
+if2 = if False then 'a' else 'b';
+if3 = if (\x -> x) False then 1 else 2;
 
 -- let tests
 

@@ -30,7 +30,7 @@
       (($ type-constructor "Integer") (make-integer-type))
       (($ type-constructor "Float") (make-float-type))
       (($ function-type t) (make-function-type (map translate-type t)))
-      (x x)))
+      (t t)))
   
   ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
   (define (zip-with f x y)
