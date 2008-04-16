@@ -137,7 +137,7 @@
                  (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
                  (context (map (lambda (x) (list x (fresh-type-variable))) identifiers))
                  ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) declarations))))
-      (unify-constraints (foldl append null constraints))))
+      (foldl append null constraints)))
   
   ; contains-type? :: type -> type -> boolean
   (define (contains-type? container-type containee-type)

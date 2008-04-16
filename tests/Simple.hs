@@ -28,6 +28,6 @@ list5 = [('a', 6.7, 8), ('b', 9.0, 1)];
 list6 = "test";
 list7 = [1, 2, 3];
 tuple1 = ('a', 1.2, 3, [4], ('b', 4));
-let1 = let { a x = x } in a 3
+let1 = let { a x = x } in a 'b'
 
 }
