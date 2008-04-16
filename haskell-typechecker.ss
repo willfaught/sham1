@@ -59,12 +59,12 @@
                              (list (car a-types) (append e-constraints (foldl append null a-constraints)))))
       (($ character-term c) (list (make-character-type) null))
       (($ declaration-term p e) (if (equal? (length p) 1)
-                                      (reconstruct-types context e)
-                                      (reconstruct-types context (make-function-term (cdr p) e))))
+                                    (reconstruct-types context e)
+                                    (reconstruct-types context (make-function-term (cdr p) e))))
       (($ float-term f) (list (make-float-type) null))
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
-                                            ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
-                                 (list (make-function-type (append p-types (list type))) constraints)))
+                                          ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
+                               (list (make-function-type (append p-types (list type))) constraints)))
       (($ identifier-term i) (match (assoc i context)
                                ((_ type) (if (universal-type? type)
                                              (list (instantiate type) null)
@@ -95,8 +95,6 @@
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
                              (list (make-function-type (append types (list (make-tuple-type types)))) null)))))
-  
-  (define rt reconstruct-types)
   
   ; map-type :: (type -> type) -> type -> type
   (define (map-type mapper type)
@@ -135,10 +133,11 @@
   
   ; reconstruct-module-types :: module-term -> [constraint]
   (define (reconstruct-module-types module)
-    (match-let* ((decls (module-term-declarations module))
-                 (context (map (lambda (x) (list (car (declaration-term-patterns x)) (fresh-type-variable))) decls))
-                 ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) decls))))
-      (foldl append null constraints)))
+    (match-let* ((declarations (module-term-declarations module))
+                 (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
+                 (context (map (lambda (x) (list x (fresh-type-variable))) identifiers))
+                 ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) declarations))))
+      (unify-constraints (foldl append null constraints))))
   
   ; contains-type? :: type -> type -> boolean
   (define (contains-type? container-type containee-type)
@@ -198,10 +197,6 @@
               (unify-constraints (append (zip-function-types (list (function-type-types left-type) (function-type-types right-type))) rest)))
              (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
       (() null)))
-  
-  (define uc unify-constraints)
-  
-  (define (reset) (set! type-variable-count 0))
   
   (define tests
     (list (make-test "character-term 1"
