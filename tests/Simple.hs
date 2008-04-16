@@ -14,20 +14,83 @@ module Simple where {
 
 --a = (+) :: Int -> Int -> Int
 
--- type tests
+-- character tests
 
 char1 = 'a';
-char2 = 'A';
+
+-- float tests
+
 float1 = 1.2;
-int1 = 1;
+
+-- integer tests
+
+int1 = 3;
+
+-- list tests
+
 list1 = [];
 list2 = ['a'];
 list3 = [3.4];
 list4 = [5];
-list5 = [('a', 6.7, 8), ('b', 9.0, 1)];
-list6 = "test";
-list7 = [1, 2, 3];
-tuple1 = ('a', 1.2, 3, [4], ('b', 4));
-let1 = let { a x = x } in a 'b'
+list5 = [[]];
+list6 = [[], []];
+list7 = [['a']];
+list8 = [['a'], ['b']];
+list9 = [1, 2, 3];
+list10 = "test";
+
+-- tuple tests
+
+tuple1 = ('a', 'b');
+tuple2 = (1.2, 3.4, 5.6);
+tuple3 = ('a', 1.2);
+tuple4 = (3.4, 5, 'b');
+tuple5 = (('a', 1.2), (3.4, 5, 'b'), 6);
+
+-- nested tests
+
+nested1 = [(1, 2)];
+nested2 = [('a', 'b', 'c'), ('d', 'e', 'f')];
+nested3 = ([], []);
+nested4 = ([1, 2, 3], ['a', 'b']);
+
+-- function tests
+
+fun1 = \x -> 1;
+fun2 = \x -> x;
+fun3 = \x y -> x;
+fun4 = \x y -> y;
+fun5 = \x -> \y -> y;
+
+-- application tests
+
+app1 = (\x -> 1) 'a';
+app2 = (\x -> x) [];
+app3 = (\x -> x) (\x -> x);
+app5 = (\x y -> 1) 2 3;
+app6 = (\x -> \y -> y) 'a' (1.2, 3);
+
+-- tuplecon tests
+
+tupcon1 = (,);
+tupcon2 = (,,);
+tupcon3 = (,) 1;
+tupcon4 = (,) 'a' 2;
+tupcon5 = (,) (,) (,);
+
+-- let tests
+
+let1 = let { a = 1 } in 1;
+let2 = let { a = 1 } in a;
+let3 = let { a = a } in a;
+let4 = let { a = 1 ; b = a } in b;
+let5 = let { a = b; b = 1 } in a;
+let6 = let { a = b ; b = a } in a;
+let7 = let { a x = x } in a 1;
+let8 = let { a x = x } in a (a 1);
+let9 = let { a x = x ; b = a 2 ; c = a 3 } in a;
+let10 = let { a = 1 } in let { b = a } in b;
+let11 = let { a x = x } in let { b = a 2 } in b;
+let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a
 
 }

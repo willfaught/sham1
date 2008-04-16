@@ -195,6 +195,13 @@
              ((and (function-type? left-type)
                    (function-type? right-type))
               (unify-constraints (append (zip-function-types (list (function-type-types left-type) (function-type-types right-type))) rest)))
+             ((and (list-type? left-type)
+                   (list-type? right-type))
+              (unify-constraints (cons (make-constraint (list-type-type left-type) (list-type-type right-type)) rest)))
+             ((and (tuple-type? left-type)
+                   (tuple-type? right-type)
+                   (equal? (length (tuple-type-types left-type)) (length (tuple-type-types right-type))))
+              (unify-constraints (append (zip-with make-constraint (tuple-type-types left-type) (tuple-type-types right-type)) rest)))
              (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
