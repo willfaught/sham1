@@ -12,17 +12,10 @@
   
   (define-struct constraint (left-type right-type) #f)
   
-  (define type-variable-count 0)
-  
   ; valid-types :: module-term -> boolean
   (define (valid-types module)
     (unify-constraints (reconstruct-module-types module))
     #t)
-  
-  ; fresh-type-variable :: type-variable
-  (define (fresh-type-variable)
-    (set! type-variable-count (+ type-variable-count 1))
-    (make-type-variable (string-append "t" (number->string type-variable-count))))
   
   ; lunzip2 :: [(a, b)] -> ([a], [b])
   (define (lunzip2 x)
@@ -65,11 +58,13 @@
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                           ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
                                (list (make-function-type (append p-types (list type))) constraints)))
-      (($ identifier-term i) (match (assoc i context)
-                               ((_ type) (if (universal-type? type)
-                                             (list (instantiate type) null)
-                                             (list type null)))
-                               (_ (error 'reconstruct-types "Not in scope: '~a'" i))))
+      (($ identifier-term i) (if (member i prelude-declarations)
+                                 (list (hash-table-get prelude-types i) null)
+                                 (match (assoc i context)
+                                   ((_ type) (if (universal-type? type)
+                                                 (list (instantiate type) null)
+                                                 (list type null)))
+                                   (_ (error 'reconstruct-types "Not in scope: '~a'" i)))))
       (($ if-term g t e) (match-let (((g-type g-constraints) (reconstruct-types context g))
                                      ((t-type t-constraints) (reconstruct-types context t))
                                      ((e-type e-constraints) (reconstruct-types context e)))
@@ -393,7 +388,7 @@
   
   (define (run-all-tests)
     (run-tests (lambda (x)
-                 (set! type-variable-count 0)
+                 (debug-reset-type-variable-count)
                  (match-let* (((type constraints) (reconstruct-types null x)))
                    (substitute-types (unify-constraints constraints) type)))
                tests)))

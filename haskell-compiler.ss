@@ -14,7 +14,7 @@
                   (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-function-term (cdr p) e))))))
                   (($ float-term f) (string->number f))
                   (($ function-term p b) (if (null? p) (compile-expression b) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-function-term (cdr p) b))))))
-                  (($ identifier-term i) (if (member i prelude) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
+                  (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
                   (($ if-term g t e) `(if ,(compile-expression g) ,(compile-expression t) ,(compile-expression e)))
                   (($ integer-term i) (string->number i))
                   (($ let-term d e) `(begin ,@(map compile-expression d) ,(compile-expression e)))

@@ -16,15 +16,19 @@ module Simple where {
 
 -- character tests
 
-char1 = 'a';
+--char1 = 'a';
 
 -- float tests
 
-float1 = 1.2;
+--float1 = 1.2;
 
 -- integer tests
 
-int1 = 3;
+--int1 = 3;
+
+-- boolean tests
+
+bool1 = True;
 
 -- list tests
 
