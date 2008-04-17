@@ -8,8 +8,9 @@
   (define prelude-types
     (make-immutable-hash-table `(("error" . ,(let ((t (fresh-type-variable)))
                                              (make-universal-type (list t) (make-function-type (list (make-list-type (make-character-type)) t)))))
-                                 ("trace" . ,(let ((t (fresh-type-variable)))
-                                             (make-universal-type (list t) (make-function-type (list (make-list-type (make-character-type)) t t)))))
+                                 ("trace" . ,(let ((t1 (fresh-type-variable))
+                                                   (t2 (fresh-type-variable)))
+                                             (make-universal-type (list t1 t2) (make-function-type (list t1 t2 t2)))))
                                  ("+" . ,(make-function-type (list (make-integer-type) (make-integer-type) (make-integer-type))))
                                  ("-" . ,(make-function-type (list (make-integer-type) (make-integer-type) (make-integer-type))))
                                  ("*" . ,(make-function-type (list (make-integer-type) (make-integer-type) (make-integer-type))))

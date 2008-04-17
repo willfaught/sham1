@@ -122,9 +122,11 @@ hmap f x = if null x then [] else (:) (f (head x)) (hmap f (tail x));
 
 filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t;
 
-foldl = 4;
+foldl f z x = let { fold z x = if null x then z else fold (f z (head x)) (tail x) } in fold z x;
 
---foldr = map;
+foldr f z x = let { fold x = if null x then z else f (head x) (fold (tail x)) } in fold x;
+
+nes1 = trace (foldl (+) 0 [1, 2, 3, 4, 5]) 0;
 
 zip x y = if null x then [] else (:) (head x, head y) (zip (tail x) (tail y));
 
