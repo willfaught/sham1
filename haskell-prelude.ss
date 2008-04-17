@@ -1,5 +1,6 @@
 (module haskell-prelude mzscheme
   (require (lib "haskell-types.ss" "hs")
+           (lib "match.ss")
            (lib "vector-lib.ss" "srfi" "43"))
   
   (provide (all-defined))
@@ -38,7 +39,11 @@
   
   (define prelude-declarations '("error" "trace" "+" "-" "*" "/" "==" "/=" ":" "head" "tail" "null" "fst" "snd" "True" "False" "&&" "||" "not"))
   
-  (define haskell:error (delay (lambda (s) (error (list->string (map (lambda (c) (force c)) (force s)))) 0)))
+  (define force-list (match-lambda ((h . t) (cons (force h) (force-list (force t))))
+                                   (() null)))
+  
+  (define haskell:error
+    (delay (lambda (s) (error (string-append "*** Exception: " (list->string (force-list (force s))))))))
   
   (define haskell:trace
     (delay (lambda (v)
