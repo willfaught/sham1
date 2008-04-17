@@ -1,6 +1,6 @@
 #reader (lib "haskell-reader.ss" "hs")
 
-module Simple where {
+module TypeTests where {
 
 -- character tests
 
@@ -124,9 +124,19 @@ filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h th
 
 foldl f z x = let { fold z x = if null x then z else fold (f z (head x)) (tail x) } in fold z x;
 
+hand x = if null x then True else (&&) (head x) (hand (tail x));
+
+hor x = if null x then False else (||) (head x) (hor (tail x));
+
 foldr f z x = let { fold x = if null x then z else f (head x) (fold (tail x)) } in fold x;
 
-nes1 = trace (foldl (+) 0 [1, 2, 3, 4, 5]) 0;
+hlength x = if null x then 0 else (+) 1 (hlength (tail x));
+
+flip f x y = f y x;
+
+hreverse x = let { rev x a = if null x then a else rev (tail x) ((:) (head x) a) } in rev x [];
+
+(.) f g x = f (g x);
 
 zip x y = if null x then [] else (:) (head x, head y) (zip (tail x) (tail y));
 
