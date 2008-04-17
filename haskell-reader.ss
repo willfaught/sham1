@@ -235,5 +235,5 @@
   (define (read-haskell-syntax source-name input-port)
     (define module ((haskell-parser source-name) (lambda () (port-count-lines! input-port) (haskell-lexer input-port))))
     (valid-types module)
-    (compile-haskell module))
+    (compile-term module))
 )

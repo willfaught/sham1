@@ -1,7 +1,7 @@
 #reader (lib "haskell-reader.ss" "hs")
 
 module Simple where {
-{-
+
 -- character tests
 
 char1 = 'a';
@@ -120,7 +120,7 @@ pre15 = not (not True);
 
 hmap f x = if null x then [] else (:) (f (head x)) (hmap f (tail x));
 
--}filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t{-;
+filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t;
 
 foldl = 4;
 
@@ -135,5 +135,5 @@ x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
 x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
 
 fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
--}
+
 }
