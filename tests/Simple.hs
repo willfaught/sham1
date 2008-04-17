@@ -2,18 +2,6 @@
 
 module Simple where {
 
---zip x y = if null x then [] else (:) (head x, head y) (zip (tail x) (tail y));
-
---zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
-
---x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
-
---x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
-
---fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
-
---a = (+) :: Int -> Int -> Int
-
 -- character tests
 
 char1 = 'a';
@@ -42,7 +30,9 @@ list6 = [[], []];
 list7 = [['a']];
 list8 = [['a'], ['b']];
 list9 = [1, 2, 3];
-list10 = "test";
+list10 = "foo";
+list11 = [(1, 2)];
+list12 = [('a', 'b', 'c'), ('d', 'e', 'f')];
 
 -- tuple tests
 
@@ -51,13 +41,8 @@ tuple2 = (1.2, 3.4, 5.6);
 tuple3 = ('a', 1.2);
 tuple4 = (3.4, 5, 'b');
 tuple5 = (('a', 1.2), (3.4, 5, 'b'), 6);
-
--- nested tests
-
-nested1 = [(1, 2)];
-nested2 = [('a', 'b', 'c'), ('d', 'e', 'f')];
-nested3 = ([], []);
-nested4 = ([1, 2, 3], ['a', 'b']);
+tuple6 = ([], []);
+tuple7 = ([1, 2, 3], ['a', 'b']);
 
 -- function tests
 
@@ -103,10 +88,52 @@ let8 = let { a x = x } in a (a 1);
 let9 = let { a x = x ; b = a 2 ; c = a 3 } in a;
 let10 = let { a = 1 } in let { b = a } in b;
 let11 = let { a x = x } in let { b = a 2 } in b;
-let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a
+let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a;
 
 -- prelude tests
 
+pre1 = error "foo";
+pre2 = error ['t', 'e', 's', 't'];
+pre3 = trace (trace "foo" "bar") (trace "bar" "foo");
+pre4 = trace ['t', 'e', 's', 't'] 1.2;
+pre5 = [(+) ((+) 1 2) (((+) 1) 2),
+        (-) ((-) 1 2) (((-) 1) 2),
+        (*) ((*) 1 2) (((*) 1) 2),
+        (/) ((/) 1 2) (((/) 1) 2)];
+pre6 = [(==) ((==) True False) (((==) False) True),
+        (==) ((==) 'a' 'b') (((==) 'c') 'd'),
+        (==) ((==) 1.2 3.4) (((==) 5.6) 7.8),
+        (==) ((==) 1 2) (((==) 3) 4),
+        (==) ((==) [] "a") (((==) []) []),
+        (==) ((==) ('a', 1) ('b', 2)) (((==) ('c', 3, 4.5)) ('d', 6, 7.8))];
+pre7 = (:) 'f' ((:) 'o' "o");
+pre8 = (:) (head [1]) [];
+pre9 = (:) 1 (tail [2]);
+pre10 = if null [] then True else null [1];
+pre11 = (:) (fst ('a', 1)) ['b'];
+pre12 = (:) (snd ('a', 1)) [2];
+pre13 = (&&) ((&&) True False) (((&&) False) True);
+pre14 = (||) ((||) True False) (((||) False) True);
+pre15 = not (not True);
 
+-- nested tests
+
+map f x = if null x then [] else (:) (f (head x)) (map f (tail x));
+
+filter = 3;
+
+foldl = 4;
+
+--foldr = map;
+
+zip x y = if null x then [] else (:) (head x, head y) (zip (tail x) (tail y));
+
+zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y));
+
+x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
+
+x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
+
+fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
 
 }
