@@ -9,11 +9,11 @@
   
   (define compile-expression
     (match-lambda (($ application-term f a) (compile-eapp f (reverse a)))
-                  (($ case-term e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-expression (cdr a)))) as)))
+                  #;(($ case-term e as) `(match ,(compile-expression e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-expression (cdr a)))) as)))
                   (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
                   (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-expression e) (compile-expression (make-function-term (cdr p) e))))))
                   (($ float-term f) (string->number f))
-                  (($ function-term p b) (if (null? p) (compile-expression b) `(match-lambda (,(string->symbol (car p)) ,(compile-expression (make-function-term (cdr p) b))))))
+                  (($ function-term p b) (if (null? p) (compile-expression b) `(lambda (,(string->symbol (car p))) ,(compile-expression (make-function-term (cdr p) b)))))
                   (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
                   (($ if-term g t e) `(if ,(compile-expression g) ,(compile-expression t) ,(compile-expression e)))
                   (($ integer-term i) (string->number i))
@@ -40,11 +40,13 @@
     (make-immutable-hash-table `() 'equal))
   
   (define (compile-haskell module)
-    `(module ,(string->symbol (module-term-identifier module)) mzscheme
+    (define z `(module ,(string->symbol (module-term-identifier module)) mzscheme
        (require (lib "haskell-prelude.ss" "hs")
                 (lib "match.ss"))
        (provide (all-defined))
        ,@(map compile-expression (module-term-declarations module))))
+    (print z)
+    z)
   
   (define tests
     (list (make-test "eapp 1"
