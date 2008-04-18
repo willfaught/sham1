@@ -100,6 +100,7 @@
       (($ function-type t) (mapper (make-function-type (map mapper t))))
       (($ list-type t) (mapper (make-list-type (mapper t))))
       (($ tuple-type t) (mapper (make-tuple-type (map mapper t))))
+      (($ universal-type v t) (mapper (make-universal-type v (map-type (lambda (x) (if (member x v) x (mapper x))) t))))
       (t (mapper t))))
   
   ; generalize :: [(string, type)] -> type -> type
