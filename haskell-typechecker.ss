@@ -1,5 +1,5 @@
 (module haskell-typechecker mzscheme
-  (require (only (lib "1.ss" "srfi") delete-duplicates filter make-list unzip2 zip)
+  (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter make-list unzip2 zip)
            (lib "haskell-compiler.ss" "hs")
            (lib "haskell-prelude.ss" "hs")
            (lib "haskell-terms.ss" "hs")
@@ -31,6 +31,32 @@
       (($ type-constructor "Float") (make-float-type))
       (($ function-type t) (make-function-type (map translate-type t)))
       (t t)))
+  
+  ; normalize-type :: type -> type
+  (define (normalize-type type)
+    (define type-variable-count 0)
+    (define mappings null)
+    (define (next-type-variable)
+      (set! type-variable-count (+ type-variable-count 1))
+      (make-type-variable (if (equal? type-variable-count 1)
+                              "t"
+                              (string-append "t"
+                                             (number->string (- type-variable-count 1))))))
+    (define (rename-type-variable type-variable)
+      (match (assoc type-variable mappings)
+        ((_ . t) t)
+        (#f (let ((t (next-type-variable)))
+              (set! mappings (alist-cons type-variable t mappings))
+              t))))
+    (define (normalize-type type)
+      (match type
+        (($ function-type t) (make-function-type (map normalize-type t)))
+        (($ list-type t) (make-list-type (normalize-type t)))
+        (($ tuple-type t) (make-tuple-type (map normalize-type t)))
+        (($ type-variable i) (rename-type-variable (make-type-variable i)))
+        (t t)))
+    (normalize-type type))
+    
   
   ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
   (define (zip-with f x y)
