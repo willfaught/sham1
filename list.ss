@@ -1,20 +1,31 @@
 (module list mzscheme
+  (require (lib "match.ss"))
+  
   (provide (all-defined))
   
-  (define (list-drop x n)
+  ; drop :: [a] -> integer -> [a]
+  (define (drop x n)
     (if (not (list? x))
-        (error 'list-drop "not a list"))
+        (error 'drop "not a list"))
     (if (or (< n 0) (> n (length x)))
-        (error 'list-drop "invalid list length"))
+        (error 'drop "invalid list length"))
     (if (equal? n 0)
         x
-        (list-drop (cdr x) (- n 1))))
+        (drop (cdr x) (- n 1))))
   
-  (define (list-take x n)
+  ; take :: [a] -> integer -> [a]
+  (define (take x n)
     (if (not (list? x))
-        (error 'list-take "not a list"))
+        (error 'take "not a list"))
     (if (or (< n 0) (> n (length x)))
-        (error 'list-take "invalid list length"))
+        (error 'take "invalid list length"))
     (if (equal? n 0)
         null
-        (cons (car x) (list-take (cdr x) (- n 1))))))
+        (cons (car x) (take (cdr x) (- n 1)))))
+  
+  ; foldr1 :: (a -> a -> a) -> [a] -> a
+  (define (foldr1 f xs)
+    (match xs
+      ((x) x)
+      ((x . xs) (f x (foldr1 f xs)))
+      (() (error 'foldr1 "empty list")))))

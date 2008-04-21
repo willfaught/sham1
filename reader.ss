@@ -1,13 +1,13 @@
-(module haskell-reader mzscheme
+(module reader mzscheme
   (require (lib "lex.ss" "parser-tools")
            (prefix : (lib "lex-sre.ss" "parser-tools"))
            (lib "yacc.ss" "parser-tools")
            (lib "readerr.ss" "syntax")
            (lib "list.ss")
-           (lib "haskell-compiler.ss" "hs")
-           (lib "haskell-terms.ss" "hs")
-           (lib "haskell-typechecker.ss" "hs")
-           (lib "haskell-types.ss" "hs"))
+           (lib "compiler.ss" "hs")
+           (lib "terms.ss" "hs")
+           (lib "typechecker.ss" "hs")
+           (lib "types.ss" "hs"))
   
   (provide (rename read-haskell-syntax read-syntax))
   
@@ -48,7 +48,7 @@
     (a-reservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
     (a-reservedop (:or ":" "::" "=" #\\ "|" "->")))
   
-  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-semicolon t-then t-underscore t-where))
+  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-scheme t-semicolon t-then t-underscore t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
@@ -76,6 +76,7 @@
                    ("]" (token-t-rsbracket))
                    ("->" (token-t-singlearrow))
                    ("[]" (token-t-sbracketcon))
+                   (":scheme" (token-t-scheme))
                    (";" (token-t-semicolon))
                    ("then" (token-t-then))
                    ("_" (token-t-underscore))
@@ -166,7 +167,8 @@
                              ((t-if nt-exp t-then nt-exp t-else nt-exp) (make-if-term $2 $4 $6))
                              #;((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-case-term $2 $5)) ; useless without pattern matching
                              ((nt-fexp) $1)
-                             #;((t-lrbracket nt-exp t-coloncolon nt-type t-rrbracket) 'TODO)) ; creates a shift/reduce conflict
+                             #;((nt-exp t-coloncolon nt-type) 'TODO) ; creates a shift/reduce conflict
+                             )
                      (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-vars-2 (() null)
@@ -234,5 +236,4 @@
   
   (define (read-haskell-syntax source-name input-port)
     (define module ((haskell-parser source-name) (lambda () (port-count-lines! input-port) (haskell-lexer input-port))))
-    (valid-types module)
-    (compile-term module)))
+    (compile-module module (module-declaration-types module))))

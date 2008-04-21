@@ -1,4 +1,4 @@
-(module haskell-terms mzscheme
+(module terms mzscheme
   (provide (all-defined))
   
   (define-struct term () #f)

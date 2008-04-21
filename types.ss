@@ -1,4 +1,4 @@
-(module haskell-types mzscheme
+(module types mzscheme
   (provide (all-defined-except type-variable-count))
   
   (define-struct type () #f)

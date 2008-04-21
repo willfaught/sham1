@@ -1,5 +1,5 @@
-(module haskell-prelude mzscheme
-  (require (lib "haskell-types.ss" "hs")
+(module prelude mzscheme
+  (require (lib "types.ss" "hs")
            (lib "match.ss")
            (lib "vector-lib.ss" "srfi" "43"))
   

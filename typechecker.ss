@@ -1,21 +1,22 @@
-(module haskell-typechecker mzscheme
+(module typechecker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter make-list unzip2 zip)
-           (lib "haskell-compiler.ss" "hs")
-           (lib "haskell-prelude.ss" "hs")
-           (lib "haskell-terms.ss" "hs")
-           (lib "haskell-types.ss" "hs")
+           (lib "compiler.ss" "hs")
+           (lib "prelude.ss" "hs")
+           (lib "terms.ss" "hs")
+           (lib "types.ss" "hs")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
            (lib "test.ss" "hs"))
   
-  (provide valid-types)
+  (provide module-declaration-types)
   
   (define-struct constraint (left-type right-type) #f)
   
-  ; valid-types :: module-term -> boolean
-  (define (valid-types module)
-    (unify-constraints (reconstruct-module-types module))
-    #t)
+  ; module-declaration-types :: module-term -> [type]
+  (define (module-declaration-types module)
+    (match (reconstruct-types module)
+      ((types constraints) (let ((substitution (unify-constraints constraints)))
+                             (map (lambda (x) (substitute-types substitution x)) types)))))
   
   ; lunzip2 :: [(a, b)] -> ([a], [b])
   (define (lunzip2 x)
@@ -115,6 +116,10 @@
                              (list (make-list-type head-type)
                                    (append (map (lambda (x) (make-constraint head-type x)) tail-types)
                                            (foldl append null e-constraints))))))
+      (($ module-term _ d) (match-let* ((identifiers (map (lambda (x) (car (declaration-term-patterns x))) d))
+                                        (context (map (lambda (x) (list x (fresh-type-variable))) identifiers))
+                                        ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) d))))
+                             (list types (foldl append null constraints))))
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
@@ -155,14 +160,6 @@
       (($ universal-type (head . tail) t) (let ((v (fresh-type-variable)))
                                             (instantiate (make-universal-type tail (map-type (lambda (x) (if (equal? head x) v x)) t)))))
       (($ universal-type () t) t)))
-  
-  ; reconstruct-module-types :: module-term -> [constraint]
-  (define (reconstruct-module-types module)
-    (match-let* ((declarations (module-term-declarations module))
-                 (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
-                 (context (map (lambda (x) (list x (fresh-type-variable))) identifiers))
-                 ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) declarations))))
-      (foldl append null constraints)))
   
   ; contains-type? :: type -> type -> boolean
   (define (contains-type? container-type containee-type)
