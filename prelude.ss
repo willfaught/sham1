@@ -1,7 +1,7 @@
 (module prelude mzscheme
-  (require (lib "types.ss" "hs")
+  (require (lib "types.ss" "(lib "match.ss")")
            (lib "match.ss")
-           (lib "vector-lib.ss" "srfi" "43"))
+           (lib "43" "srfi"))
   
   (provide (all-defined))
   

@@ -4,10 +4,10 @@
            (lib "yacc.ss" "parser-tools")
            (lib "readerr.ss" "syntax")
            (lib "list.ss")
-           (lib "compiler.ss" "hs")
-           (lib "terms.ss" "hs")
-           (lib "typechecker.ss" "hs")
-           (lib "types.ss" "hs"))
+           (lib "compiler.ss" "haskell")
+           (lib "terms.ss" "haskell")
+           (lib "typechecker.ss" "haskell")
+           (lib "types.ss" "haskell"))
   
   (provide (rename read-haskell-syntax read-syntax))
   

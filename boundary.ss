@@ -1,8 +1,8 @@
 (module boundary mzscheme
   (require (lib "contract.ss")
-           (lib "terms.ss" "hs")
-           (lib "types.ss" "hs")
-           (lib "list.ss" "hs"))
+           (lib "list.ss" "haskell")
+           (lib "terms.ss" "haskell")
+           (lib "types.ss" "haskell"))
   
   (provide scheme-haskell-boundary)
   

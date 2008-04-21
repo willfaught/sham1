@@ -1,9 +1,9 @@
 (module compiler mzscheme
-  (require (lib "terms.ss" "hs")
-           (lib "prelude.ss" "hs")
-           (lib "list.ss" "srfi" "1")
+  (require (lib "1.ss" "srfi")
            (lib "match.ss")
-           (lib "test.ss" "hs"))
+           (lib "prelude.ss" "haskell")
+           (lib "terms.ss" "haskell")
+           (lib "test.ss" "haskell"))
   
   (provide compile-module)
   

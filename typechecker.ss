@@ -1,12 +1,12 @@
 (module typechecker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter make-list unzip2 zip)
-           (lib "compiler.ss" "hs")
-           (lib "prelude.ss" "hs")
-           (lib "terms.ss" "hs")
-           (lib "types.ss" "hs")
+           (lib "compiler.ss" "haskell")
+           (lib "prelude.ss" "haskell")
+           (lib "terms.ss" "haskell")
+           (lib "types.ss" "haskell")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
-           (lib "test.ss" "hs"))
+           (lib "test.ss" "haskell"))
   
   (provide module-declaration-types)
   
