@@ -26,14 +26,14 @@
       (($ universal-type v t) (mapper (make-universal-type v (map-type (lambda (x) (if (member x v) x (mapper x))) t))))
       (t (mapper t))))
   
-  ; translate-type-constructors :: type -> type
-  (define (translate-type-constructors type)
-    (map-type (match-lambda (($ type-constructor "Bool") (make-boolean-type))
-                            (($ type-constructor "Char") (make-character-type))
-                            (($ type-constructor "Int") (make-integer-type))
-                            (($ type-constructor "Integer") (make-integer-type))
-                            (($ type-constructor "Float") (make-float-type))
-                            (type type)) type))
+  ; translate-type-constructor :: type-constructor -> type
+  (define (translate-type-constructor type)
+    (match type
+      (($ type-constructor "Bool") (make-boolean-type))
+      (($ type-constructor "Char") (make-character-type))
+      (($ type-constructor "Int") (make-integer-type))
+      (($ type-constructor "Integer") (make-integer-type))
+      (($ type-constructor "Float") (make-float-type))))
   
   ; fresh-type-variable :: type-variable
   (define (fresh-type-variable)
