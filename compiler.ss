@@ -28,15 +28,53 @@
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
+      #;(($ haskell-term term type) (match type
+                                    (($ function-type types) )))
       (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
       (($ module-term i d) (compile-module-term i d))
+      (($ guard-term term type) `(contract ,(type->contract type) ,term 'haskell 'scheme))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-etupcon a))))
   
+  (define identifier-count 0)
+  
+  (define (fresh-identifier)
+    (set! identifier-count (+ identifier-count 1))
+    (string-append "i" (number->string identifier-count)))
+  
+  (define (compile-negative-guard-term term type)
+    (if (function-type? type)
+        (make-function-term )
+        term))
+  
+  (define (compile-haskell-term term type)
+    (match type))
+  
+  (define (haskell-boundary type)
+    (match type
+      (($ list-type type) (let ((converter (compile-type-converter type)))
+                            '(lambda (xs) (foldr1 (lambda (x y) (cons (delay (,converter x)) (delay (,converter y)))) xs))))
+      (($ tuple-type types) 
+                            
+  
+  ; type->contract :: type -> contract
+  (define (type->contract type)
+    (match type
+      (($ boolean-type) `(flat-contract boolean?))
+      (($ character-type) `(flat-contract char?))
+      (($ float-type) `(flat-contract number?))
+      ;(($ function-type types) `,(foldr1 (lambda (x y) (-> (type->contract x) (type->contract y))) types))
+      (($ integer-type) `(flat-contract integer?))
+      (($ list-type type) `(list-immutableof ,(type->contract type)))
+      (($ tuple-type types) `(vector-immutable/c ,(map type->contract types)))
+      (($ type-constructor identifier) (type->contract (translate-type (make-type-constructor identifier))))
+      (($ type-variable _) `any/c) ; cannot enforce arguments corresponding with the same type variable to have the same type
+      (($ universal-type type) (type->contract type))))
+      
   (define (compile-let-term d e)
     (define compile-declaration-term
       (match-lambda (($ declaration-term p e) `(,(string->symbol (car p)) (delay ,(if (null? (cdr p))
