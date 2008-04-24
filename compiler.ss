@@ -33,7 +33,7 @@
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ guard-term type term) `(contract ,(type->contract type) ,term 'haskell 'scheme))
-      (($ haskell-term type term) (compile-haskell-term type term))
+      (($ haskell-term type term) `(,(haskell->scheme type) ,(compile-term term)))
       (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
@@ -42,52 +42,47 @@
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-etupcon a))))
   
-  
-  ; compile-haskell-term :: type -> term -> [quoted data]
-  (define (compile-haskell-term type term)
+  ; function-conveter :: [[quoted data]] -> [quoted data] -> [quoted data]
+  (define (function-converter argument-converters result-converter)
+    ; identifier :: integer -> symbol
     (define (identifier n)
       (string->symbol (string-append "x" (number->string n))))
-    (define (nest-functions term function-count)
-      (if (equal? function-count 0) term `(lambda (,(identifier function-count)) ,(nest-functions term (- function-count 1)))))
-    (define (nest-applications term argument-count types)
-      (match types
-        ((type . rest) (nest-applications `(,term (,(compile-haskell-term type term) (identifier argument-count))) rest (+ argument-count 1)))
-        (() term)))
+    ; nest-parameters :: term -> integer -> integer -> [quoted data]
+    (define (nest-parameters body-term parameter-number parameter-count)
+      (if (< parameter-number parameter-count) body-term `(lambda (,(identifier parameter-count)) ,(nest-parameters body-term parameter-number (+ parameter-count 1)))))
+    ; nest-arguments :: [[quoted data]] -> [quoted data]
+    (define (nest-arguments argument-converters)
+      (match argument-converters
+        ((head . tail) `(,(nest-arguments tail) (,head ,(identifier (length argument-converters)))))
+        (() 'x)))
+    `(lambda (x) ,(nest-parameters (nest-arguments argument-converters) (length argument-converters) 1)))
+  
+  ; haskell->scheme :: type -> [quoted data]
+  (define (haskell->scheme type)
     (let ((id `(lambda (x) x)))
       (match type
         (($ boolean-type) id)
         (($ character-type) id)
         (($ float-type) id)
-        (($ function-type types) (nest-functions (nest-applications (compile-term term) 1 types) (length types)))
-        (($ integer-type) term)
-        (($ list-type _) term))))
-  
-  (define (identifier n)
-    (string-append "x" (number->string n)))
-  
-  (define (nest-functions term function-number function-count)
-    (if (< function-number function-count)
-        term
-        `(lambda (,(identifier function-count))
-           ,(nest-functions term function-number (+ function-count 1)))))
-  
-  (define (nest-applications term types)
-    (match types
-      ((type . rest) `(,(nest-applications term rest) (,(scheme->haskell type) ,(identifier (length types)))))
-      (() term)))
+        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
+                                   (function-converter (map scheme->haskell argument-types) (scheme->haskell result-type))))
+        (($ integer-type) id)
+        (($ list-type _) id)
+        (($ tuple-type _) id))))
   
   ; scheme->haskell :: type -> [quoted data]
   (define (scheme->haskell type)
-    (let ((id `(lambda (x) x)))
+    (let ((id `(lambda (x) (delay x))))
       (match type
         (($ boolean-type) id)
         (($ character-type) id)
         (($ float-type) id)
-        (($ function-type types) `(lambda (x) ,(nest-functions (nest-applications 'x types) (length types) 0)))
+        (($ function-type types) `(delay ,(match-let (((result-type . argument-types) (reverse types)))
+                                            (function-converter (map haskell->scheme argument-types) (scheme->haskell result-type)))))
         (($ integer-type) id)
         (($ list-type type) `(lambda (x) (foldr (lambda (x y) (cons (delay (,(scheme->haskell type) x)) (delay y))) null x)))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type . index) (scheme->haskell type `(vector-ref x ,index)))) pairs)))
+                                     (elements (map (match-lambda ((type index) `(,(scheme->haskell type) (vector-ref x ,index)))) pairs)))
                                 `(lambda (x) (vector-immutable ,@elements)))))))
   
   ; type->contract :: type -> contract
