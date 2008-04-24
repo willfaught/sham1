@@ -1,26 +1,31 @@
 (module compiler mzscheme
-  (require #;(only (lib "1.ss" "srfi") )
+  (require (only (lib "1.ss" "srfi") list-tabulate zip)
+           (lib "contract.ss")
+           (only (lib "list.ss") foldr)
+           (lib "list.ss" "haskell")
            (lib "match.ss")
            (lib "prelude.ss" "haskell")
            (lib "terms.ss" "haskell")
-           (lib "test.ss" "haskell"))
+           (lib "test.ss" "haskell")
+           (lib "types.ss" "haskell"))
   
   #;(provide compile-module)
   
-  #;(define (compile-module module declaration-types)
-    (define compile-declaration-term
-      (match-lambda
-        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
-                                                                                 (compile-term e)
-                                                                                 (compile-term (make-function-term (cdr p) e))))))))
-    `(module ,(string->symbol i) mzscheme
-       (require (lib "haskell-prelude.ss" "hs")
-                (lib "match.ss"))
-       (provide (all-defined))
-       ,@(map compile-declaration-term d)))
+  (define (compile-module module declaration-types)
+    0)
+    ;(define compile-declaration-term
+    ;  (match-lambda
+    ;    (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
+    ;                                                                             (compile-term e)
+    ;                                                                             (compile-term (make-function-term (cdr p) e))))))))
+    ;`(module ,(string->symbol i) mzscheme
+    ;   (require (lib "haskell-prelude.ss" "hs")
+    ;            (lib "match.ss"))
+    ;   (provide (all-defined))
+    ;   ,@(map compile-declaration-term d)))
   
   ; compile-term :: term -> [quoted data]
-  (define (compile-term term type)
+  (define (compile-term term)
     (match term
       (($ application-term f a) (compile-eapp f (reverse a)))
       #;(($ case-term e as) `(match ,(compile-term e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-term (cdr a)))) as)))
@@ -28,14 +33,12 @@
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ guard-term type term) `(contract ,(type->contract type) ,term 'haskell 'scheme))
-      (($ haskell-term type term) (match type
-                                    (($ function-type types) )))
+      (($ haskell-term type term) (compile-haskell-term type term))
       (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ module-term i d) (compile-module-term i d))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-etupcon a))))
   
@@ -59,18 +62,33 @@
         (($ integer-type) term)
         (($ list-type _) term))))
   
-  ; compile-scheme-term :: type -> term -> [quoted data]
-  (define (compile-scheme-term type term)
-    (match type
-      (($ boolean-type) (compile-term term))
-      (($ character-type) (compile-term term))
-      (($ float-type) (compile-term term))
-      (($ function-type types) (let ((identifiers (list-tabulate (length types) (lambda (x) (string-append "x" (number->string (+ n 1)))))))
-                                 (compile-term (make-function-term identifiers (make-application-term term (map make-identifier-term identifiers))))))
-      (($ integer-type) (compile-term term))
-      (($ list-type type) `(foldr (lambda (x y) (cons (delay ,(compile-term x)) (delay y))) null ,term))
-      (($ tuple-type types) (let ((pairs (zip types (list-tabulate (length types) (lambda (x) x)))))
-                              `((lambda (x) (vector-immutable ,@(map (match-lambda ((type . index) (compile-scheme-term type `(vector-ref x ,index)))) pairs))) ,term)))))
+  (define (identifier n)
+    (string-append "x" (number->string n)))
+  
+  (define (nest-functions term function-number function-count)
+    (if (< function-number function-count)
+        term
+        `(lambda (,(identifier function-count))
+           ,(nest-functions term function-number (+ function-count 1)))))
+  
+  (define (nest-applications term types)
+    (match types
+      ((type . rest) `(,(nest-applications term rest) (,(scheme->haskell type) ,(identifier (length types)))))
+      (() term)))
+  
+  ; scheme->haskell :: type -> [quoted data]
+  (define (scheme->haskell type)
+    (let ((id `(lambda (x) x)))
+      (match type
+        (($ boolean-type) id)
+        (($ character-type) id)
+        (($ float-type) id)
+        (($ function-type types) `(lambda (x) ,(nest-functions (nest-applications 'x types) (length types) 0)))
+        (($ integer-type) id)
+        (($ list-type type) `(lambda (x) (foldr (lambda (x y) (cons (delay (,(scheme->haskell type) x)) (delay y))) null x)))
+        (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
+                                     (elements (map (match-lambda ((type . index) (scheme->haskell type `(vector-ref x ,index)))) pairs)))
+                                `(lambda (x) (vector-immutable ,@elements)))))))
   
   ; type->contract :: type -> contract
   (define (type->contract type)
@@ -82,9 +100,9 @@
       (($ integer-type) `(flat-contract integer?))
       (($ list-type type) `(list-immutableof ,(type->contract type)))
       (($ tuple-type types) `(vector-immutable/c ,(map type->contract types)))
-      (($ type-constructor identifier) (type->contract (translate-type (make-type-constructor identifier))))
+      (($ type-constructor identifier) (type->contract (translate-type-constructor (make-type-constructor identifier))))
       (($ type-variable _) `any/c) ; cannot enforce arguments corresponding with the same type variable to have the same type
-      (($ universal-type type) (type->contract type))))
+      (($ universal-type _ type) (type->contract type))))
   
   (define (compile-let-term d e)
     (define compile-declaration-term
