@@ -14,7 +14,7 @@
   
   ; module-declaration-types :: module-term -> [type]
   (define (module-declaration-types module)
-    (match (reconstruct-types module)
+    (match (reconstruct-types null module)
       ((types constraints) (let ((substitution (unify-constraints constraints)))
                              (map (lambda (x) (substitute-types substitution x)) types)))))
   
