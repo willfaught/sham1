@@ -237,10 +237,16 @@
                                  ((nt-qconsym) $1))
                      (nt-qconsym ((t-consym) (make-identifier-term $1))))))
   
+  ; insert-boundary :: module-term -> module-term
+  (define (insert-boundary type declaration)
+    (match-let* ((($ declaration-term p e) declaration)
+                 (term (if (equal? (length p) 1) e (make-function-term (cdr p) e))))
+      (make-guard-term type (make-haskell-term type (make-declaration-term (list (car p)) term)))))
+  
   (define (read-haskell-syntax source-name input-port)
     (port-count-lines! input-port)
     (match-let* ((module ((haskell-parser source-name) (lambda () (haskell-lexer input-port))))
-                 (insert-boundary (match-lambda ((type declaration) (make-guard-term type (make-haskell-term type declaration)))))
                  (declaration-types (module-declaration-types module))
-                 (declarations (map insert-boundary (zip declaration-types (module-term-declarations module)))))
+                 (declarations (map (match-lambda ((type declaration) (insert-boundary type declaration)))
+                                    (zip declaration-types (module-term-declarations module)))))
       (compile-module (make-module-term (module-term-identifier module) declarations) declaration-types))))
