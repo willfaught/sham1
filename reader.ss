@@ -1,13 +1,15 @@
 (module reader mzscheme
-  (require (lib "lex.ss" "parser-tools")
-           (prefix : (lib "lex-sre.ss" "parser-tools"))
-           (lib "yacc.ss" "parser-tools")
-           (lib "readerr.ss" "syntax")
-           (lib "list.ss")
+  (require (only (lib "1.ss" "srfi") zip)
            (lib "compiler.ss" "haskell")
+           (lib "lex.ss" "parser-tools")
+           (prefix : (lib "lex-sre.ss" "parser-tools"))
+           (lib "list.ss")
+           (lib "match.ss")
+           (lib "readerr.ss" "syntax")
            (lib "terms.ss" "haskell")
+           (lib "types.ss" "haskell")
            (lib "typechecker.ss" "haskell")
-           (lib "types.ss" "haskell"))
+           (lib "yacc.ss" "parser-tools"))
   
   (provide (rename read-haskell-syntax read-syntax))
   

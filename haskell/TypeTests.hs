@@ -1,4 +1,4 @@
-#reader (lib "haskell-reader.ss" "hs")
+#reader (lib "reader.ss" "haskell")
 
 module TypeTests where {
 
