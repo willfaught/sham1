@@ -241,5 +241,6 @@
     (port-count-lines! input-port)
     (match-let* ((module ((haskell-parser source-name) (lambda () (haskell-lexer input-port))))
                  (insert-boundary (match-lambda ((type declaration) (make-guard-term type (make-haskell-term type declaration)))))
-                 (declarations (map insert-boundary (zip (module-declaration-types module) (module-term-declarations module)))))
-      (compile-module (make-module-term (module-term-identifier module) declarations)))))
+                 (declaration-types (module-declaration-types module))
+                 (declarations (map insert-boundary (zip declaration-types (module-term-declarations module)))))
+      (compile-module (make-module-term (module-term-identifier module) declarations) declaration-types))))
