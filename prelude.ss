@@ -86,9 +86,9 @@
   
   (define haskell:null (delay (lambda (l) (null? (force l)))))
   
-  (define haskell:fst (delay (lambda (t) (vector-ref (force t) 0))))
+  (define haskell:fst (delay (lambda (t) (force (vector-ref (force t) 0)))))
   
-  (define haskell:snd (delay (lambda (t) (vector-ref (force t) 1))))
+  (define haskell:snd (delay (lambda (t) (force (vector-ref (force t) 1)))))
   
   (define haskell:True (delay #t))
   
