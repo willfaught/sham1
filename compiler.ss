@@ -21,8 +21,8 @@
       (match-lambda
         (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
     `(module ,(string->symbol (module-term-identifier module)) mzscheme
-       (require (lib "haskell-prelude.ss" "hs")
-                (lib "match.ss"))
+       (require (lib "match.ss")
+                (lib "prelude.ss" "haskell"))
        (provide (all-defined))
        ,@(map compile-declaration-term (module-term-declarations module))))
   
