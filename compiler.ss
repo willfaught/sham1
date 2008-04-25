@@ -13,20 +13,18 @@
            (lib "test.ss" "haskell")
            (lib "types.ss" "haskell"))
   
-  #;(provide compile-module)
+  (provide compile-module)
   
+  ; compile-module :: module-term -> [type] -> [quoted data]
   (define (compile-module module declaration-types)
-    0)
-  ;(define compile-declaration-term
-  ;  (match-lambda
-  ;    (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
-  ;                                                                             (compile-term e)
-  ;                                                                             (compile-term (make-function-term (cdr p) e))))))))
-  ;`(module ,(string->symbol i) mzscheme
-  ;   (require (lib "haskell-prelude.ss" "hs")
-  ;            (lib "match.ss"))
-  ;   (provide (all-defined))
-  ;   ,@(map compile-declaration-term d)))
+    (define compile-declaration-term
+      (match-lambda
+        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
+    `(module ,(string->symbol (module-term-identifier module)) mzscheme
+       (require (lib "haskell-prelude.ss" "hs")
+                (lib "match.ss"))
+       (provide (all-defined))
+       ,@(map compile-declaration-term (module-term-declarations module))))
   
   ; compile-term :: term -> [quoted data]
   (define (compile-term term)
