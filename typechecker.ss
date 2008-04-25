@@ -22,27 +22,13 @@
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
   
-  ; translate-type :: type -> type
-  (define (translate-type type)
-    (match type
-      (($ type-constructor "Bool") (make-boolean-type))
-      (($ type-constructor "Char") (make-character-type))
-      (($ type-constructor "Int") (make-integer-type))
-      (($ type-constructor "Integer") (make-integer-type))
-      (($ type-constructor "Float") (make-float-type))
-      (($ function-type t) (make-function-type (map translate-type t)))
-      (t t)))
-  
   ; normalize-type :: type -> type
   (define (normalize-type type)
     (define type-variable-count 0)
     (define mappings null)
     (define (next-type-variable)
       (set! type-variable-count (+ type-variable-count 1))
-      (make-type-variable (if (equal? type-variable-count 1)
-                              "t"
-                              (string-append "t"
-                                             (number->string (- type-variable-count 1))))))
+      (make-type-variable (if (equal? type-variable-count 1) "t" (string-append "t" (number->string (- type-variable-count 1))))))
     (define (rename-type-variable type-variable)
       (match (assoc type-variable mappings)
         ((_ . t) t)
@@ -57,7 +43,6 @@
         (($ type-variable i) (rename-type-variable (make-type-variable i)))
         (t t)))
     (normalize-type type))
-    
   
   ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
   (define (zip-with f x y)
@@ -74,9 +59,7 @@
                                              (constraints (cons (make-constraint f-type (make-function-type (append a-types (list type))))
                                                                 (append f-constraints (foldl append null a-constraints)))))
                                   (list type constraints)))
-      #;(($ case-term e a) (match-let* (((e-type e-constraints) (reconstruct-types context e)) ; need to add constraints between e and patterns
-                                        ((a-types a-constraints) (lunzip2 (map (lambda (x) (reconstruct-types (cons (list (car x) e-type) context) (cdr x))) a))))
-                             (list (car a-types) (append e-constraints (foldl append null a-constraints)))))
+      #;(($ case-term e a) )
       (($ character-term c) (list (make-character-type) null))
       (($ declaration-term p e) (if (equal? (length p) 1)
                                     (reconstruct-types context e)
@@ -406,7 +389,6 @@
   
   (define (run-all-tests)
     (run-tests (lambda (x)
-                 (debug-reset-type-variable-count)
                  (match-let* (((type constraints) (reconstruct-types null x)))
                    (substitute-types (unify-constraints constraints) type)))
                tests)))
