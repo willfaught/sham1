@@ -168,7 +168,8 @@
                              #;((t-case nt-exp t-of t-lcbracket nt-alts t-rcbracket) (make-case-term $2 $5)) ; useless without pattern matching
                              ((nt-fexp) $1)
                              #;((nt-exp t-coloncolon nt-type) 'TODO) ; creates a shift/reduce conflict
-                             )
+                             ((t-scheme nt-type t-string) (make-scheme-term (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x)) $2)
+                                                                            (list->string $3))))
                      (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-vars-2 (() null)
@@ -235,5 +236,8 @@
                      (nt-qconsym ((t-consym) (make-identifier-term $1))))))
   
   (define (read-haskell-syntax source-name input-port)
-    (define module ((haskell-parser source-name) (lambda () (port-count-lines! input-port) (haskell-lexer input-port))))
-    (compile-module module (module-declaration-types module))))
+    (port-count-lines! input-port)
+    (match-let* ((module ((haskell-parser source-name) (lambda () (haskell-lexer input-port))))
+                 (insert-boundary (match-lambda ((type declaration) (make-guard-term type (make-haskell-term type declaration)))))
+                 (declarations (map insert-boundary (zip (module-declaration-types module) (module-term-declarations module)))))
+      (compile-module (make-module-term (module-term-identifier module) declarations)))))
