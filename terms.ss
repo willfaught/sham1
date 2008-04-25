@@ -16,6 +16,6 @@
   (define-struct (let-term term) (declarations expression) #f)
   (define-struct (list-term term) (expressions) #f)
   (define-struct (module-term term) (identifier declarations) #f)
-  (define-struct (scheme-term term) (expression) #f)
+  (define-struct (scheme-term term) (type identifier) #f)
   (define-struct (tuple-term term) (expressions) #f)
   (define-struct (tuplecon-term term) (arity) #f))
