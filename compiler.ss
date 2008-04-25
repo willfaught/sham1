@@ -1,3 +1,7 @@
+; known issues:
+; - declarations shadowing prelude declarations don't work
+; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
+
 (module compiler mzscheme
   (require (only (lib "1.ss" "srfi") list-tabulate zip)
            (lib "contract.ss")
@@ -13,16 +17,16 @@
   
   (define (compile-module module declaration-types)
     0)
-    ;(define compile-declaration-term
-    ;  (match-lambda
-    ;    (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
-    ;                                                                             (compile-term e)
-    ;                                                                             (compile-term (make-function-term (cdr p) e))))))))
-    ;`(module ,(string->symbol i) mzscheme
-    ;   (require (lib "haskell-prelude.ss" "hs")
-    ;            (lib "match.ss"))
-    ;   (provide (all-defined))
-    ;   ,@(map compile-declaration-term d)))
+  ;(define compile-declaration-term
+  ;  (match-lambda
+  ;    (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
+  ;                                                                             (compile-term e)
+  ;                                                                             (compile-term (make-function-term (cdr p) e))))))))
+  ;`(module ,(string->symbol i) mzscheme
+  ;   (require (lib "haskell-prelude.ss" "hs")
+  ;            (lib "match.ss"))
+  ;   (provide (all-defined))
+  ;   ,@(map compile-declaration-term d)))
   
   ; compile-term :: term -> [quoted data]
   (define (compile-term term)
@@ -39,10 +43,11 @@
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
+      (($ scheme-term type identifier) `(,(scheme->haskell type) ,(string->symbol identifier)))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-etupcon a))))
   
-  ; function-conveter :: [[quoted data]] -> [quoted data] -> [quoted data]
+  ; function-converter :: [[quoted data]] -> [quoted data] -> [quoted data]
   (define (function-converter argument-converters result-converter)
     ; identifier :: integer -> symbol
     (define (identifier n)
@@ -53,9 +58,9 @@
     ; nest-arguments :: [[quoted data]] -> [quoted data]
     (define (nest-arguments argument-converters)
       (match argument-converters
-        ((head . tail) `(,(nest-arguments tail) (,head ,(identifier (length argument-converters)))))
+        ((head . tail) `(,(nest-arguments tail) ,(head (identifier (length argument-converters)))))
         (() 'x)))
-    `(lambda (x) ,(nest-parameters (nest-arguments argument-converters) (length argument-converters) 1)))
+    `(lambda (x) ,(nest-parameters `(,result-converter ,(nest-arguments argument-converters)) (length argument-converters) 1)))
   
   ; haskell->scheme :: type -> [quoted data]
   (define (haskell->scheme type)
@@ -65,24 +70,24 @@
         (($ character-type) id)
         (($ float-type) id)
         (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
-                                   (function-converter (map scheme->haskell argument-types) (scheme->haskell result-type))))
+                                   (function-converter (map (lambda (x) (lambda (y) `(,(scheme->haskell x) (delay ,y)))) argument-types) (haskell->scheme result-type))))
         (($ integer-type) id)
         (($ list-type _) id)
         (($ tuple-type _) id))))
   
   ; scheme->haskell :: type -> [quoted data]
   (define (scheme->haskell type)
-    (let ((id `(lambda (x) (delay x))))
+    (let ((id `(lambda (x) x)))
       (match type
         (($ boolean-type) id)
         (($ character-type) id)
         (($ float-type) id)
-        (($ function-type types) `(delay ,(match-let (((result-type . argument-types) (reverse types)))
-                                            (function-converter (map haskell->scheme argument-types) (scheme->haskell result-type)))))
+        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
+                                   (function-converter (map (lambda (x) (lambda (y) `(,(haskell->scheme x) ,y))) argument-types) (scheme->haskell result-type))))
         (($ integer-type) id)
         (($ list-type type) `(lambda (x) (foldr (lambda (x y) (cons (delay (,(scheme->haskell type) x)) (delay y))) null x)))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(,(scheme->haskell type) (vector-ref x ,index)))) pairs)))
+                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type) (vector-ref x ,index))))) pairs)))
                                 `(lambda (x) (vector-immutable ,@elements)))))))
   
   ; type->contract :: type -> contract
@@ -96,7 +101,7 @@
       (($ list-type type) `(list-immutableof ,(type->contract type)))
       (($ tuple-type types) `(vector-immutable/c ,(map type->contract types)))
       (($ type-constructor identifier) (type->contract (translate-type-constructor (make-type-constructor identifier))))
-      (($ type-variable _) `any/c) ; cannot enforce arguments corresponding with the same type variable to have the same type
+      (($ type-variable _) `any/c)
       (($ universal-type _ type) (type->contract type))))
   
   (define (compile-let-term d e)
