@@ -21,9 +21,11 @@
       (match-lambda
         (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(compile-term e))))))
     `(module ,(string->symbol (module-term-identifier module)) mzscheme
-       (require (lib "match.ss")
+       (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                (lib "contract.ss")
                 (lib "prelude.ss" "haskell"))
        (provide (all-defined))
+       (define-struct haskell:lump (value))
        ,@(map compile-declaration-term (module-term-declarations module))))
   
   ; compile-term :: term -> [quoted data]
@@ -71,7 +73,8 @@
                                    (function-converter (map (lambda (x) (lambda (y) `(,(scheme->haskell x) (delay ,y)))) argument-types) (haskell->scheme result-type))))
         (($ integer-type) id)
         (($ list-type _) id)
-        (($ tuple-type _) id))))
+        (($ tuple-type _) id)
+        (($ type-variable _) `(lambda (x) (make-haskell:lump x))))))
   
   ; scheme->haskell :: type -> [quoted data]
   (define (scheme->haskell type)
@@ -86,7 +89,8 @@
         (($ list-type type) `(lambda (x) (foldr (lambda (x y) (cons (delay (,(scheme->haskell type) x)) (delay y))) null x)))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type) (vector-ref x ,index))))) pairs)))
-                                `(lambda (x) (vector-immutable ,@elements)))))))
+                                `(lambda (x) (vector-immutable ,@elements))))
+        (($ type-variable _) `(lambda (x) (haskell:lump-value x))))))
   
   ; type->contract :: type -> contract
   (define (type->contract type)
@@ -97,11 +101,10 @@
       (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
                                  `,(foldr (lambda (x y) `(-> ,(type->contract x) ,y)) (type->contract result-type) (reverse argument-types))))
       (($ integer-type) `(flat-contract integer?))
-      (($ list-type type) `(list-immutableof ,(type->contract type)))
+      (($ list-type type) `(and/c (list-immutableof ,(type->contract type)) (flat-contract proper-list?) (flat-contract circular-list?)))
       (($ tuple-type types) `(vector-immutable/c ,(map type->contract types)))
       (($ type-constructor identifier) (type->contract (translate-type-constructor (make-type-constructor identifier))))
-      (($ type-variable _) `any/c)
-      (($ universal-type _ type) (type->contract type))))
+      (($ type-variable _) `any/c)))
   
   (define (compile-let-term d e)
     (define compile-declaration-term
