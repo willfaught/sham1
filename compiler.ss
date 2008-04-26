@@ -15,7 +15,7 @@
   
   (provide compile-module)
   
-  ; compile-module :: module-term -> [type] -> [quoted data]
+  ; compile-module :: module-term -> [type] -> datum
   (define (compile-module module declaration-types)
     (define compile-declaration-term
       (match-lambda
@@ -28,41 +28,42 @@
        (define-struct haskell:lump (value))
        ,@(map compile-declaration-term (module-term-declarations module))))
   
-  ; compile-term :: term -> [quoted data]
+  ; compile-term :: term -> datum
   (define (compile-term term)
     (match term
-      (($ application-term f a) (compile-eapp f (reverse a)))
+      (($ application-term f a) (compile-application-term f (reverse a)))
       #;(($ case-term e as) `(match ,(compile-term e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-term (cdr a)))) as)))
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
-      (($ guard-term type term) `(contract ,(type->contract type) ,(compile-term term) 'haskell 'scheme))
-      (($ haskell-term type term) `(,(haskell->scheme type) ,(compile-term term)))
+      (($ haskell-term type term) `(,(haskell-contract type) ,(compile-term term)))
+      (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
       (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ scheme-term type identifier) `(,(scheme->haskell type) ,(string->symbol identifier)))
+      (($ scheme-term type identifier) `(,(scheme-contract type) ,(string->symbol identifier)))
+      (($ scheme-guard-term type term) `(contract ,(scheme-contract type) ,(compile-term term) 'haskell 'scheme))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
-      (($ tuplecon-term a) (compile-etupcon a))))
+      (($ tuplecon-term a) (compile-tuplecon-term a))))
   
-  ; function-converter :: [[quoted data]] -> [quoted data] -> [quoted data]
+  ; function-converter :: [datum] -> datum -> datum
   (define (function-converter argument-converters result-converter)
     ; identifier :: integer -> symbol
     (define (identifier n)
       (string->symbol (string-append "x" (number->string n))))
-    ; nest-parameters :: term -> integer -> integer -> [quoted data]
+    ; nest-parameters :: term -> integer -> integer -> datum
     (define (nest-parameters body-term parameter-number parameter-count)
       (if (< parameter-number parameter-count) body-term `(lambda (,(identifier parameter-count)) ,(nest-parameters body-term parameter-number (+ parameter-count 1)))))
-    ; nest-arguments :: [[quoted data]] -> [quoted data]
+    ; nest-arguments :: [datum] -> datum
     (define (nest-arguments argument-converters)
       (match argument-converters
         ((head . tail) `(,(nest-arguments tail) ,(head (identifier (length argument-converters)))))
         (() 'x)))
     `(lambda (x) ,(nest-parameters `(,result-converter ,(nest-arguments argument-converters)) (length argument-converters) 1)))
   
-  ; haskell->scheme :: type -> [quoted data]
+  ; haskell->scheme :: type -> datum
   (define (haskell->scheme type)
     (let ((id `(lambda (x) x)))
       (match type
@@ -76,7 +77,7 @@
         (($ tuple-type _) id)
         (($ type-variable _) `(lambda (x) (make-haskell:lump x))))))
   
-  ; scheme->haskell :: type -> [quoted data]
+  ; scheme->haskell :: type -> datum
   (define (scheme->haskell type)
     (let ((id `(lambda (x) x)))
       (match type
@@ -92,22 +93,38 @@
                                 `(lambda (x) (vector-immutable ,@elements))))
         (($ type-variable _) `(lambda (x) (haskell:lump-value x))))))
   
-  ; type->contract :: type -> contract
-  (define (type->contract type)
+  ; haskell-contract :: type -> contract
+  (define (haskell-contract type)
     (match type
       (($ boolean-type) `(flat-contract boolean?))
       (($ character-type) `(flat-contract char?))
       (($ float-type) `(flat-contract number?))
       (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
-                                 `,(foldr (lambda (x y) `(-> ,(type->contract x) ,y)) (type->contract result-type) (reverse argument-types))))
+                                 `,(foldr (lambda (x y) `(-> ,(haskell-contract x) ,y)) (scheme-contract result-type) (reverse argument-types))))
       (($ integer-type) `(flat-contract integer?))
-      (($ list-type type) `(and/c (list-immutableof ,(type->contract type))
+      (($ list-type type) `(and/c (list-immutableof ,(haskell-contract type))
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
-      (($ tuple-type types) `(vector-immutable/c ,(map type->contract types)))
-      (($ type-constructor identifier) (type->contract (translate-type-constructor (make-type-constructor identifier))))
+      (($ tuple-type types) `(vector-immutable/c ,(map haskell-contract types)))
+      (($ type-constructor identifier) (haskell-contract (translate-type-constructor (make-type-constructor identifier))))
       (($ type-variable _) `any/c)))
   
+  ; scheme-contract :: type -> contract
+  (define (scheme-contract type)
+    (let ((p `(flat-contract promise?)))
+      (match type
+        (($ boolean-type) p)
+        (($ character-type) p)
+        (($ float-type) p)
+        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
+                                   `,(foldr (lambda (x y) `(-> ,(scheme-contract x) ,y)) (haskell-contract result-type) (reverse argument-types))))
+        (($ integer-type) p)
+        (($ list-type type) p)
+        (($ tuple-type types) p)
+        (($ type-constructor identifier) (scheme-contract (translate-type-constructor (make-type-constructor identifier))))
+        (($ type-variable _) p))))
+  
+  ; compile-let-term :: [declaration-term] -> term -> datum
   (define (compile-let-term d e)
     (define compile-declaration-term
       (match-lambda (($ declaration-term p e) `(,(string->symbol (car p)) (delay ,(if (null? (cdr p))
@@ -115,10 +132,12 @@
                                                                                       (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
-  (define (compile-eapp f a)
-    (if (null? a) (compile-term f) `(,(compile-eapp f (cdr a)) (delay ,(compile-term (car a))))))
+  ; compile-application-term :: term -> [term] -> datum
+  (define (compile-application-term f a)
+    (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
   
-  (define (compile-etupcon a)
+  ; compile-tuplecon-term :: integer -> datum
+  (define (compile-tuplecon-term a)
     (define (enumerate n)
       (if (= n 0) null (cons n (enumerate (- n 1)))))
     (define (nest n)
@@ -127,9 +146,11 @@
           `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
     (nest 1))
   
+  ; characters :: immutable-hash-table
   (define characters
     (make-immutable-hash-table `() 'equal))
   
+  ; tests :: [test]
   (define tests
     (list (make-test "eapp 1"
                      (make-application-term (make-identifier-term "x") (list (make-integer-term "4")))
