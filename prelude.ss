@@ -1,8 +1,15 @@
 (module prelude mzscheme
-  (require (lib "types.ss" "haskell")
+  (require (only (lib "43.ss" "srfi") vector-map)
+           (lib "types.ss" "haskell")
            (lib "match.ss"))
   
   (provide (all-defined))
+  
+  (define (strict term)
+    (let ((value (force term)))
+      (cond ((or (pair? value) (list? value)) (if (null? value) null (cons (force (car value)) (strict (cdr value)))))
+            ((vector? value) (vector-map (lambda (i x) (strict x)) value))
+            (else value))))
   
   (define prelude-types
     (make-immutable-hash-table `(("error" . ,(let ((t (fresh-type-variable)))
