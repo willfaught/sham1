@@ -7,9 +7,11 @@
   
   (define (strict term)
     (let ((value (force term)))
-      (cond ((or (pair? value) (list? value)) (if (null? value) null (cons (force (car value)) (strict (cdr value)))))
+      (cond ((or (pair? value) (list? value)) (if (null? value) null (cons (strict (car value)) (strict (cdr value)))))
             ((vector? value) (vector-map (lambda (i x) (strict x)) value))
             (else value))))
+  
+  (define s strict)
   
   (define prelude-types
     (make-immutable-hash-table `(("error" . ,(let ((t (fresh-type-variable)))
