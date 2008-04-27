@@ -103,6 +103,7 @@
                                         (context (map (lambda (x) (list x (fresh-type-variable))) identifiers))
                                         ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) d))))
                              (list types (foldl append null constraints))))
+      (($ scheme-term type _) (list type null))
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
