@@ -25,7 +25,7 @@
                 (lib "contract.ss")
                 (lib "prelude.ss" "haskell"))
        (provide (all-defined))
-       (define-struct haskell:lump (value))
+       (define-struct :lump (value))
        ,@(map compile-declaration-term (module-term-declarations module))))
   
   ; compile-term :: term -> datum
@@ -38,7 +38,7 @@
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) `(,(haskell->scheme type) ,(compile-term term)))
       (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
-      (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "haskell:" i))) `(force ,(string->symbol i))))
+      (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "prelude:" i))) `(force ,(string->symbol i))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
@@ -75,7 +75,7 @@
         (($ integer-type) id)
         (($ list-type _) id)
         (($ tuple-type _) id)
-        (($ type-variable _) `(lambda (x) (make-haskell:lump x))))))
+        (($ type-variable _) `(lambda (x) (make-:lump x))))))
   
   ; scheme->haskell :: type -> datum
   (define (scheme->haskell type)
@@ -91,7 +91,7 @@
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type) (vector-ref x ,index))))) pairs)))
                                 `(lambda (x) (vector-immutable ,@elements))))
-        (($ type-variable _) `(lambda (x) (haskell:lump-value x))))))
+        (($ type-variable _) `(lambda (x) (if (:lump? x) (:lump-value x) x))))))
   
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
