@@ -1,5 +1,6 @@
 (module reader mzscheme
   (require (only (lib "1.ss" "srfi") zip)
+           (only (lib "13.ss" "srfi") string-concatenate)
            (lib "compiler.ss" "haskell")
            (lib "lex.ss" "parser-tools")
            (prefix : (lib "lex-sre.ss" "parser-tools"))
@@ -171,7 +172,7 @@
                              ((nt-fexp) $1)
                              #;((nt-exp t-coloncolon nt-type) 'TODO) ; creates a shift/reduce conflict
                              ((t-scheme nt-type t-string) (make-scheme-term (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x)) $2)
-                                                                            (list->string $3))))
+                                                                            (foldr (lambda (x y) (string-append (character-term-character x) y)) "" $3))))
                      (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-vars-2 (() null)
