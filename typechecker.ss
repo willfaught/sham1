@@ -7,6 +7,7 @@
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
            ;(lib "test.ss" "haskell")
+           (lib "reader.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide module-declaration-types)
@@ -181,11 +182,29 @@
              (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
-  #;(define (character-test-suite type
+  (define test-expression-parser (expression-parser "test"))
+  
+  (define test-type-parser (type-parser "test"))
+  
+  (define (parse-expression expression)
+    (let ((port (open-input-string expression)))
+      (port-count-lines! port)
+      (test-expression-parser (lambda () (language-lexer port)))))
+  
+  (define (parse-type type)
+    (let ((port (open-input-string type)))
+      (port-count-lines! port)
+      (test-type-parser (lambda () (language-lexer port)))))
+  #;(
+  (define (run-test-suites)
+    (let ((parser (expression-parser "test")))))
+      
+  
+  (define (character-test-suite type
     (test-suite "character"
                 (test-case "1"
-                           (check-equal? (type 'exp) ())))))
-  
+                           (check-equal? )))))
+  )
   #;(define tests
     (list (make-test "character-term 1"
                      (make-character-term "a")
