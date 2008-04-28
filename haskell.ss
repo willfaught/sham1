@@ -1,8 +1,8 @@
 (module haskell mzscheme
   (require (only (lib "1.ss" "srfi") zip)
-           (only (lib "compiler.ss" "haskell") compile-module)
-           (only (lib "match.ss") match-lambda match-let*)
-           (only (lib "reader.ss" "haskell") language-lexer module-parser)
+           (lib "compiler.ss" "haskell")
+           (lib "match.ss")
+           (lib "reader.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "typechecker.ss" "haskell"))
   
