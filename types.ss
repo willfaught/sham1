@@ -34,7 +34,8 @@
       (($ type-constructor "Char") (make-character-type))
       (($ type-constructor "Int") (make-integer-type))
       (($ type-constructor "Integer") (make-integer-type))
-      (($ type-constructor "Float") (make-float-type))))
+      (($ type-constructor "Float") (make-float-type))
+      (type type)))
   
   ; fresh-type-variable :: type-variable
   (define (fresh-type-variable)
