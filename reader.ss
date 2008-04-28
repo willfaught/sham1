@@ -9,7 +9,6 @@
            (lib "readerr.ss" "syntax")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
-           (lib "typechecker.ss" "haskell")
            (lib "yacc.ss" "parser-tools"))
   
   (provide expression-parser language-lexer module-parser type-parser)
