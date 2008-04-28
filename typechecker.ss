@@ -6,7 +6,8 @@
            (lib "types.ss" "haskell")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
-           (lib "test.ss" "haskell"))
+           ;(lib "test.ss" "haskell")
+           (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide module-declaration-types)
   
@@ -21,28 +22,6 @@
   ; lunzip2 :: [(a, b)] -> ([a], [b])
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
-  
-  ; normalize-type :: type -> type
-  (define (normalize-type type)
-    (define type-variable-count 0)
-    (define mappings null)
-    (define (next-type-variable)
-      (set! type-variable-count (+ type-variable-count 1))
-      (make-type-variable (if (equal? type-variable-count 1) "t" (string-append "t" (number->string (- type-variable-count 1))))))
-    (define (rename-type-variable type-variable)
-      (match (assoc type-variable mappings)
-        ((_ . t) t)
-        (#f (let ((t (next-type-variable)))
-              (set! mappings (alist-cons type-variable t mappings))
-              t))))
-    (define (normalize-type type)
-      (match type
-        (($ function-type t) (make-function-type (map normalize-type t)))
-        (($ list-type t) (make-list-type (normalize-type t)))
-        (($ tuple-type t) (make-tuple-type (map normalize-type t)))
-        (($ type-variable i) (rename-type-variable (make-type-variable i)))
-        (t t)))
-    (normalize-type type))
   
   ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
   (define (zip-with f x y)
@@ -202,7 +181,12 @@
              (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
       (() null)))
   
-  (define tests
+  #;(define (character-test-suite type
+    (test-suite "character"
+                (test-case "1"
+                           (check-equal? (type 'exp) ())))))
+  
+  #;(define tests
     (list (make-test "character-term 1"
                      (make-character-term "a")
                      (make-character-type))
@@ -388,7 +372,7 @@
                                             (make-float-type))))
           ))
   
-  (define (run-all-tests)
+  #;(define (run-all-tests)
     (run-tests (lambda (x)
                  (match-let* (((type constraints) (reconstruct-types null x)))
                    (substitute-types (unify-constraints constraints) type)))
