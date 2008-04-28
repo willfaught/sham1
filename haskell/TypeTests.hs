@@ -1,6 +1,12 @@
-#reader (lib "reader.ss" "haskell")
+#reader (lib "haskell.ss" "haskell")
 
 module TypeTests where {
+
+foo = :scheme Int -> Int -> Int "+";
+
+a x y = (+) x y;
+
+b = a 'b' 'c';
 
 -- character tests
 
