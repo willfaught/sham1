@@ -1,6 +1,7 @@
 (module typechecker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter make-list unzip2 zip)
            (lib "compiler.ss" "haskell")
+           (lib "list.ss" "haskell")
            (lib "prelude.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
@@ -16,16 +17,6 @@
     (match (reconstruct-types null module)
       ((types constraints) (let ((substitution (unify-constraints constraints)))
                              (map (lambda (x) (substitute-types substitution x)) types)))))
-  
-  ; lunzip2 :: [(a, b)] -> ([a], [b])
-  (define (lunzip2 x)
-    (let-values (((x y) (unzip2 x))) (list x y)))
-  
-  ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
-  (define (zip-with f x y)
-    (if (equal? (length x) (length y))
-        (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
-        (error 'zip-with "lists have different lengths")))
   
   ; reconstruct-type :: term -> type
   (define (reconstruct-type term)
