@@ -21,9 +21,9 @@
   ; map-type :: (type -> type) -> type -> type
   (define (map-type mapper type)
     (match type
-      (($ function-type t) (mapper (make-function-type (map mapper t))))
-      (($ list-type t) (mapper (make-list-type (mapper t))))
-      (($ tuple-type t) (mapper (make-tuple-type (map mapper t))))
+      (($ function-type t) (mapper (make-function-type (map (lambda (x) (map-type mapper x)) t))))
+      (($ list-type t) (mapper (make-list-type (map-type mapper t))))
+      (($ tuple-type t) (mapper (make-tuple-type (map (lambda (x) (map-type mapper x)) t))))
       (($ universal-type v t) (mapper (make-universal-type v (map-type (lambda (x) (if (member x v) x (mapper x))) t))))
       (t (mapper t))))
   
