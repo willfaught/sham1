@@ -5,12 +5,9 @@
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
            (only (lib "list.ss") foldl foldr)
-           (lib "match.ss")
-           ;(lib "test.ss" "haskell")
-           (lib "reader.ss" "haskell")
-           (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
+           (lib "match.ss"))
   
-  (provide module-declaration-types)
+  (provide module-declaration-types reconstruct-type)
   
   (define-struct constraint (left-type right-type) #f)
   
@@ -29,6 +26,11 @@
     (if (equal? (length x) (length y))
         (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
         (error 'zip-with "lists have different lengths")))
+  
+  ; reconstruct-type :: term -> type
+  (define (reconstruct-type term)
+    (match-let (((type constraints) (reconstruct-types null term)))
+      (normalize-type-variables (substitute-types (unify-constraints constraints) type))))
   
   ; reconstruct-types :: [(string, type)] -> term -> (type, [constraint])
   (define (reconstruct-types context term)
@@ -180,219 +182,4 @@
                    (equal? (length (tuple-type-types left-type)) (length (tuple-type-types right-type))))
               (unify-constraints (append (zip-with make-constraint (tuple-type-types left-type) (tuple-type-types right-type)) rest)))
              (else (error 'unify-constraints "cannot unify the constraint: ~a = ~a" left-type right-type))))
-      (() null)))
-  
-  (define test-expression-parser (expression-parser "test"))
-  
-  (define test-type-parser (type-parser "test"))
-  
-  (define (parse-expression expression)
-    (let ((port (open-input-string expression)))
-      (port-count-lines! port)
-      (test-expression-parser (lambda () (language-lexer port)))))
-  
-  (define (parse-type type)
-    (let ((port (open-input-string type)))
-      (port-count-lines! port)
-      (test-type-parser (lambda () (language-lexer port)))))
-  #;(
-  (define (run-test-suites)
-    (let ((parser (expression-parser "test")))))
-      
-  
-  (define (character-test-suite type
-    (test-suite "character"
-                (test-case "1"
-                           (check-equal? )))))
-  )
-  #;(define tests
-    (list (make-test "character-term 1"
-                     (make-character-term "a")
-                     (make-character-type))
-          (make-test "integer-term 1"
-                     (make-integer-term "1")
-                     (make-integer-type))
-          (make-test "float-term 1"
-                     (make-float-term "2.3")
-                     (make-float-type))
-          (make-test "list-term 1"
-                     (make-list-term null)
-                     (make-list-type (make-type-variable "t1")))
-          (make-test "list-term 2"
-                     (make-list-term (list (make-character-term "a")))
-                     (make-list-type (make-character-type)))
-          (make-test "list-term 3"
-                     (make-list-term (list (make-float-term "1.2")
-                                           (make-float-term "3.4")))
-                     (make-list-type (make-float-type)))
-          (make-test "tuple-term 1"
-                     (make-tuple-term (list (make-character-term "a")
-                                            (make-float-term "1.2")))
-                     (make-tuple-type (list (make-character-type)
-                                            (make-float-type))))
-          (make-test "tuple-term 2"
-                     (make-tuple-term (list (make-character-term "a")
-                                            (make-float-term "1.2")
-                                            (make-integer-term "3")))
-                     (make-tuple-type (list (make-character-type)
-                                            (make-float-type)
-                                            (make-integer-type))))
-          (make-test "tuplecon-term 1"
-                     (make-tuplecon-term 2)
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-type-variable "t2")
-                                               (make-tuple-type (list (make-type-variable "t1")
-                                                                      (make-type-variable "t2"))))))
-          (make-test "tuplecon-term 2"
-                     (make-tuplecon-term 3)
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-type-variable "t2")
-                                               (make-type-variable "t3")
-                                               (make-tuple-type (list (make-type-variable "t1")
-                                                                      (make-type-variable "t2")
-                                                                      (make-type-variable "t3"))))))
-          (make-test "let-term 1"
-                     (make-let-term (list (make-declaration-term (list "a")
-                                                                 (make-character-term "a")))
-                                    (make-float-term "1.2"))
-                     (make-float-type))
-          (make-test "let-term 2"
-                     (make-let-term (list (make-declaration-term (list "a")
-                                                                 (make-character-term "a")))
-                                    (make-identifier-term "a"))
-                     (make-character-type))
-          (make-test "let-term 3"
-                     (make-let-term (list (make-declaration-term (list "a")
-                                                                 (make-identifier-term "a")))
-                                    (make-identifier-term "a"))
-                     (make-type-variable "t2"))
-          (make-test "let-term 4"
-                     (make-let-term (list (make-declaration-term (list "a")
-                                                                 (make-character-term "a"))
-                                          (make-declaration-term (list "b")
-                                                                 (make-identifier-term "a")))
-                                    (make-identifier-term "b"))
-                     (make-character-type))
-          (make-test "let-term 5"
-                     (make-let-term (list (make-declaration-term (list "a")
-                                                                 (make-identifier-term "b"))
-                                          (make-declaration-term (list "b")
-                                                                 (make-character-term "a")))
-                                    (make-identifier-term "a"))
-                     (make-character-type))
-          (make-test "let-term 6"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-character-term "a")))
-                                    (make-identifier-term "a"))
-                     (make-function-type (list (make-type-variable "t3")
-                                               (make-character-type))))
-          (make-test "let-term 7"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-identifier-term "x")))
-                                    (make-identifier-term "a"))
-                     (make-function-type (list (make-type-variable "t3")
-                                               (make-type-variable "t3"))))
-          (make-test "let-term 8"
-                     (make-let-term (list (make-declaration-term (list "a" "x" "y")
-                                                                 (make-identifier-term "y")))
-                                    (make-identifier-term "a"))
-                     (make-function-type (list (make-type-variable "t4")
-                                               (make-type-variable "t5")
-                                               (make-type-variable "t5"))))
-          (make-test "let-term 9"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-identifier-term "x"))
-                                          (make-declaration-term (list "b")
-                                                                 (make-application-term (make-identifier-term "a")
-                                                                                        (list (make-character-term "a"))))
-                                          (make-declaration-term (list "c")
-                                                                 (make-application-term (make-identifier-term "a")
-                                                                                        (list (make-character-term "b")))))
-                                    (make-identifier-term "a"))
-                     (make-function-type (list (make-character-type)
-                                               (make-character-type))))
-          (make-test "let-term 10"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-integer-term "1")))
-                                    (make-application-term (make-identifier-term "a")
-                                                           (list (make-character-term "a"))))
-                     (make-integer-type))
-          (make-test "let-term 11"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-identifier-term "x")))
-                                    (make-application-term (make-identifier-term "a")
-                                                           (list (make-character-term "a"))))
-                     (make-character-type))
-          (make-test "let-term 12"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-identifier-term "x")))
-                                    (make-let-term (list (make-declaration-term (list "b") (make-application-term (make-identifier-term "a")
-                                                                                                                  (list (make-character-term "b"))))
-                                                         (make-declaration-term (list "c") (make-application-term (make-identifier-term "a")
-                                                                                                                  (list (make-float-term "1.2")))))
-                                                   (make-identifier-term "a")))
-                     (make-function-type (list (make-type-variable "t9")
-                                               (make-type-variable "t9"))))
-          (make-test "let-term 13"
-                     (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                 (make-identifier-term "x")))
-                                    (make-let-term (list (make-declaration-term (list "b") (make-application-term (make-identifier-term "a")
-                                                                                                                  (list (make-character-term "b"))))
-                                                         (make-declaration-term (list "c") (make-application-term (make-identifier-term "a")
-                                                                                                                  (list (make-float-term "1.2")))))
-                                                   (make-identifier-term "b")))
-                     (make-character-type))
-          (make-test "function-term 1"
-                     (make-function-term (list "x")
-                                         (make-character-term "a"))
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-character-type))))
-          (make-test "function-term 2"
-                     (make-function-term (list "x")
-                                         (make-identifier-term "x"))
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-type-variable "t1"))))
-          (make-test "function-term 3"
-                     (make-function-term (list "x" "y")
-                                         (make-identifier-term "y"))
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-type-variable "t2")
-                                               (make-type-variable "t2"))))
-          (make-test "function-term 4"
-                     (make-function-term (list "x" "y")
-                                         (make-tuple-term (list (make-identifier-term "x")
-                                                                (make-identifier-term "y"))))
-                     (make-function-type (list (make-type-variable "t1")
-                                               (make-type-variable "t2")
-                                               (make-tuple-type (list (make-type-variable "t1") (make-type-variable "t2"))))))
-          (make-test "application-term 1"
-                     (make-application-term (make-function-term (list "x")
-                                                                (make-character-term "a"))
-                                            (list (make-float-term "1.2")))
-                     (make-character-type))
-          (make-test "application-term 2"
-                     (make-application-term (make-function-term (list "x")
-                                                                (make-identifier-term "x"))
-                                            (list (make-character-term "a")))
-                     (make-character-type))
-          (make-test "application-term 3"
-                     (make-application-term (make-function-term (list "x" "y")
-                                                                (make-identifier-term "y"))
-                                            (list (make-character-term "a")
-                                                  (make-float-term "1.2")))
-                     (make-float-type))
-          (make-test "application-term 4"
-                     (make-application-term (make-function-term (list "x" "y")
-                                                                (make-tuple-term (list (make-identifier-term "x")
-                                                                                       (make-identifier-term "y"))))
-                                            (list (make-character-term "b")
-                                                  (make-float-term "1.2")))
-                     (make-tuple-type (list (make-character-type)
-                                            (make-float-type))))
-          ))
-  
-  #;(define (run-all-tests)
-    (run-tests (lambda (x)
-                 (match-let* (((type constraints) (reconstruct-types null x)))
-                   (substitute-types (unify-constraints constraints) type)))
-               tests)))
+      (() null))))
