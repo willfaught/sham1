@@ -16,6 +16,7 @@
                                     integer-test-suite
                                     float-test-suite
                                     function-test-suite
+                                    if-test-suite
                                     let-test-suite
                                     list-test-suite
                                     tuple-test-suite
@@ -53,10 +54,28 @@
   
   (define application-test-suite
     (test-suite "application"
-                (test-case-success "app1" "(\\x -> 'a') 1.2" "Char")
-                (test-case-success "app2" "(\\x -> x) 'a'" "Char")
-                (test-case-success "app3" "(\\x y -> y) 'a' 1.2" "Float")
-                (test-case-success "app4" "(\\x y -> (x, y)) 'b' 1.2" "(Char, Float)")))
+                (test-case-success "app1" "(\\x -> True) 1" "Bool")
+                (test-case-success "app2" "(\\x -> 'a') 1" "Char")
+                (test-case-success "app3" "(\\x -> 1) True" "Int")
+                (test-case-success "app4" "(\\x -> 1.2) 3" "Float")
+                (test-case-success "app5" "(\\x -> \\y -> y) 1" "t -> t")
+                (test-case-success "app6" "(\\x y -> y) 1" "t -> t")
+                (test-case-success "app7" "(\\x -> []) 1" "[t]")
+                (test-case-success "app8" "(\\x -> (1, 2)) 1" "(Int, Int)")
+                (test-case-success "app9" "(\\x -> (,)) 1" "t -> t1 -> (t, t1)")
+                (test-case-success "app10" "(\\x -> x) True" "Bool")
+                (test-case-success "app11" "(\\x -> x) 'a'" "Char")
+                (test-case-success "app12" "(\\x -> x) 1" "Int")
+                (test-case-success "app13" "(\\x -> x) 1.2" "Float")
+                (test-case-success "app14" "(\\x -> x) (\\y -> y)" "t -> t")
+                (test-case-success "app15" "(\\x -> x) []" "[t]")
+                (test-case-success "app16" "(\\x -> x) (1, 2)" "(Int, Int)")
+                (test-case-success "app17" "(\\x -> x) (,)" "t -> t1 -> (t, t1)")
+                (test-case-success "app18" "(\\x -> \\y -> x) 1" "t -> Int")
+                (test-case-success "app19" "(\\x y -> x) 1" "t -> Int")
+                (test-case-success "app20" "(\\x -> [x]) 1" "[Int]")
+                (test-case-success "app21" "(\\x -> (x, x)) 1" "(Int, Int)")
+                (test-case-success "app22" "(\\x -> (,) x x) 1" "(Int, Int)")))
   
   (define boolean-test-suite
     (test-suite "boolean"
@@ -82,6 +101,18 @@
                 (test-case-success "fun3" "\\x y -> y" "t -> t1 -> t1")
                 (test-case-success "fun4" "\\x y -> (x, y)" "t -> t1 -> (t, t1)")))
   
+  (define if-test-suite
+    (test-suite "if"
+                (test-case-success "if" "if True then True else False" "Bool")
+                (test-case-success "if" "if True then 'a' else 'b'" "Char")
+                (test-case-success "if" "if True then 1 else 2" "Int")
+                (test-case-success "if" "if True then 1.2 else 3.4" "Float")
+                (test-case-success "if" "if True then \\x -> x else \\y -> y" "t -> t")
+                (test-case-success "if" "if True then [] else []" "[t]")
+                (test-case-success "if" "if True then (1, 2) else (3, 4)" "(Int, Int)")
+                (test-case-success "if" "if True then (,) else (,)" "t -> t1 -> (t, t1)")
+                (test-case-success "if" "if False then 1 else 2" "Int")))
+  
   (define let-test-suite
     (test-suite "let"
                 (test-case-success "let1" "let { i = 'a' } in 1.2" "Float")
@@ -101,15 +132,41 @@
   (define list-test-suite
     (test-suite "list"
                 (test-case-success "list1" "[]" "[t]")
-                (test-case-success "list2" "['a']" "[Char]")
-                (test-case-success "list3" "[1.2, 3.4]" "[Float]")))
+                (test-case-success "list2" "[True]" "[Bool]")
+                (test-case-success "list3" "['a']" "[Char]")
+                (test-case-success "list4" "[1]" "[Int]")
+                (test-case-success "list5" "[2.3]" "[Float]")
+                (test-case-success "list6" "[\\x -> x]" "[t -> t]")
+                (test-case-success "list7" "[[]]" "[[t]]")
+                (test-case-success "list8" "[[1]]" "[[Int]]")
+                (test-case-success "list9" "[(1, 2)]" "[(Int, Int)]")
+                (test-case-success "list10" "[(,)]" "[t -> t1 -> (t, t1)]")
+                (test-case-success "list11" "[[], []]" "[[t]]")
+                (test-case-error "list12" "['a', 2]")
+                (test-case-error "list13" "[[1], ['a']]")))
   
   (define tuple-test-suite
     (test-suite "tuple"
-                (test-case-success "tuple1" "('a', 1.2)" "(Char, Float)")
-                (test-case-success "tuple2" "('a', 1.2, 3)" "(Char, Float, Int)")))
+                (test-case-success "tuple1" "(True, False)" "(Bool, Bool)")
+                (test-case-success "tuple2" "('a', 'b')" "(Char, Char)")
+                (test-case-success "tuple3" "(1, 2)" "(Int, Int)")
+                (test-case-success "tuple4" "(1.2, 3.4)" "(Float, Float)")
+                (test-case-success "tuple5" "(\\x -> x, \\y -> y)" "(t -> t, t1 -> t1)")
+                (test-case-success "tuple6" "([], [])" "([t], [t1])")
+                (test-case-success "tuple7" "((1, 2), (3, 4))" "((Int, Int), (Int, Int))")
+                (test-case-success "tuple8" "((,), (,))" "(t -> t1 -> (t, t1), t2 -> t3 -> (t2, t3))")
+                (test-case-success "tuple" "('a', 1)" "(Char, Int)")
+                (test-case-success "tuple" "(1, 2, 3)" "(Int, Int, Int)")))
   
   (define tuplecon-test-suite
     (test-suite "tuplecon"
                 (test-case-success "tupcon1" "(,)" "t -> t1 -> (t, t1)")
-                (test-case-success "tupcon2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)"))))
+                (test-case-success "tupcon2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)")
+                (test-case-success "tupcon3" "(,) 1" "t -> (Int, t)")
+                (test-case-success "tupcon4" "(,) 1 2" "(Int, Int)")
+                (test-case-success "tupcon5" "(,,) 1" "t -> t1 -> (Int, t, t1)")
+                (test-case-success "tupcon6" "(,,) 1 2" "t -> (Int, Int, t)")
+                (test-case-success "tupcon7" "(,,) 1 2 3" "(Int, Int, Int)")
+                (test-case-success "tupcon8" "(,) (,) (,)" "(t -> t1 -> (t, t1), t2 -> t3 -> (t2, t3))")
+                (test-case-error "tupcon9" "(,) 1 2 3")
+                (test-case-error "tupcon10" "(,,) 1 2 3 4"))))
