@@ -10,7 +10,6 @@
            (lib "match.ss")
            (lib "prelude.ss" "haskell")
            (lib "terms.ss" "haskell")
-           (lib "test.ss" "haskell")
            (lib "types.ss" "haskell"))
   
   (provide compile-module)
@@ -150,7 +149,7 @@
     (make-immutable-hash-table `() 'equal))
   
   ; tests :: [test]
-  (define tests
+  #;(define tests
     (list (make-test "eapp 1"
                      (make-application-term (make-identifier-term "x") (list (make-integer-term "4")))
                      '((force x) (delay 4)))
@@ -221,5 +220,5 @@
                      (make-tuplecon-term 3)
                      '(lambda (x1) (lambda (x2) (lambda (x3) (vector-immutable x1 x2 x3)))))))
   
-  (define (run-all-tests)
+  #;(define (run-all-tests)
     (run-tests (lambda (x) (compile-term x)) tests)))
