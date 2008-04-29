@@ -1,5 +1,6 @@
 (module list mzscheme
-  (require (lib "match.ss"))
+  (require (only (lib "1.ss" "srfi") unzip2)
+           (lib "match.ss"))
   
   (provide (all-defined))
   
@@ -28,4 +29,14 @@
     (match xs
       ((x) x)
       ((x . xs) (f x (foldr1 f xs)))
-      (() (error 'foldr1 "empty list")))))
+      (() (error 'foldr1 "empty list"))))
+  
+  ; lunzip2 :: [(a, b)] -> ([a], [b])
+  (define (lunzip2 x)
+    (let-values (((x y) (unzip2 x))) (list x y)))
+  
+  ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
+  (define (zip-with f x y)
+    (if (equal? (length x) (length y))
+        (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
+        (error 'zip-with "lists have different lengths"))))
