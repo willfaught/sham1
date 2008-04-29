@@ -7,42 +7,56 @@
   
   (provide run-tests)
   
+  ; run-tests :: [string]
+  (define (run-tests)
+    (let* ((test-suites (test-suite "all"
+                                    application-test-suite
+                                    boolean-test-suite
+                                    character-test-suite
+                                    integer-test-suite
+                                    float-test-suite
+                                    function-test-suite
+                                    let-test-suite
+                                    list-test-suite
+                                    tuple-test-suite
+                                    tuplecon-test-suite))
+           (results (lambda (x y)
+                      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
+                            ((test-error? x) (cons (test-result-test-case-name x) y))
+                            (else y)))))
+      (fold-test-results results null test-suites)))
+  
   (define test-expression-parser (expression-parser "test"))
   
   (define test-type-parser (type-parser "test"))
   
+  ; parse-expression :: string -> term
   (define (parse-expression expression)
     (let ((port (open-input-string expression)))
       (port-count-lines! port)
       (test-expression-parser (lambda () (language-lexer port)))))
   
+  ; parse-type :: string -> type
   (define (parse-type type)
     (let ((port (open-input-string type)))
       (port-count-lines! port)
       (normalize-type-variables (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x))
                                           (test-type-parser (lambda () (language-lexer port)))))))
   
+  ; test-case-success :: string -> string -> string -> test-case
   (define (test-case-success name expression type)
     (test-equal? name (reconstruct-type (parse-expression expression)) (parse-type type)))
   
+  ; test-case-error :: string -> string -> test-case
   (define (test-case-error name expression)
     (test-exn name (lambda (x) #t) (lambda () (reconstruct-type (parse-expression expression)))))
   
-  (define (run-tests)
-    (let* ((test-suites (test-suite "all"
-                                    boolean-test-suite
-                                    character-test-suite
-                                    integer-test-suite
-                                    float-test-suite
-                                    list-test-suite
-                                    tuple-test-suite
-                                    tuplecon-test-suite
-                                    let-test-suite))
-           (results (lambda (x y)
-                      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
-                            ((test-error? x) (cons (test-result-test-case-name x) y))
-                            (else y)))))
-      (fold-test-results results null test-suites)))
+  (define application-test-suite
+    (test-suite "application"
+                (test-case-success "app1" "(\\x -> 'a') 1.2" "Char")
+                (test-case-success "app2" "(\\x -> x) 'a'" "Char")
+                (test-case-success "app3" "(\\x y -> y) 'a' 1.2" "Float")
+                (test-case-success "app4" "(\\x y -> (x, y)) 'b' 1.2" "(Char, Float)")))
   
   (define boolean-test-suite
     (test-suite "boolean"
@@ -61,6 +75,29 @@
     (test-suite "float"
                 (test-case-success "float1" "1.2" "Float")))
   
+  (define function-test-suite
+    (test-suite "function"
+                (test-case-success "fun1" "\\x -> 'a'" "t -> Char")
+                (test-case-success "fun2" "\\x -> x" "t -> t")
+                (test-case-success "fun3" "\\x y -> y" "t -> t1 -> t1")
+                (test-case-success "fun4" "\\x y -> (x, y)" "t -> t1 -> (t, t1)")))
+  
+  (define let-test-suite
+    (test-suite "let"
+                (test-case-success "let1" "let { i = 'a' } in 1.2" "Float")
+                (test-case-success "let2" "let { i = 'a' } in i" "Char")
+                (test-case-success "let3" "let { i = i } in i" "t")
+                (test-case-success "let4" "let { i = 2 ; j = i } in j" "Int")
+                (test-case-success "let5" "let { i = j ; j = 2 } in j" "Int")
+                (test-case-success "let6" "let { i x = 2 } in i" "t -> Int")
+                (test-case-success "let7" "let { i x = x } in i" "t -> t")
+                (test-case-success "let8" "let { i x y = y } in i" "t -> t1 -> t1")
+                (test-case-success "let9" "let { i x = x ; j = i 2; k = i 3 } in i" "Int -> Int")
+                (test-case-success "let10" "let { i x = 2 } in i 3" "Int")
+                (test-case-success "let11" "let { i x = x } in i 2" "Int")
+                (test-case-success "let12" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in i" "t -> t")
+                (test-case-success "let13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")))
+  
   (define list-test-suite
     (test-suite "list"
                 (test-case-success "list1" "[]" "[t]")
@@ -75,157 +112,4 @@
   (define tuplecon-test-suite
     (test-suite "tuplecon"
                 (test-case-success "tupcon1" "(,)" "t -> t1 -> (t, t1)")
-                (test-case-success "tupcon2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)")))
-  
-  (define -test-suite
-    (test-suite ""
-                (test-case-success "" "" "")))
-  
-  (define -test-suite
-    (test-suite ""
-                (test-case-success "" "" "")))
-  
-  (define let-test-suite
-    (test-suite "let"
-                (test-case-error "let1" "let { a x = x ; b = a 2 ; c = a 'b' } in a")))
-  
-  #;(define tests
-      (list (make-test "let-term 1"
-                       (make-let-term (list (make-declaration-term (list "a")
-                                                                   (make-character-term "a")))
-                                      (make-float-term "1.2"))
-                       (make-float-type))
-            (make-test "let-term 2"
-                       (make-let-term (list (make-declaration-term (list "a")
-                                                                   (make-character-term "a")))
-                                      (make-identifier-term "a"))
-                       (make-character-type))
-            (make-test "let-term 3"
-                       (make-let-term (list (make-declaration-term (list "a")
-                                                                   (make-identifier-term "a")))
-                                      (make-identifier-term "a"))
-                       (make-type-variable "t2"))
-            (make-test "let-term 4"
-                       (make-let-term (list (make-declaration-term (list "a")
-                                                                   (make-character-term "a"))
-                                            (make-declaration-term (list "b")
-                                                                   (make-identifier-term "a")))
-                                      (make-identifier-term "b"))
-                       (make-character-type))
-            (make-test "let-term 5"
-                       (make-let-term (list (make-declaration-term (list "a")
-                                                                   (make-identifier-term "b"))
-                                            (make-declaration-term (list "b")
-                                                                   (make-character-term "a")))
-                                      (make-identifier-term "a"))
-                       (make-character-type))
-            (make-test "let-term 6"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-character-term "a")))
-                                      (make-identifier-term "a"))
-                       (make-function-type (list (make-type-variable "t3")
-                                                 (make-character-type))))
-            (make-test "let-term 7"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-identifier-term "x")))
-                                      (make-identifier-term "a"))
-                       (make-function-type (list (make-type-variable "t3")
-                                                 (make-type-variable "t3"))))
-            (make-test "let-term 8"
-                       (make-let-term (list (make-declaration-term (list "a" "x" "y")
-                                                                   (make-identifier-term "y")))
-                                      (make-identifier-term "a"))
-                       (make-function-type (list (make-type-variable "t4")
-                                                 (make-type-variable "t5")
-                                                 (make-type-variable "t5"))))
-            (make-test "let-term 9"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-identifier-term "x"))
-                                            (make-declaration-term (list "b")
-                                                                   (make-application-term (make-identifier-term "a")
-                                                                                          (list (make-character-term "a"))))
-                                            (make-declaration-term (list "c")
-                                                                   (make-application-term (make-identifier-term "a")
-                                                                                          (list (make-character-term "b")))))
-                                      (make-identifier-term "a"))
-                       (make-function-type (list (make-character-type)
-                                                 (make-character-type))))
-            (make-test "let-term 10"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-integer-term "1")))
-                                      (make-application-term (make-identifier-term "a")
-                                                             (list (make-character-term "a"))))
-                       (make-integer-type))
-            (make-test "let-term 11"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-identifier-term "x")))
-                                      (make-application-term (make-identifier-term "a")
-                                                             (list (make-character-term "a"))))
-                       (make-character-type))
-            (make-test "let-term 12"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-identifier-term "x")))
-                                      (make-let-term (list (make-declaration-term (list "b") (make-application-term (make-identifier-term "a")
-                                                                                                                    (list (make-character-term "b"))))
-                                                           (make-declaration-term (list "c") (make-application-term (make-identifier-term "a")
-                                                                                                                    (list (make-float-term "1.2")))))
-                                                     (make-identifier-term "a")))
-                       (make-function-type (list (make-type-variable "t9")
-                                                 (make-type-variable "t9"))))
-            (make-test "let-term 13"
-                       (make-let-term (list (make-declaration-term (list "a" "x")
-                                                                   (make-identifier-term "x")))
-                                      (make-let-term (list (make-declaration-term (list "b") (make-application-term (make-identifier-term "a")
-                                                                                                                    (list (make-character-term "b"))))
-                                                           (make-declaration-term (list "c") (make-application-term (make-identifier-term "a")
-                                                                                                                    (list (make-float-term "1.2")))))
-                                                     (make-identifier-term "b")))
-                       (make-character-type))
-            (make-test "function-term 1"
-                       (make-function-term (list "x")
-                                           (make-character-term "a"))
-                       (make-function-type (list (make-type-variable "t1")
-                                                 (make-character-type))))
-            (make-test "function-term 2"
-                       (make-function-term (list "x")
-                                           (make-identifier-term "x"))
-                       (make-function-type (list (make-type-variable "t1")
-                                                 (make-type-variable "t1"))))
-            (make-test "function-term 3"
-                       (make-function-term (list "x" "y")
-                                           (make-identifier-term "y"))
-                       (make-function-type (list (make-type-variable "t1")
-                                                 (make-type-variable "t2")
-                                                 (make-type-variable "t2"))))
-            (make-test "function-term 4"
-                       (make-function-term (list "x" "y")
-                                           (make-tuple-term (list (make-identifier-term "x")
-                                                                  (make-identifier-term "y"))))
-                       (make-function-type (list (make-type-variable "t1")
-                                                 (make-type-variable "t2")
-                                                 (make-tuple-type (list (make-type-variable "t1") (make-type-variable "t2"))))))
-            (make-test "application-term 1"
-                       (make-application-term (make-function-term (list "x")
-                                                                  (make-character-term "a"))
-                                              (list (make-float-term "1.2")))
-                       (make-character-type))
-            (make-test "application-term 2"
-                       (make-application-term (make-function-term (list "x")
-                                                                  (make-identifier-term "x"))
-                                              (list (make-character-term "a")))
-                       (make-character-type))
-            (make-test "application-term 3"
-                       (make-application-term (make-function-term (list "x" "y")
-                                                                  (make-identifier-term "y"))
-                                              (list (make-character-term "a")
-                                                    (make-float-term "1.2")))
-                       (make-float-type))
-            (make-test "application-term 4"
-                       (make-application-term (make-function-term (list "x" "y")
-                                                                  (make-tuple-term (list (make-identifier-term "x")
-                                                                                         (make-identifier-term "y"))))
-                                              (list (make-character-term "b")
-                                                    (make-float-term "1.2")))
-                       (make-tuple-type (list (make-character-type)
-                                              (make-float-type))))
-            )))
+                (test-case-success "tupcon2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)"))))
