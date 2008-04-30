@@ -54,28 +54,16 @@
   
   (define application-test-suite
     (test-suite "application"
-                (test-case-success "app1" "(\\x -> True) 1" "Bool")
-                (test-case-success "app2" "(\\x -> 'a') 1" "Char")
-                (test-case-success "app3" "(\\x -> 1) True" "Int")
-                (test-case-success "app4" "(\\x -> 1.2) 3" "Float")
-                (test-case-success "app5" "(\\x -> \\y -> y) 1" "t -> t")
-                (test-case-success "app6" "(\\x y -> y) 1" "t -> t")
-                (test-case-success "app7" "(\\x -> []) 1" "[t]")
-                (test-case-success "app8" "(\\x -> (1, 2)) 1" "(Int, Int)")
-                (test-case-success "app9" "(\\x -> (,)) 1" "t -> t1 -> (t, t1)")
-                (test-case-success "app10" "(\\x -> x) True" "Bool")
-                (test-case-success "app11" "(\\x -> x) 'a'" "Char")
-                (test-case-success "app12" "(\\x -> x) 1" "Int")
-                (test-case-success "app13" "(\\x -> x) 1.2" "Float")
-                (test-case-success "app14" "(\\x -> x) (\\y -> y)" "t -> t")
-                (test-case-success "app15" "(\\x -> x) []" "[t]")
-                (test-case-success "app16" "(\\x -> x) (1, 2)" "(Int, Int)")
-                (test-case-success "app17" "(\\x -> x) (,)" "t -> t1 -> (t, t1)")
-                (test-case-success "app18" "(\\x -> \\y -> x) 1" "t -> Int")
-                (test-case-success "app19" "(\\x y -> x) 1" "t -> Int")
-                (test-case-success "app20" "(\\x -> [x]) 1" "[Int]")
-                (test-case-success "app21" "(\\x -> (x, x)) 1" "(Int, Int)")
-                (test-case-success "app22" "(\\x -> (,) x x) 1" "(Int, Int)")))
+                (test-case-success "app1" "(\\x -> 1) 1" "Int")
+                (test-case-success "app2" "(\\x -> x) 1" "Int")
+                (test-case-success "app3" "(\\x -> \\y -> x) 1" "t -> Int")
+                (test-case-success "app4" "(\\x y -> x) 1" "t -> Int")
+                (test-case-success "app5" "(\\x -> [x]) 1" "[Int]")
+                (test-case-success "app6" "(\\x -> (x, x)) 1" "(Int, Int)")
+                (test-case-success "app7" "(\\x y -> 1) 2 3" "Int")
+                (test-case-error "app8" "1 2")
+                (test-case-error "app9" "(\\x -> x) 1 2")
+                (test-case-error "app" "let { i x = x ; j = i 1 } in i 'a'")))
   
   (define boolean-test-suite
     (test-suite "boolean"
