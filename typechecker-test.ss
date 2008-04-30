@@ -84,10 +84,14 @@
   
   (define function-test-suite
     (test-suite "function"
-                (test-case-success "fun1" "\\x -> 'a'" "t -> Char")
+                (test-case-success "fun1" "\\x -> 1" "t -> Int")
                 (test-case-success "fun2" "\\x -> x" "t -> t")
-                (test-case-success "fun3" "\\x y -> y" "t -> t1 -> t1")
-                (test-case-success "fun4" "\\x y -> (x, y)" "t -> t1 -> (t, t1)")))
+                (test-case-success "fun3" "\\x -> \\y -> x" "t -> t1 -> t")
+                (test-case-success "fun4" "\\x y -> x" "t -> t1 -> t")
+                (test-case-success "fun5" "\\x -> \\y -> y" "t -> t1 -> t1")
+                (test-case-success "fun6" "\\x y -> y" "t -> t1 -> t1")
+                (test-case-success "fun7" "\\x -> [x]" "t -> [t]")
+                (test-case-success "fun8" "\\x -> (x, x)" "t -> (t, t)")))
   
   (define if-test-suite
     (test-suite "if"
