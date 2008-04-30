@@ -16,6 +16,7 @@
                                     integer-test-suite
                                     float-test-suite
                                     function-test-suite
+                                    identifier-test-suite
                                     if-test-suite
                                     let-test-suite
                                     list-test-suite
@@ -63,7 +64,7 @@
                 (test-case-success "app7" "(\\x y -> 1) 2 3" "Int")
                 (test-case-error "app8" "1 2")
                 (test-case-error "app9" "(\\x -> x) 1 2")
-                (test-case-error "app" "let { i x = x ; j = i 1 } in i 'a'")))
+                (test-case-error "app10" "let { i x = x ; j = i 1 } in i 'a'")))
   
   (define boolean-test-suite
     (test-suite "boolean"
@@ -93,16 +94,13 @@
                 (test-case-success "fun7" "\\x -> [x]" "t -> [t]")
                 (test-case-success "fun8" "\\x -> (x, x)" "t -> (t, t)")))
   
+  (define identifier-test-suite
+    (test-suite "identifier"
+                (test-case-error "id1" "x")))
+  
   (define if-test-suite
     (test-suite "if"
-                (test-case-success "if" "if True then True else False" "Bool")
-                (test-case-success "if" "if True then 'a' else 'b'" "Char")
                 (test-case-success "if" "if True then 1 else 2" "Int")
-                (test-case-success "if" "if True then 1.2 else 3.4" "Float")
-                (test-case-success "if" "if True then \\x -> x else \\y -> y" "t -> t")
-                (test-case-success "if" "if True then [] else []" "[t]")
-                (test-case-success "if" "if True then (1, 2) else (3, 4)" "(Int, Int)")
-                (test-case-success "if" "if True then (,) else (,)" "t -> t1 -> (t, t1)")
                 (test-case-success "if" "if False then 1 else 2" "Int")))
   
   (define let-test-suite
