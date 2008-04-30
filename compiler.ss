@@ -62,6 +62,10 @@
         (() 'x)))
     `(lambda (x) ,(nest-parameters `(,result-converter ,(nest-arguments argument-converters)) (length argument-converters) 1)))
   
+  (define (nest arg-converter result-converter n)
+    (let ((id (string->symbol (string-append "x" (number->string n)))))
+    `(lambda (,id) ,(result-converter 
+  
   ; haskell->scheme :: type -> datum
   (define (haskell->scheme type)
     (let ((id `(lambda (x) x)))
@@ -69,7 +73,7 @@
         (($ boolean-type) id)
         (($ character-type) id)
         (($ float-type) id)
-        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
+        (($ function-type p r) (match-let (((result-type . argument-types) (reverse types)))
                                    (function-converter (map (lambda (x) (lambda (y) `(,(scheme->haskell x) (delay ,y)))) argument-types) (haskell->scheme result-type))))
         (($ integer-type) id)
         (($ list-type _) id)
