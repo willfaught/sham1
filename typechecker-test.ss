@@ -21,7 +21,6 @@
                                     let-test-suite
                                     list-test-suite
                                     nested-test-suite
-                                    prelude-test-suite
                                     scheme-test-suite
                                     tuple-test-suite
                                     tuplecon-test-suite))
@@ -153,26 +152,6 @@
                 (test-case-success "nest13" "let { x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1) } in (!!)" "[t] -> Int -> t")
                 (test-case-success "nest14" "let { x ++ y = if null x then y else (:) (head x) ((++) (tail x) y) } in (++)" "[t] -> [t] -> [t]")
                 (test-case-success "nest15" "let { fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib))) } in fib" "[Int]")))
-  
-  (define prelude-test-suite
-    (test-suite "prelude"
-                (test-case-success "pre1" "error" "[Char] -> a")
-                (test-case-success "pre2" "trace" "t -> t1 -> t1")
-                (test-case-success "pre3" "(+)" "Int -> Int -> Int")
-                (test-case-success "pre4" "(-)" "Int -> Int -> Int")
-                (test-case-success "pre5" "(*)" "Int -> Int -> Int")
-                (test-case-success "pre6" "(/)" "Int -> Int -> Int")
-                (test-case-success "pre7" "(==)" "t -> t -> Bool")
-                (test-case-success "pre8" "(/=)" "t -> t -> Bool")
-                (test-case-success "pre9" "(:)" "t -> [t] -> [t]")
-                (test-case-success "pre10" "head" "[t] -> t")
-                (test-case-success "pre11" "tail" "[t] -> [t]")
-                (test-case-success "pre12" "null" "[t] -> Bool")
-                (test-case-success "pre13" "fst" "(t, t1) -> t")
-                (test-case-success "pre14" "snd" "(t, t1) -> t1")
-                (test-case-success "pre15" "(&&)" "Bool -> Bool -> Bool")
-                (test-case-success "pre16" "(||)" "Bool -> Bool -> Bool")
-                (test-case-success "pre17" "not" "Bool -> Bool")))
   
   (define scheme-test-suite
     (test-suite "scheme"
