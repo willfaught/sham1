@@ -1,6 +1,5 @@
-(module scheme mzscheme
+(module prelude mzscheme
   (require (only (lib "43.ss" "srfi") vector-map)
-           (lib "types.ss" "haskell")
            (lib "match.ss"))
   
   (provide (all-defined))
@@ -11,11 +10,8 @@
             ((vector? value) (vector-map (lambda (i x) (strict x)) value))
             (else value))))
   
-  (define force-list (match-lambda ((h . t) (cons (force h) (force-list (force t))))
-                                   (() null)))
-  
   (define prelude:error
-    (delay (lambda (s) (error (string-append "*** Exception: " (list->string (force-list (force s))))))))
+    (delay (lambda (s) (error (string-append "*** Exception: " (list->string (strict s)))))))
   
   (define prelude:trace
     (delay (lambda (v)
