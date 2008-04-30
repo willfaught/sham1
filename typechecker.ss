@@ -28,7 +28,7 @@
       (($ application-term f a) (match-let* (((f-type f-constraints) (reconstruct-types context f))
                                              ((a-types a-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) a)))
                                              (type (fresh-type-variable))
-                                             (constraints (cons (make-constraint f-type (make-function-type (append a-types (list type))))
+                                             (constraints (cons (make-constraint f-type (foldr (lambda (x y) (make-function-type x y)) type a-types))
                                                                 (append f-constraints (foldl append null a-constraints)))))
                                   (list type constraints)))
       #;(($ case-term e a) )
@@ -39,7 +39,7 @@
       (($ float-term f) (list (make-float-type) null))
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                           ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
-                               (list (foldr1 (lambda (x y) (make-function-type x y)) (append p-types (list type))) constraints)))
+                               (list (foldr (lambda (x y) (make-function-type x y)) type p-types) constraints)))
       (($ identifier-term i) (match (assoc i context)
                                ((_ type) (if (universal-type? type)
                                              (list (instantiate type) null)
@@ -74,7 +74,7 @@
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
       (($ tuplecon-term a) (let ((types (map (lambda (x) (fresh-type-variable)) (make-list a))))
-                             (list (make-function-type (append types (list (make-tuple-type types)))) null)))))
+                             (list (foldr (lambda (x y) (make-function-type x y)) (make-tuple-type types) types) null)))))
   
   ; generalize :: [(string, type)] -> type -> type
   (define (generalize context type)
