@@ -8,7 +8,6 @@
            (only (lib "list.ss") foldr)
            (lib "list.ss" "haskell")
            (lib "match.ss")
-           (lib "prelude.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell"))
   
