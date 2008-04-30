@@ -225,11 +225,14 @@
                      (nt-tycon ((t-conid) $1))
                      (nt-tyvar ((t-varid) $1)))))
   
+  ; expression-parser :: string -> parser
   (define (expression-parser source-name)
     (list-ref (language-parsers source-name) 0))
   
+  ; module-parser :: string -> parser
   (define (module-parser source-name)
     (list-ref (language-parsers source-name) 1))
   
+  ; type-parser :: string -> parser
   (define (type-parser source-name)
     (list-ref (language-parsers source-name) 2)))
