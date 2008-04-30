@@ -12,7 +12,7 @@
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell"))
   
-  (provide compile-module)
+  (provide compile-term compile-module)
   
   ; compile-module :: module-term -> [type] -> datum
   (define (compile-module module declaration-types)
@@ -22,7 +22,7 @@
     `(module ,(string->symbol (module-term-identifier module)) mzscheme
        (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                 (lib "contract.ss")
-                (lib "prelude.ss" "haskell"))
+                (lib "Prelude.hs" "haskell"))
        (provide (all-defined))
        (define-struct :lump (value))
        ,@(map compile-declaration-term (module-term-declarations module))))
@@ -31,13 +31,12 @@
   (define (compile-term term)
     (match term
       (($ application-term f a) (compile-application-term f (reverse a)))
-      #;(($ case-term e as) `(match ,(compile-term e) ,@(map (lambda (a) `(,(string->symbol (car a)) ,(compile-term (cdr a)))) as)))
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) `(,(haskell->scheme type) ,(compile-term term)))
       (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
-      (($ identifier-term i) (if (member i prelude-declarations) `(force ,(string->symbol (string-append "prelude:" i))) `(force ,(string->symbol i))))
+      (($ identifier-term i) `(force ,(string->symbol i)))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
@@ -62,39 +61,41 @@
         (() 'x)))
     `(lambda (x) ,(nest-parameters `(,result-converter ,(nest-arguments argument-converters)) (length argument-converters) 1)))
   
-  (define (nest arg-converter result-converter n)
-    (let ((id (string->symbol (string-append "x" (number->string n)))))
-    `(lambda (,id) ,(result-converter 
+  (define identifier-count 0)
   
-  ; haskell->scheme :: type -> datum
-  (define (haskell->scheme type)
+  (define (fresh-identifier)
+    (set! identifier-count (+ identifier-count 1))
+    (string->symbol (string-append "x" (number->string identifier-count))))
+  
+  ; haskell->scheme :: type -> term -> datum
+  (define (haskell->scheme type term)
     (let ((id `(lambda (x) x)))
       (match type
-        (($ boolean-type) id)
-        (($ character-type) id)
-        (($ float-type) id)
-        (($ function-type p r) (match-let (((result-type . argument-types) (reverse types)))
-                                   (function-converter (map (lambda (x) (lambda (y) `(,(scheme->haskell x) (delay ,y)))) argument-types) (haskell->scheme result-type))))
-        (($ integer-type) id)
-        (($ list-type _) id)
-        (($ tuple-type _) id)
-        (($ type-variable _) `(lambda (x) (make-:lump x))))))
+        (($ boolean-type) term)
+        (($ character-type) term)
+        (($ float-type) term)
+        (($ function-type p r) (let ((i (fresh-identifier)))
+                                 `(lambda (,i) ,(haskell->scheme r `(,term ,(scheme->haskell p i))))))
+        (($ integer-type) term)
+        (($ list-type _) term)
+        (($ tuple-type _) term)
+        (($ type-variable _) `(make-:lump ,term)))))
   
-  ; scheme->haskell :: type -> datum
-  (define (scheme->haskell type)
+  ; scheme->haskell :: type -> term -> datum
+  (define (scheme->haskell type term)
     (let ((id `(lambda (x) x)))
       (match type
-        (($ boolean-type) id)
-        (($ character-type) id)
-        (($ float-type) id)
-        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
-                                   (function-converter (map (lambda (x) (lambda (y) `(,(haskell->scheme x) ,y))) argument-types) (scheme->haskell result-type))))
-        (($ integer-type) id)
-        (($ list-type type) `(lambda (x) (foldr (lambda (x y) (cons (delay (,(scheme->haskell type) x)) (delay y))) null x)))
+        (($ boolean-type) term)
+        (($ character-type) term)
+        (($ float-type) term)
+        (($ function-type p r) (let ((i (fresh-identifier)))
+                                 `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i))))))
+        (($ integer-type) term)
+        (($ list-type type) `(foldr (lambda (x y) (cons (delay ,(scheme->haskell type `x)) (delay y))) null ,term))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type) (vector-ref x ,index))))) pairs)))
-                                `(lambda (x) (vector-immutable ,@elements))))
-        (($ type-variable _) `(lambda (x) (if (:lump? x) (:lump-value x) x))))))
+                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type) (vector-ref ,term ,index))))) pairs)))
+                                `(vector-immutable ,@elements)))
+        (($ type-variable _) `(if (:lump? ,term) (:lump-value ,term) ,term)))))
   
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
@@ -102,8 +103,7 @@
       (($ boolean-type) `any/c)
       (($ character-type) `any/c)
       (($ float-type) `any/c)
-      (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
-                                 `,(foldr (lambda (x y) `(-> ,(scheme-contract x) ,y)) (haskell-contract result-type) (reverse argument-types))))
+      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
       (($ integer-type) `any/c)
       (($ list-type _) `any/c)
       (($ tuple-type _) `any/c)
@@ -116,8 +116,7 @@
         (($ boolean-type) `(flat-contract boolean?))
         (($ character-type) `(flat-contract char?))
         (($ float-type) `(flat-contract number?))
-        (($ function-type types) (match-let (((result-type . argument-types) (reverse types)))
-                                   `,(foldr (lambda (x y) `(-> ,(haskell-contract x) ,y)) (scheme-contract result-type) (reverse argument-types))))
+        (($ function-type p r) `(-> ,(haskell-contract p) ,(scheme-contract r)))
         (($ integer-type) `(flat-contract integer?))
         (($ list-type type) `(and/c (list-immutableof ,(haskell-contract type))
                                     (flat-contract proper-list?)
