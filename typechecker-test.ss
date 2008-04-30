@@ -100,8 +100,10 @@
   
   (define if-test-suite
     (test-suite "if"
-                (test-case-success "if" "if True then 1 else 2" "Int")
-                (test-case-success "if" "if False then 1 else 2" "Int")))
+                (test-case-success "if1" "if True then 1 else 2" "Int")
+                (test-case-success "if2" "if False then 1 else 2" "Int")
+                (test-case-error "if3" "if 1 then 2 else 3")
+                (test-case-error "if4" "if True then 1 else 'a'")))
   
   (define let-test-suite
     (test-suite "let"
@@ -122,18 +124,8 @@
   (define list-test-suite
     (test-suite "list"
                 (test-case-success "list1" "[]" "[t]")
-                (test-case-success "list2" "[True]" "[Bool]")
-                (test-case-success "list3" "['a']" "[Char]")
-                (test-case-success "list4" "[1]" "[Int]")
-                (test-case-success "list5" "[2.3]" "[Float]")
-                (test-case-success "list6" "[\\x -> x]" "[t -> t]")
-                (test-case-success "list7" "[[]]" "[[t]]")
-                (test-case-success "list8" "[[1]]" "[[Int]]")
-                (test-case-success "list9" "[(1, 2)]" "[(Int, Int)]")
-                (test-case-success "list10" "[(,)]" "[t -> t1 -> (t, t1)]")
-                (test-case-success "list11" "[[], []]" "[[t]]")
-                (test-case-error "list12" "['a', 2]")
-                (test-case-error "list13" "[[1], ['a']]")))
+                (test-case-success "list2" "[1]" "[Int]")
+                (test-case-error "list3" "[1, 'a']")))
   
   (define tuple-test-suite
     (test-suite "tuple"
