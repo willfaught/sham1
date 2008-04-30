@@ -8,7 +8,7 @@
   (define-struct (boolean-type type) () #f)
   (define-struct (character-type type) () #f)
   (define-struct (float-type type) () #f)
-  (define-struct (function-type type) (types) #f)
+  (define-struct (function-type type) (parameter-type result-type) #f)
   (define-struct (integer-type type) () #f)
   (define-struct (list-type type) (type) #f)
   (define-struct (tuple-type type) (types) #f)
@@ -21,7 +21,7 @@
   ; map-type :: (type -> type) -> type -> type
   (define (map-type mapper type)
     (match type
-      (($ function-type t) (mapper (make-function-type (map (lambda (x) (map-type mapper x)) t))))
+      (($ function-type p r) (mapper (make-function-type (map-type mapper p) (map-type mapper r))))
       (($ list-type t) (mapper (make-list-type (map-type mapper t))))
       (($ tuple-type t) (mapper (make-tuple-type (map (lambda (x) (map-type mapper x)) t))))
       (($ universal-type v t) (mapper (make-universal-type v (map-type (lambda (x) (if (member x v) x (mapper x))) t))))
@@ -57,7 +57,7 @@
               t))))
     (define (normalize-type-variables type)
       (match type
-        (($ function-type t) (make-function-type (map normalize-type-variables t)))
+        (($ function-type p r) (make-function-type (normalize-type-variables p) (normalize-type-variables r)))
         (($ list-type t) (make-list-type (normalize-type-variables t)))
         (($ tuple-type t) (make-tuple-type (map normalize-type-variables t)))
         (($ type-variable i) (rename-type-variable (make-type-variable i)))

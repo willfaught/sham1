@@ -5,6 +5,9 @@
   
   (provide (all-defined))
   
+  ;(define (prelude identifier)
+  ;  (make-immutable-hash-table `(("+" . (compile-term 
+  
   (define (strict term)
     (let ((value (force term)))
       (cond ((or (pair? value) (list? value)) (if (null? value) null (cons (strict (car value)) (strict (cdr value)))))
