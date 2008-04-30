@@ -129,16 +129,8 @@
   
   (define tuple-test-suite
     (test-suite "tuple"
-                (test-case-success "tuple1" "(True, False)" "(Bool, Bool)")
-                (test-case-success "tuple2" "('a', 'b')" "(Char, Char)")
-                (test-case-success "tuple3" "(1, 2)" "(Int, Int)")
-                (test-case-success "tuple4" "(1.2, 3.4)" "(Float, Float)")
-                (test-case-success "tuple5" "(\\x -> x, \\y -> y)" "(t -> t, t1 -> t1)")
-                (test-case-success "tuple6" "([], [])" "([t], [t1])")
-                (test-case-success "tuple7" "((1, 2), (3, 4))" "((Int, Int), (Int, Int))")
-                (test-case-success "tuple8" "((,), (,))" "(t -> t1 -> (t, t1), t2 -> t3 -> (t2, t3))")
-                (test-case-success "tuple" "('a', 1)" "(Char, Int)")
-                (test-case-success "tuple" "(1, 2, 3)" "(Int, Int, Int)")))
+                (test-case-success "tuple1" "(True, 1)" "(Bool, Int)")
+                (test-case-success "tuple1" "(True, 1, 1)" "(Bool, Int, Int)")))
   
   (define tuplecon-test-suite
     (test-suite "tuplecon"
@@ -149,6 +141,5 @@
                 (test-case-success "tupcon5" "(,,) 1" "t -> t1 -> (Int, t, t1)")
                 (test-case-success "tupcon6" "(,,) 1 2" "t -> (Int, Int, t)")
                 (test-case-success "tupcon7" "(,,) 1 2 3" "(Int, Int, Int)")
-                (test-case-success "tupcon8" "(,) (,) (,)" "(t -> t1 -> (t, t1), t2 -> t3 -> (t2, t3))")
                 (test-case-error "tupcon9" "(,) 1 2 3")
                 (test-case-error "tupcon10" "(,,) 1 2 3 4"))))
