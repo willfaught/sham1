@@ -129,7 +129,7 @@
                                     (position-offset start-pos)
                                     (- (position-offset end-pos) (position-offset start-pos))))))
   
-  (define (haskell-parsers source-name)
+  (define (language-parsers source-name)
     (parser (src-pos)
             (tokens keywords regular)
             (start nt-exp nt-module nt-type)
@@ -225,10 +225,10 @@
                      (nt-tyvar ((t-varid) $1)))))
   
   (define (expression-parser source-name)
-    (list-ref (haskell-parsers source-name) 0))
+    (list-ref (language-parsers source-name) 0))
   
   (define (module-parser source-name)
-    (list-ref (haskell-parsers source-name) 1))
+    (list-ref (language-parsers source-name) 1))
   
   (define (type-parser source-name)
-    (list-ref (haskell-parsers source-name) 2)))
+    (list-ref (language-parsers source-name) 2)))
