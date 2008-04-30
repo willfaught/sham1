@@ -20,6 +20,9 @@
                                     if-test-suite
                                     let-test-suite
                                     list-test-suite
+                                    nested-test-suite
+                                    prelude-test-suite
+                                    scheme-test-suite
                                     tuple-test-suite
                                     tuplecon-test-suite))
            (results (lambda (x y)
@@ -129,7 +132,51 @@
     (test-suite "list"
                 (test-case-success "list1" "[]" "[t]")
                 (test-case-success "list2" "[1]" "[Int]")
-                (test-case-error "list3" "[1, 'a']")))
+                (test-case-success "list3" "\"\"" "[t]")
+                (test-case-success "list4" "\"foo\"" "[Char]")
+                (test-case-error "list5" "[1, 'a']")))
+  
+  (define nested-test-suite
+    (test-suite "nested"
+                (test-case-success "nest1" "let { hmap f x = if null x then [] else (:) (f (head x)) (hmap f (tail x)) } in hmap" "(t -> t1) -> [t] -> [t1]")
+                (test-case-success "nest2" "let { filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t } in filter" "(t -> Bool) -> [t] -> [t]")
+                (test-case-success "nest3" "let { foldl f z x = let { fold z x = if null x then z else fold (f z (head x)) (tail x) } in fold z x} in foldl" "(t -> t1 -> t) -> t -> [t1] -> t")
+                (test-case-success "nest4" "let { hand x = if null x then True else (&&) (head x) (hand (tail x)) } in hand" "[Bool] -> Bool")
+                (test-case-success "nest5" "let { hor x = if null x then False else (||) (head x) (hor (tail x)) } in hor" "[Bool] -> Bool")
+                (test-case-success "nest6" "let { foldr f z x = let { fold x = if null x then z else f (head x) (fold (tail x)) } in fold x } in foldr" "(t -> t1 -> t1) -> t1 -> [t] -> t1")
+                (test-case-success "nest7" "let { hlength x = if null x then 0 else (+) 1 (hlength (tail x)) } in hlength" "[t] -> Int")
+                (test-case-success "nest8" "let { flip f x y = f y x } in flip" "(t -> t1 -> t2) -> t1 -> t -> t2")
+                (test-case-success "nest9" "let { hreverse x = let { rev x a = if null x then a else rev (tail x) ((:) (head x) a) } in rev x [] } in hreverse" "[t] -> [t]")
+                (test-case-success "nest10" "let { (.) f g x = f (g x) } in (.)" "(t -> t1) -> (t2 -> t) -> t2 -> t1")
+                (test-case-success "nest11" "let { zip x y = if null x then [] else (:) (head x, head y) (zip (tail x) (tail y)) } in zip" "[t] -> [t1] -> [(t, t1)]")
+                (test-case-success "nest12" "let { zipWith f x y = if null x then [] else (:) (f (head x) (head y)) (zipWith f (tail x) (tail y)) } in zipWith" "(t -> t1 -> t2) -> [t] -> [t1] -> [t2]")
+                (test-case-success "nest13" "let { x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1) } in (!!)" "[t] -> Int -> t")
+                (test-case-success "nest14" "let { x ++ y = if null x then y else (:) (head x) ((++) (tail x) y) } in (++)" "[t] -> [t] -> [t]")
+                (test-case-success "nest15" "let { fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib))) } in fib" "[Int]")))
+  
+  (define prelude-test-suite
+    (test-suite "prelude"
+                (test-case-success "pre1" "error" "[Char] -> a")
+                (test-case-success "pre2" "trace" "t -> t1 -> t1")
+                (test-case-success "pre3" "(+)" "Int -> Int -> Int")
+                (test-case-success "pre4" "(-)" "Int -> Int -> Int")
+                (test-case-success "pre5" "(*)" "Int -> Int -> Int")
+                (test-case-success "pre6" "(/)" "Int -> Int -> Int")
+                (test-case-success "pre7" "(==)" "t -> t -> Bool")
+                (test-case-success "pre8" "(/=)" "t -> t -> Bool")
+                (test-case-success "pre9" "(:)" "t -> [t] -> [t]")
+                (test-case-success "pre10" "head" "[t] -> t")
+                (test-case-success "pre11" "tail" "[t] -> [t]")
+                (test-case-success "pre12" "null" "[t] -> Bool")
+                (test-case-success "pre13" "fst" "(t, t1) -> t")
+                (test-case-success "pre14" "snd" "(t, t1) -> t1")
+                (test-case-success "pre15" "(&&)" "Bool -> Bool -> Bool")
+                (test-case-success "pre16" "(||)" "Bool -> Bool -> Bool")
+                (test-case-success "pre17" "not" "Bool -> Bool")))
+  
+  (define scheme-test-suite
+    (test-suite "scheme"
+                (test-case-success "scheme1" ":scheme Int \"\"" "Int")))
   
   (define tuple-test-suite
     (test-suite "tuple"
