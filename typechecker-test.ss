@@ -107,8 +107,8 @@
   
   (define let-test-suite
     (test-suite "let"
-                (test-case-success "let1" "let { i = 'a' } in 1.2" "Float")
-                (test-case-success "let2" "let { i = 'a' } in i" "Char")
+                (test-case-success "let1" "let { i = 1 } in 2.3" "Float")
+                (test-case-success "let2" "let { i = 1 } in i" "Int")
                 (test-case-success "let3" "let { i = i } in i" "t")
                 (test-case-success "let4" "let { i = 2 ; j = i } in j" "Int")
                 (test-case-success "let5" "let { i = j ; j = 2 } in j" "Int")
@@ -119,7 +119,11 @@
                 (test-case-success "let10" "let { i x = 2 } in i 3" "Int")
                 (test-case-success "let11" "let { i x = x } in i 2" "Int")
                 (test-case-success "let12" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in i" "t -> t")
-                (test-case-success "let13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")))
+                (test-case-success "let13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")
+                (test-case-success "let14" "let { i = (:) 1 i } in i" "[Int]")
+                (test-case-success "let15" "let { even x = if (==) x 0 then True else odd ((-) x 1) ; odd x = if (==) x 0 then False else even ((-) x 1) } in even 1" "Bool")
+                (test-case-error "let16" "let { i = (i, i) } in i")
+                (test-case-error "let17" "let { i x = x ; j = i 1 ; k = i 2.3 } in i")))
   
   (define list-test-suite
     (test-suite "list"
@@ -130,7 +134,7 @@
   (define tuple-test-suite
     (test-suite "tuple"
                 (test-case-success "tuple1" "(True, 1)" "(Bool, Int)")
-                (test-case-success "tuple1" "(True, 1, 1)" "(Bool, Int, Int)")))
+                (test-case-success "tuple2" "(True, 1, 1)" "(Bool, Int, Int)")))
   
   (define tuplecon-test-suite
     (test-suite "tuplecon"
@@ -141,5 +145,5 @@
                 (test-case-success "tupcon5" "(,,) 1" "t -> t1 -> (Int, t, t1)")
                 (test-case-success "tupcon6" "(,,) 1 2" "t -> (Int, Int, t)")
                 (test-case-success "tupcon7" "(,,) 1 2 3" "(Int, Int, Int)")
-                (test-case-error "tupcon9" "(,) 1 2 3")
-                (test-case-error "tupcon10" "(,,) 1 2 3 4"))))
+                (test-case-error "tupcon8" "(,) 1 2 3")
+                (test-case-error "tupcon9" "(,,) 1 2 3 4"))))
