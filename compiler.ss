@@ -35,15 +35,15 @@
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
-      (($ haskell-term type term) (compile-term term));(haskell->scheme type (compile-term term)))
-      (($ haskell-guard-term type term) (compile-term term));`(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
-      (($ identifier-term i) `(force ,(string->symbol (string-append "haskell:" (if (equal? i ":") "prelude:list-cons" i)))))
+      (($ haskell-term type term) (haskell->scheme type (compile-term term)))
+      (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
+      (($ identifier-term i) `(force ,(string->symbol (string-append "haskell:" (if (equal? i ":") "list-cons" i)))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ scheme-term type identifier) (string->symbol identifier));(scheme->haskell type (string->symbol identifier)))
-      (($ scheme-guard-term type term) (compile-term term));`(contract ,(scheme-contract type) ,(compile-term term) 'scheme 'haskell))
+      (($ scheme-term type identifier) (scheme->haskell type (string->symbol identifier)))
+      (($ scheme-guard-term type term) `(contract ,(scheme-contract type) ,(compile-term term) 'scheme 'haskell))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
@@ -135,79 +135,4 @@
   
   ; characters :: immutable-hash-table
   (define characters
-    (make-immutable-hash-table `() 'equal))
-  
-  ; tests :: [test]
-  #;(define tests
-      (list (make-test "eapp 1"
-                       (make-application-term (make-identifier-term "x") (list (make-integer-term "4")))
-                       '((force x) (delay 4)))
-            (make-test "eapp 2"
-                       (make-application-term (make-identifier-term "x") (list (make-integer-term "5") (make-integer-term "6")))
-                       '(((force x) (delay 5)) (delay 6)))
-            (make-test "ecase 1"
-                       (make-case-term (make-integer-term "2") (list (cons "x" (make-integer-term "3"))))
-                       '(match 2 (x 3)))
-            (make-test "echar 1"
-                       (make-character-term "c")
-                       #\c)
-            (make-test "edecl 1"
-                       (make-declaration-term (list "x") (make-integer-term "2"))
-                       '(define x (delay 2)))
-            (make-test "edecl 2"
-                       (make-declaration-term (list "x" "y") (make-integer-term "2"))
-                       '(define x (delay (match-lambda (y 2)))))
-            (make-test "edecl 3"
-                       (make-declaration-term (list "x" "_" "y") (make-integer-term "2"))
-                       '(define x (delay (match-lambda (_ (match-lambda (y 2)))))))
-            (make-test "efun 1"
-                       (make-function-term (list "x") (make-identifier-term "x"))
-                       '(match-lambda (x (force x))))
-            (make-test "efun 2"
-                       (make-function-term (list "x" "y") (make-identifier-term "x"))
-                       '(match-lambda (x (match-lambda (y (force x))))))
-            (make-test "eid 1"
-                       (make-identifier-term "x")
-                       '(force x))
-            (make-test "eid 2"
-                       (make-identifier-term "+")
-                       '(force haskell:+))
-            (make-test "eif 1"
-                       (make-if-term (make-identifier-term "True") (make-integer-term "2") (make-integer-term "3"))
-                       '(if (force haskell:True) 2 3))
-            (make-test "elet 1"
-                       (make-let-term (list (make-declaration-term (list "x")
-                                                                   (make-integer-term "2")))
-                                      (make-integer-term "3"))
-                       '(begin (define x (delay 2)) 3))
-            (make-test "elet 2"
-                       (make-let-term (list (make-declaration-term (list "x")
-                                                                   (make-integer-term "2"))
-                                            (make-declaration-term (list "y")
-                                                                   (make-integer-term "3")))
-                                      (make-integer-term "4"))
-                       '(begin (define x (delay 2)) (define y (delay 3)) 4))
-            (make-test "elist 1"
-                       (make-list-term null)
-                       '())
-            (make-test "elist 2"
-                       (make-list-term (list (make-integer-term "2")))
-                       '(cons (delay 2) (delay ())))
-            (make-test "elist 3"
-                       (make-list-term (list (make-integer-term "2") (make-integer-term "3")))
-                       '(cons (delay 2) (delay (cons (delay 3) (delay ())))))
-            (make-test "enum 1"
-                       (make-integer-term "1")
-                       1)
-            (make-test "etup 1"
-                       (make-tuple-term (list (make-integer-term "2") (make-character-term "c")))
-                       '(((lambda (x1) (lambda (x2) (vector-immutable x1 x2))) (delay 2)) (delay #\c)))
-            (make-test "etupcon 1"
-                       (make-tuplecon-term 2)
-                       '(lambda (x1) (lambda (x2) (vector-immutable x1 x2))))
-            (make-test "etupcon 2"
-                       (make-tuplecon-term 3)
-                       '(lambda (x1) (lambda (x2) (lambda (x3) (vector-immutable x1 x2 x3)))))))
-  
-  #;(define (run-all-tests)
-      (run-tests (lambda (x) (compile-term x)) tests)))
+    (make-immutable-hash-table `() 'equal)))
