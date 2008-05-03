@@ -10,17 +10,17 @@
             ((vector? value) (vector-map (lambda (i x) (strict x)) value))
             (else value))))
   
-  (define haskell:error
+  (define prelude:error
     (delay (lambda (s) (error (string-append "*** Exception: " (list->string (strict s)))))))
   
-  (define haskell:trace
+  (define prelude:trace
     (delay (lambda (v)
              (lambda (r) 
                (define (print-list l)
                  (display " ")
-                 (print ((force haskell:list-head) (delay (force l))))
-                 (if ((force haskell:boolean-not) (delay ((force haskell:list-null) (delay ((force haskell:list-tail) (delay (force l)))))))
-                     (print-list (delay ((force haskell:list-tail) (delay (force l)))))))
+                 (print ((force prelude:list-head) (delay (force l))))
+                 (if ((force prelude:boolean-not) (delay ((force prelude:list-null) (delay ((force prelude:list-tail) (delay (force l)))))))
+                     (print-list (delay ((force prelude:list-tail) (delay (force l)))))))
                (cond ((boolean? (force v))
                       (print (force v)) (force r))
                      ((char? (force v))
@@ -29,43 +29,43 @@
                       (print (force v)) (force r))
                      ((or (pair? (force v)) (list? (force v)))
                       (display "(")
-                      (if ((force haskell:boolean-not) (delay ((force haskell:list-null) (delay (force v)))))
-                          (begin (print ((force haskell:list-head) (delay (force v))))
-                                 (if ((force haskell:boolean-not) (delay ((force haskell:list-null) (delay ((force haskell:list-tail) (delay (force v)))))))
-                                     (print-list (delay ((force haskell:list-tail) (delay (force v))))))))
+                      (if ((force prelude:boolean-not) (delay ((force prelude:list-null) (delay (force v)))))
+                          (begin (print ((force prelude:list-head) (delay (force v))))
+                                 (if ((force prelude:boolean-not) (delay ((force prelude:list-null) (delay ((force prelude:list-tail) (delay (force v)))))))
+                                     (print-list (delay ((force prelude:list-tail) (delay (force v))))))))
                       (display ")")
                       (force r)))))))
   
-  (define haskell:int-add (delay (lambda (x) (lambda (y) (+ (force x) (force y))))))
+  (define prelude:int-add (delay (lambda (x) (lambda (y) (+ (force x) (force y))))))
   
-  (define haskell:int-subtract (delay (lambda (x) (lambda (y) (- (force x) (force y))))))
+  (define prelude:int-subtract (delay (lambda (x) (lambda (y) (- (force x) (force y))))))
   
-  (define haskell:int-multiply (delay (lambda (x) (lambda (y) (* (force x) (force y))))))
+  (define prelude:int-multiply (delay (lambda (x) (lambda (y) (* (force x) (force y))))))
   
-  (define haskell:int-divide (delay (lambda (x) (lambda (y) (/ (force x) (force y))))))
+  (define prelude:int-divide (delay (lambda (x) (lambda (y) (/ (force x) (force y))))))
   
-  (define haskell:int-equal (delay (lambda (x) (lambda (y) (equal? (force x) (force y))))))
+  (define prelude:int-equal (delay (lambda (x) (lambda (y) (equal? (force x) (force y))))))
   
-  (define haskell:int-not-equal (delay (lambda (x) (lambda (y) (not (equal? (force x) (force y)))))))
+  (define prelude:int-not-equal (delay (lambda (x) (lambda (y) (not (equal? (force x) (force y)))))))
   
-  (define haskell:list-cons (delay (lambda (h) (lambda (t) (cons h t)))))
+  (define prelude:list-cons (delay (lambda (h) (lambda (t) (cons h t)))))
   
-  (define haskell:list-head (delay (lambda (l) (force (car (force l))))))
+  (define prelude:list-head (delay (lambda (l) (force (car (force l))))))
   
-  (define haskell:list-tail (delay (lambda (l) (force (cdr (force l))))))
+  (define prelude:list-tail (delay (lambda (l) (force (cdr (force l))))))
   
-  (define haskell:list-null (delay (lambda (l) (null? (force l)))))
+  (define prelude:list-null (delay (lambda (l) (null? (force l)))))
   
-  (define haskell:tuple-first (delay (lambda (t) (force (vector-ref (force t) 0)))))
+  (define prelude:tuple-first (delay (lambda (t) (force (vector-ref (force t) 0)))))
   
-  (define haskell:tuple-second (delay (lambda (t) (force (vector-ref (force t) 1)))))
+  (define prelude:tuple-second (delay (lambda (t) (force (vector-ref (force t) 1)))))
   
-  (define haskell:boolean-true (delay #t))
+  (define prelude:boolean-true (delay #t))
   
-  (define haskell:boolean-false (delay #f))
+  (define prelude:boolean-false (delay #f))
   
-  (define haskell:boolean-and (delay (lambda (x) (lambda (y) (and (force x) (force y))))))
+  (define prelude:boolean-and (delay (lambda (x) (lambda (y) (and (force x) (force y))))))
   
-  (define haskell:boolean-or (delay (lambda (x) (lambda (y) (or (force x) (force y))))))
+  (define prelude:boolean-or (delay (lambda (x) (lambda (y) (or (force x) (force y))))))
   
-  (define haskell:boolean-not (delay (lambda (x) (not (force x))))))
+  (define prelude:boolean-not (delay (lambda (x) (not (force x))))))
