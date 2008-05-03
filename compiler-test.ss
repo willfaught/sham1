@@ -39,21 +39,24 @@
   
   (define application-test-suite
     (test-suite "application"
-                (test-case-success "app1" "x 4" `((force haskell:x) (delay 4)))
-                (test-case-success "app2" "x 5 6" `(((force haskell:x) (delay 5)) (delay 6)))))
+                (test-case-success "app1" "x 1" `((force haskell:x) (delay 1)))
+                (test-case-success "app2" "x 1 2" `(((force haskell:x) (delay 1)) (delay 2)))))
   
   (define character-test-suite
     (test-suite "character"
-                (test-case-success "char1" "'c'" `#\c)))
+                (test-case-success "char1" "'a'" `#\a)
+                (test-case-success "char1" "'Z'" `#\Z)))
   
   (define float-test-suite
     (test-suite "float"
-                (test-case-success "float1" "1.2" `1.2)))
+                (test-case-success "float1" "0.0" `0.0)
+                (test-case-success "float2" "1.1" `1.1)
+                (test-case-success "float3" "123456789.987654321" `123456789.987654321)))
   
   (define function-test-suite
     (test-suite "function"
-                (test-case-success "fun" "\\x -> x" `(lambda (haskell:x) (force haskell:x)))
-                (test-case-success "fun" "\\x y -> x" `(lambda (haskell:x) (lambda (haskell:y) (force haskell:x))))))
+                (test-case-success "fun1" "\\x -> x" `(lambda (haskell:x) (force haskell:x)))
+                (test-case-success "fun2" "\\x y -> x" `(lambda (haskell:x) (lambda (haskell:y) (force haskell:x))))))
   
   (define identifier-test-suite
     (test-suite "identifier"
@@ -66,7 +69,9 @@
   
   (define integer-test-suite
     (test-suite "integer"
-                (test-case-success "int1" "1" `1)))
+                (test-case-success "int1" "0" `0)
+                (test-case-success "int2" "1" `1)
+                (test-case-success "int3" "123456789" `123456789)))
   
   (define let-test-suite
     (test-suite "let"
@@ -82,7 +87,8 @@
   
   (define tuple-test-suite
     (test-suite "tuple"
-                (test-case-success "tup1" "(1, 'a')" `(((lambda (x1) (lambda (x2) (vector-immutable x1 x2))) (delay 1)) (delay #\a)))))
+                (test-case-success "tup1" "(1, 2)" `(((lambda (x1) (lambda (x2) (vector-immutable x1 x2))) (delay 1)) (delay 2)))
+                (test-case-success "tup2" "(1, 2, 3)" `((((lambda (x1) (lambda (x2) (lambda (x3) (vector-immutable x1 x2 x3)))) (delay 1)) (delay 2)) (delay 3)))))
   
   (define tuplecon-test-suite
     (test-suite "tuplecon"
