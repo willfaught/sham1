@@ -27,15 +27,28 @@
   
   (define test-expression-parser (expression-parser "test"))
   
+  (define test-type-parser (type-parser "test"))
+  
   ; parse-expression :: string -> term
   (define (parse-expression expression)
     (let ((port (open-input-string expression)))
       (port-count-lines! port)
       (test-expression-parser (lambda () (language-lexer port)))))
   
-  ; test-case-success :: string -> string -> datum -> test-case
+  ; parse-type :: string -> type
+  #;(define (parse-type type)
+    (let ((port (open-input-string type)))
+      (port-count-lines! port)
+      (normalize-type-variables (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x))
+                                          (test-type-parser (lambda () (language-lexer port)))))))
+  
+  ; test-case-success :: string string datum -> test-case
   (define (test-case-success name expression result)
     (test-equal? name (compile-term (parse-expression expression)) result))
+  
+  ; test-case-h :: string string datum -> test-case
+  #;(define (test-case-h name type result)
+    (test-equal? name (compile-term (make-haskell-term (parse-type type) `x)) result))
   
   (define application-test-suite
     (test-suite "application"
@@ -57,6 +70,17 @@
     (test-suite "function"
                 (test-case-success "fun1" "\\x -> x" `(lambda (haskell:x) (force haskell:x)))
                 (test-case-success "fun2" "\\x y -> x" `(lambda (haskell:x) (lambda (haskell:y) (force haskell:x))))))
+  
+  #;(define haskell-test-suite
+    (test-suite "haskell"
+                (test-case-h "has1" "Bool" `x)
+                (test-case-h "has2" "Char" `x)
+                (test-case-h "has3" "Float" `x)
+                (test-case-h "has4" "Int -> Int" `x)
+                (test-case-h "has1" "Int" `x)
+                (test-case-h "has1" "[Int]" `x)
+                (test-case-h "has1" "(Int, Int)" `x)
+                ))
   
   (define identifier-test-suite
     (test-suite "identifier"
