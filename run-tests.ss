@@ -1,7 +1,9 @@
 (module run-tests mzscheme
-  (require (prefix typechecker. (lib "typechecker-test.ss" "haskell")))
+  (require (prefix compiler. (lib "compiler-test.ss" "haskell"))
+           (prefix typechecker. (lib "typechecker-test.ss" "haskell")))
   
   (provide run-tests)
   
   (define (run-tests)
-    (append (typechecker.run-tests))))
+    (list (list "compiler" (compiler.run-tests))
+          (list "typechecker" (typechecker.run-tests)))))
