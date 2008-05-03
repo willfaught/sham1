@@ -13,19 +13,22 @@
   
   (provide compile-term compile-module)
   
-  ; compile-module :: module-term -> [type] -> datum
+  ; compile-module :: module-term [type] -> datum
   (define (compile-module module declaration-types)
     (define compile-declaration-term
       (match-lambda
         (($ declaration-term p e) `(define ,(string->symbol (string-append "haskell:" (car p))) (delay ,(compile-term e))))))
     (let ((requires (list `(only (lib "1.ss" "srfi") circular-list? proper-list?)
                           `(lib "contract.ss")
-                          `(only (lib "list.ss") foldr))))
+                          `(only (lib "list.ss") foldr)))
+          (provides (list `(all-defined))))
       `(module ,(string->symbol (module-term-identifier module)) mzscheme
          (require ,@(if (equal? (module-term-identifier module) "Prelude")
                         (cons `(lib "prelude.ss" "haskell") requires)
                         (cons `(lib "Prelude.hs" "haskell") requires)))
-         (provide (all-defined))
+         (provide ,@(if (equal? (module-term-identifier module) "Prelude")
+                        (cons `(all-from (lib "prelude.ss" "haskell")) provides)
+                        provides))
          ,@(map compile-declaration-term (module-term-declarations module)))))
   
   ; compile-term :: term -> datum
@@ -53,7 +56,7 @@
     (set! identifier-count (+ identifier-count 1))
     (string->symbol (string-append "x" (number->string identifier-count))))
   
-  ; haskell->scheme :: type -> term -> datum
+  ; haskell->scheme :: type term -> datum
   (define (haskell->scheme type term)
     (let ((id `(lambda (x) x)))
       (match type
@@ -61,13 +64,13 @@
         (($ character-type) term)
         (($ float-type) term)
         (($ function-type p r) (let ((i (fresh-identifier)))
-                                 `(lambda (,i) ,(haskell->scheme r `(,term ,(scheme->haskell p i))))))
+                                 `(lambda (,i) ,(haskell->scheme r `(,term (delay ,(scheme->haskell p i)))))))
         (($ integer-type) term)
         (($ list-type _) term)
         (($ tuple-type _) term)
         (($ type-variable _) term))))
   
-  ; scheme->haskell :: type -> term -> datum
+  ; scheme->haskell :: type term -> datum
   (define (scheme->haskell type term)
     (let ((id `(lambda (x) x)))
       (match type
@@ -111,7 +114,7 @@
       (($ type-constructor identifier) (scheme-contract (translate-type-constructor (make-type-constructor identifier))))
       (($ type-variable _) `any/c)))
   
-  ; compile-let-term :: [declaration-term] -> term -> datum
+  ; compile-let-term :: [declaration-term] term -> datum
   (define (compile-let-term d e)
     (define compile-declaration-term
       (match-lambda (($ declaration-term p e) `(,(string->symbol (string-append "haskell:" (car p))) (delay ,(if (null? (cdr p))
@@ -119,7 +122,7 @@
                                                                                                                  (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
-  ; compile-application-term :: term -> [term] -> datum
+  ; compile-application-term :: term [term] -> datum
   (define (compile-application-term f a)
     (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
   
