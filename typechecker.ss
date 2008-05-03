@@ -1,28 +1,36 @@
+; known issues:
+;   - there cannot be ambiguity for an identifier occurrence; the sets of exported module identifiers must be disjoint
+
 (module typechecker mzscheme
-  (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter make-list unzip2 zip)
+  (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list unzip2 zip)
            (lib "compiler.ss" "haskell")
            (lib "list.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
            (only (lib "list.ss") foldl foldr)
-           (lib "match.ss"))
+           (lib "match.ss")
+           (lib "reader.ss" "haskell"))
   
-  (provide module-declaration-types reconstruct-type)
+  (provide module-context reconstruct-type)
   
   (define-struct constraint (left-type right-type) #f)
   
-  ; module-declaration-types :: module-term -> [type]
-  (define (module-declaration-types module)
-    (match (reconstruct-types null module)
-      ((types constraints) (let ((substitution (unify-constraints constraints)))
-                             (map (lambda (x) (substitute-types substitution x)) types)))))
+  ; module-context :: [(string, type)] module-term -> [(string, type)]
+  (define (module-context import-context module)
+    (match-let* ((declarations (module-term-declarations module))
+                 (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
+                 (context (append (map (lambda (x) (list x (fresh-type-variable))) identifiers) import-context))
+                 ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) declarations)))
+                 (substitution (unify-constraints (foldl append null constraints)))
+                 (substituted-types (map (lambda (x) (substitute-types substitution x)) types)))
+      (zip identifiers substituted-types)))
   
-  ; reconstruct-type :: term -> type
-  (define (reconstruct-type term)
-    (match-let (((type constraints) (reconstruct-types null term)))
+  ; reconstruct-type :: [(string, type)] term -> type
+  (define (reconstruct-type context term)
+    (match-let (((type constraints) (reconstruct-types context term)))
       (normalize-type-variables (substitute-types (unify-constraints constraints) type))))
   
-  ; reconstruct-types :: [(string, type)] -> term -> (type, [constraint])
+  ; reconstruct-types :: [(string, type)] term -> (type, [constraint])
   (define (reconstruct-types context term)
     (match term
       (($ application-term f a) (match-let* (((f-type f-constraints) (reconstruct-types context f))
@@ -44,7 +52,10 @@
                                ((_ type) (if (universal-type? type)
                                              (list (instantiate type) null)
                                              (list type null)))
-                               (_ (error 'reconstruct-types "Not in scope: '~a'" i))))
+                               (_ (if (equal? i ":")
+                                      (let ((t (fresh-type-variable)))
+                                        (list (make-function-type t (make-function-type (make-list-type t) (make-list-type t))) null))
+                                      (error 'reconstruct-types "Not in scope: '~a'" i)))))
       (($ if-term g t e) (match-let (((g-type g-constraints) (reconstruct-types context g))
                                      ((t-type t-constraints) (reconstruct-types context t))
                                      ((e-type e-constraints) (reconstruct-types context e)))

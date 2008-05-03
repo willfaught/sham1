@@ -18,8 +18,8 @@ int1 = 3;
 
 -- boolean tests
 
-bool1 = True;
-bool2 = False;
+--bool1 = true;
+--bool2 = false;
 
 -- list tests
 
@@ -72,10 +72,10 @@ tupcon5 = (,) (,) (,);
 
 -- if tests
 
-if1 = if True then 1 else 2;
-if2 = if False then 'a' else 'b';
-if3 = if (\x -> x) False then 1 else 2;
-if4 = if if True then True else False then 'a' else 'b';
+{-if1 = if true then 1 else 2;
+if2 = if false then 'a' else 'b';
+if3 = if (\x -> x) false then 1 else 2;
+if4 = if if true then true else false then 'a' else 'b';-}
 
 -- let tests
 
@@ -102,24 +102,15 @@ pre5 = [(+) ((+) 1 2) (((+) 1) 2),
         (-) ((-) 1 2) (((-) 1) 2),
         (*) ((*) 1 2) (((*) 1) 2),
         (/) ((/) 1 2) (((/) 1) 2)];
-pre6 = [(==) ((==) True False) (((==) False) True),
-        (==) ((==) 'a' 'b') (((==) 'c') 'd'),
-        (==) ((==) 1.2 3.4) (((==) 5.6) 7.8),
-        (==) ((==) 1 2) (((==) 3) 4),
-        (==) ((==) [] "a") (((==) []) []),
-        (==) ((==) ('a', 1) ('b', 2)) (((==) ('c', 3, 4.5)) ('d', 6, 7.8))];
+pre6 = (==) ((==) 1 2) (((==) 3) 4);
 pre7 = (:) 'f' ((:) 'o' "o");
 pre8 = (:) (head [1]) [];
 pre9 = (:) 1 (tail [2]);
-pre10 = if null [] then True else null [1];
 pre11 = (:) (fst ('a', 1)) ['b'];
-pre12 = (:) (snd ('a', 1)) [2];
-pre13 = (&&) ((&&) True False) (((&&) False) True);
-pre14 = (||) ((||) True False) (((||) False) True);
-pre15 = not (not True);
+pre12 = (:) (snd ('a', 1)) [2]
 
 -- nested tests
-
+{-
 hmap f x = if null x then [] else (:) (f (head x)) (hmap f (tail x));
 
 filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t;
@@ -149,5 +140,5 @@ x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
 x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
 
 fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
-
+-}
 }
