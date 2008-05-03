@@ -37,7 +37,7 @@
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) (haskell->scheme type (compile-term term)))
       (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
-      (($ identifier-term i) `(force ,(string->symbol (string-append "haskell:" (if (equal? i ":") "list-cons" i)))))
+      (($ identifier-term i) `(force ,(string->symbol (if (equal? i ":") "prelude:list-cons" (string-append "haskell:" i)))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
