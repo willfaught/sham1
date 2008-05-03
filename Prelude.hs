@@ -2,36 +2,40 @@
 
 module Prelude where {
 
-error = :scheme [Char] -> a "prelude:error";
+error = :scheme [Char] -> a "haskell:error";
 
-trace = :scheme a -> b -> b "prelude:trace";
+trace = :scheme a -> b -> b "haskell:trace";
 
-(+) = :scheme Int -> Int -> Int "prelude:int-add";
+(+) = :scheme Int -> Int -> Int "haskell:int-add";
 
-(-) = :scheme Int -> Int -> Int "prelude:int-subtract";
+(-) = :scheme Int -> Int -> Int "haskell:int-subtract";
 
-(*) = :scheme Int -> Int -> Int "prelude:int-multiply";
+(*) = :scheme Int -> Int -> Int "haskell:int-multiply";
 
-(/) = :scheme Int -> Int -> Int "prelude:int-divide";
+(/) = :scheme Int -> Int -> Int "haskell:int-divide";
 
-(==) = :scheme Int -> Int -> Bool "prelude:int-equal";
+(==) = :scheme Int -> Int -> Bool "haskell:int-equal";
 
-(/=) = :scheme Int -> Int -> Bool "prelude:int-not-equal";
+(/=) = :scheme Int -> Int -> Bool "haskell:int-not-equal";
 
-head = :scheme [a] -> a "prelude:list-head";
+head = :scheme [a] -> a "haskell:list-head";
 
-tail = :scheme [a] -> [a] "prelude:list-tail";
+tail = :scheme [a] -> [a] "haskell:list-tail";
 
-null = :scheme [a] -> Bool "prelude:list-null";
+null = :scheme [a] -> Bool "haskell:list-null";
 
-fst = :scheme (a, b) -> a "prelude:tuple-first";
+fst = :scheme (a, b) -> a "haskell:tuple-first";
 
-snd = :scheme (a, b) -> b "prelude:tuple-second";
+snd = :scheme (a, b) -> b "haskell:tuple-second";
 
-(&&) = :scheme Bool -> Bool -> Bool "prelude:boolean-and";
+true = :scheme Bool "haskell:boolean-true";
 
-(||) = :scheme Bool -> Bool -> Bool "prelude:boolean-or";
+false = :scheme Bool "haskell:boolean-false";
 
-not = :scheme Bool -> Bool "prelude:boolean-not"
+(&&) = :scheme Bool -> Bool -> Bool "haskell:boolean-and";
+
+(||) = :scheme Bool -> Bool -> Bool "haskell:boolean-or";
+
+not = :scheme Bool -> Bool "haskell:boolean-not"
 
 }
