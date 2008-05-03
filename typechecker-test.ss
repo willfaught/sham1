@@ -51,11 +51,11 @@
   ; prelude-context :: [(string, type)]
   (define prelude-context (module-context null (read-module "Prelude.hs" (open-input-file "Prelude.hs"))))
   
-  ; test-case-success :: string -> string -> string -> test-case
+  ; test-case-success :: string string string -> test-case
   (define (test-case-success name expression type)
     (test-equal? name (reconstruct-type prelude-context (parse-expression expression)) (parse-type type)))
   
-  ; test-case-error :: string -> string -> test-case
+  ; test-case-error :: string string -> test-case
   (define (test-case-error name expression)
     (test-exn name (lambda (x) #t) (lambda () (reconstruct-type prelude-context (parse-expression expression)))))
   
