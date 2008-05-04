@@ -13,6 +13,22 @@
   
   (provide compile-term compile-module)
   
+  ; characters :: immutable-hash-table
+  (define characters
+    (make-immutable-hash-table `() 'equal))
+  
+  ; compile-application-term :: term [term] -> datum
+  (define (compile-application-term f a)
+    (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
+  
+  ; compile-let-term :: [declaration-term] term -> datum
+  (define (compile-let-term d e)
+    (define compile-declaration-term
+      (match-lambda (($ declaration-term p e) `(,(string->symbol (string-append "haskell:" (car p))) (delay ,(if (null? (cdr p))
+                                                                                                                 (compile-term e)
+                                                                                                                 (compile-term (make-function-term (cdr p) e))))))))
+    `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
+  
   ; compile-module :: module-term [type] -> datum
   (define (compile-module module declaration-types)
     (define compile-declaration-term
@@ -50,9 +66,28 @@
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
-  ; identifier :: integer -> symbol
-  (define (identifier n)
-    (string->symbol (string-append "x" (number->string n))))
+  ; compile-tuplecon-term :: integer -> datum
+  (define (compile-tuplecon-term a)
+    (define (enumerate n)
+      (if (= n 0) null (cons n (enumerate (- n 1)))))
+    (define (nest n)
+      (if (= n (+ a 1))
+          `(vector-immutable ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
+          `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
+    (nest 1))
+  
+  ; haskell-contract :: type -> contract
+  (define (haskell-contract type)
+    (match type
+      (($ boolean-type) `any/c)
+      (($ character-type) `any/c)
+      (($ float-type) `any/c)
+      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
+      (($ integer-type) `any/c)
+      (($ list-type _) `any/c)
+      (($ tuple-type _) `any/c)
+      (($ type-constructor _) `any/c)
+      (($ type-variable _) `any/c)))
   
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
@@ -68,34 +103,9 @@
         (($ tuple-type _) term)
         (($ type-variable _) term))))
   
-  ; scheme->haskell :: type term integer -> datum
-  (define (scheme->haskell type term depth)
-    (let ((id `(lambda (x) x)))
-      (match type
-        (($ boolean-type) term)
-        (($ character-type) term)
-        (($ float-type) term)
-        (($ function-type p r) (let ((i (identifier depth)))
-                                 `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i (+ depth 1))) (+ depth 1)))))
-        (($ integer-type) term)
-        (($ list-type type) `(foldr (lambda (x y) (cons (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
-        (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref ,term ,index) depth))))) pairs)))
-                                `(vector-immutable ,@elements)))
-        (($ type-variable _) term))))
-  
-  ; haskell-contract :: type -> contract
-  (define (haskell-contract type)
-    (match type
-      (($ boolean-type) `any/c)
-      (($ character-type) `any/c)
-      (($ float-type) `any/c)
-      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
-      (($ integer-type) `any/c)
-      (($ list-type _) `any/c)
-      (($ tuple-type _) `any/c)
-      (($ type-constructor _) `any/c)
-      (($ type-variable _) `any/c)))
+  ; identifier :: integer -> symbol
+  (define (identifier n)
+    (string->symbol (string-append "x" (number->string n))))
   
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
@@ -112,28 +122,18 @@
       (($ type-constructor identifier) (scheme-contract (translate-type-constructor (make-type-constructor identifier))))
       (($ type-variable _) `any/c)))
   
-  ; compile-let-term :: [declaration-term] term -> datum
-  (define (compile-let-term d e)
-    (define compile-declaration-term
-      (match-lambda (($ declaration-term p e) `(,(string->symbol (string-append "haskell:" (car p))) (delay ,(if (null? (cdr p))
-                                                                                                                 (compile-term e)
-                                                                                                                 (compile-term (make-function-term (cdr p) e))))))))
-    `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
-  
-  ; compile-application-term :: term [term] -> datum
-  (define (compile-application-term f a)
-    (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
-  
-  ; compile-tuplecon-term :: integer -> datum
-  (define (compile-tuplecon-term a)
-    (define (enumerate n)
-      (if (= n 0) null (cons n (enumerate (- n 1)))))
-    (define (nest n)
-      (if (= n (+ a 1))
-          `(vector-immutable ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
-          `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
-    (nest 1))
-  
-  ; characters :: immutable-hash-table
-  (define characters
-    (make-immutable-hash-table `() 'equal)))
+  ; scheme->haskell :: type term integer -> datum
+  (define (scheme->haskell type term depth)
+    (let ((id `(lambda (x) x)))
+      (match type
+        (($ boolean-type) term)
+        (($ character-type) term)
+        (($ float-type) term)
+        (($ function-type p r) (let ((i (identifier depth)))
+                                 `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i (+ depth 1))) (+ depth 1)))))
+        (($ integer-type) term)
+        (($ list-type type) `(foldr (lambda (x y) (cons (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
+        (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
+                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref ,term ,index) depth))))) pairs)))
+                                `(vector-immutable ,@elements)))
+        (($ type-variable _) term)))))
