@@ -1,19 +1,30 @@
 (module compiler-test mzscheme
-  (require (lib "compiler.ss" "haskell")
+  (require (only (lib "1.ss" "srfi") zip)
+           (lib "compiler.ss" "haskell")
+           (lib "list.ss")
+           (lib "match.ss")
            (lib "reader.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide run-tests)
-
+  
   ; test-case-e :: string string 'a -> schemeunit-test-case
   (define (test-case-e name expression value)
-    (test-equal? name (eval (compile-term (parse-expression expression))) value))
+    (test-check name strict-equal? (eval (compile-term (parse-expression expression))) value))
   
-  ; test-case-h :: string string datum -> schemeunit-test-case
-  (define (test-case-h name type result)
-    (test-equal? name (compile-term (make-haskell-term (parse-type type) `x)) result))
+  ; test-case-he :: string string string 'a -> schemeunit-test-case
+  (define (test-case-he name type expression value)
+    (test-equal? name (eval (compile-term (make-haskell-term (parse-type type) (parse-expression expression)))) value))
+  
+  ; test-case-hp :: string string string ('a -> boolean) -> schemeunit-test-case
+  (define (test-case-hp name type expression predicate)
+    (test-pred name predicate (eval (compile-term (make-haskell-term (parse-type type) (parse-expression expression))))))
+  
+  ; test-case-hx :: string string string -> schemeunit-test-case
+  (define (test-case-hx name type expression)
+    (test-exn name (lambda (x) #t) (lambda () (eval (compile-term (make-haskell-term (parse-type type) (parse-expression expression)))))))
   
   ; test-case-p :: string string ('a -> boolean) -> schemeunit-test-case
   (define (test-case-p name expression predicate)
@@ -37,13 +48,29 @@
                 (test-case-e "float3" "123456789.987654321" 123456789.987654321)
                 (test-case-p "function1" "\\x -> x" (lambda (x) (equal? (x (delay 1)) 1)))
                 (test-case-p "function2" "\\x y -> x" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
-                ;(test-case-h "has1" "Bool" `x)
-                ;(test-case-h "has2" "Char" `x)
-                ;(test-case-h "has3" "Float" `x)
-                ;(test-case-h "has4" "Int -> Int" `x)
-                ;(test-case-h "has1" "Int" `x)
-                ;(test-case-h "has1" "[Int]" `x)
-                ;(test-case-h "has1" "(Int, Int)" `x)
+                ;(test-case-he "haskell1" "Bool" "True" #t)
+                (test-case-he "haskell2" "Char" "'a'" #\a)
+                (test-case-he "haskell3" "Float" "1.2" 1.2)
+                (test-case-hp "haskell4" "Int -> Int" "\\x -> x" (lambda (x) 'TODO))
+                (test-case-he "haskell5" "Int" "1" 1)
+                (test-case-he "haskell6" "[Int]" "[]" null)
+                (test-case-hp "haskell7" "[Int]" "[1]" (lambda (x) (and (pair? x)
+                                                                        (equal? (force (car x)) 1)
+                                                                        (equal? (force (cdr x)) null))))
+                (test-case-hp "haskell8" "[Int]" "[1, 2]" (lambda (x) (and (pair? x)
+                                                                           (equal? (force (car x)) 1)
+                                                                           (pair? (force (cdr x)))
+                                                                           (equal? (force (car (force (cdr x)))) 2)
+                                                                           (equal? (force (cdr (force (cdr x)))) null))))
+                (test-case-hp "haskell9" "(Int, Int)" "(1, 2)" (lambda (x) (and (vector? x)
+                                                                                (immutable? x)
+                                                                                (equal? (force (vector-ref x 0)) 1)
+                                                                                (equal? (force (vector-ref x 1)) 2))))
+                (test-case-hp "haskell10" "(Int, Int, Int)" "(1, 2, 3)" (lambda (x) (and (vector? x)
+                                                                                        (immutable? x)
+                                                                                        (equal? (force (vector-ref x 0)) 1)
+                                                                                        (equal? (force (vector-ref x 1)) 2)
+                                                                                        (equal? (force (vector-ref x 2)) 3))))
                 (test-case-x "identifier1" "x")
                 #;(test-case-e "if1" "if true then 1 else 2" 1)
                 (test-case-e "integer1" "0" 0)
@@ -110,6 +137,15 @@
             ((test-error? x) (cons (test-result-test-case-name x) y))
             (else y)))
     (fold-test-results results null compiler-test-suite))
+  
+  ; strict-equal? :: 'a 'a -> boolean
+  (define (strict-equal? x y)
+    (cond ((promise? x) (strict-equal? (force x) y))
+          ((promise? y) (strict-equal? x (force y)))
+          ((and (pair? x) (pair? y)) (and (strict-equal? (car x) (car y)) (strict-equal? (cdr x) (cdr y))))
+          ((and (vector? x) (vector? y) (equal? (vector-length x) (vector-length y)))
+           (foldl (lambda (x y) (and y (strict-equal? (list-ref x 0) (list-ref x 1)))) #t (zip (vector->list x) (vector->list y))))
+          (else (equal? x y))))
   
   ; test-expression-parser :: parser
   (define test-expression-parser (expression-parser "test"))
