@@ -79,14 +79,14 @@
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
     (match type
-      (($ boolean-type) `any/c)
-      (($ character-type) `any/c)
-      (($ float-type) `any/c)
+      (($ boolean-type) `(flat-contract boolean?))
+      (($ character-type) `(flat-contract char?))
+      (($ float-type) `(flat-contract number?))
       (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
-      (($ integer-type) `any/c)
-      (($ list-type _) `any/c)
-      (($ tuple-type _) `any/c)
-      (($ type-constructor _) `any/c)
+      (($ integer-type) `(flat-contract integer?))
+      (($ list-type _) `(cons-immutable/c (flat-contract promise?) (flat-contract promise?)))
+      (($ tuple-type _) `(vector-immutableof (flat-contract promise?)))
+      (($ type-constructor i) (haskell-contract (translate-type-constructor (make-type-constructor identifier))))
       (($ type-variable _) `any/c)))
   
   ; haskell->scheme :: type term integer -> datum
@@ -119,7 +119,7 @@
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
       (($ tuple-type types) `(vector-immutable/c ,@(map scheme-contract types)))
-      (($ type-constructor identifier) (scheme-contract (translate-type-constructor (make-type-constructor identifier))))
+      (($ type-constructor i) (scheme-contract (translate-type-constructor (make-type-constructor i))))
       (($ type-variable _) `any/c)))
   
   ; scheme->haskell :: type term integer -> datum
