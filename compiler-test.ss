@@ -7,23 +7,29 @@
   
   (provide run-tests)
 
-  ; test-case-e :: string string 'a -> test-case
+  ; test-case-e :: string string 'a -> schemeunit-test-case
   (define (test-case-e name expression value)
     (test-equal? name (eval (compile-term (parse-expression expression))) value))
   
-  ; test-case-h :: string string datum -> test-case
+  ; test-case-h :: string string datum -> schemeunit-test-case
   (define (test-case-h name type result)
     (test-equal? name (compile-term (make-haskell-term (parse-type type) `x)) result))
   
-  ; test-case-p :: string string ('a -> boolean) -> test-case
+  ; test-case-p :: string string ('a -> boolean) -> schemeunit-test-case
   (define (test-case-p name expression predicate)
     (test-pred name predicate (eval (compile-term (parse-expression expression)))))
+  
+  ; test-case-x :: string string -> schemeunit-test-case
+  (define (test-case-x name expression)
+    (test-exn name (lambda (x) #t) (lambda () (eval (compile-term (parse-expression expression))))))
   
   ; compiler-test-suite :: schemeunit-test-suite
   (define compiler-test-suite
     (test-suite "compiler"
                 (test-case-e "application1" "(\\x -> x) 1" 1)
                 (test-case-e "application2" "(\\x y -> x) 1 2" 1)
+                (test-case-x "application3" "1 2")
+                (test-case-x "application4" "(\\x -> x) 1 2")
                 (test-case-e "character1" "'a'" #\a)
                 (test-case-e "character2" "'Z'" #\Z)
                 (test-case-e "float1" "0.0" 0.0)
@@ -38,6 +44,7 @@
                 ;(test-case-h "has1" "Int" `x)
                 ;(test-case-h "has1" "[Int]" `x)
                 ;(test-case-h "has1" "(Int, Int)" `x)
+                (test-case-x "identifier1" "x")
                 #;(test-case-e "if1" "if true then 1 else 2" 1)
                 (test-case-e "integer1" "0" 0)
                 (test-case-e "integer2" "1" 1)
