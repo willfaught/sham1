@@ -104,7 +104,7 @@
                 (test-case-x "sc-fu4" ":scheme [Int] -> [Int] \"scheme-integer\"")
                 (test-case-x "sc-fu5" ":scheme [Int] -> [Int] \"scheme-list\"")
                 (test-case-x "sc-fu6" ":scheme [Int] -> [Int] \"scheme-tuple\"")
-                (test-case-p "sc-fu7" ":scheme Int -> Int -> Int \"prelude:int-add\"" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 3)))
+                (test-case-p "sc-fu7" ":scheme Int -> Int -> Int \"primitive:int-add\"" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 3)))
                 (test-case-x "sc-in1" ":scheme Int \"scheme-character\"")
                 (test-case-x "sc-in2" ":scheme Int \"scheme-float\"")
                 (test-case-x "sc-in3" ":scheme Int \"scheme-function\"")
