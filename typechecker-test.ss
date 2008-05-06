@@ -97,7 +97,7 @@
                 (test-case-e "li3" "\"\"" "[t]")
                 (test-case-e "li4" "\"foo\"" "[Char]")
                 (test-case-x "li5" "[1, 'a']")
-                (test-case-e "sc1" ":scheme Int -> Int -> Int \"prelude:+\"" "Int -> Int -> Int")
+                (test-case-e "sc1" ":scheme Int -> Int -> Int \"primitive:int-add\"" "Int -> Int -> Int")
                 (test-case-e "tu1" "('a', 1)" "(Char, Int)")
                 (test-case-e "tu2" "('b', 1, 1)" "(Char, Int, Int)")
                 (test-case-e "tc1" "(,)" "t -> t1 -> (t, t1)")
