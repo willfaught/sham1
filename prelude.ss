@@ -25,7 +25,7 @@
   
   (define prelude:list-tail (lambda (l) (force (cdr (force l)))))
   
-  #;(define prelude:list-null (lambda (l) (null? (force l))))
+  (define prelude:list-null (lambda (l) (null? (force l))))
   
   (define (prelude:strict term)
     (let ((value (force term)))
