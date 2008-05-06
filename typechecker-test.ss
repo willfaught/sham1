@@ -8,33 +8,6 @@
   
   (provide run-tests)
   
-  ; run-tests :: [string]
-  (define (run-tests)
-    (let* ((test-suites (test-suite "all"
-                                    application-test-suite
-                                    ;boolean-test-suite
-                                    character-test-suite
-                                    integer-test-suite
-                                    float-test-suite
-                                    function-test-suite
-                                    identifier-test-suite
-                                    ;if-test-suite
-                                    let-test-suite
-                                    list-test-suite
-                                    prelude-test-suite
-                                    scheme-test-suite
-                                    tuple-test-suite
-                                    tuplecon-test-suite))
-           (results (lambda (x y)
-                      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
-                            ((test-error? x) (cons (test-result-test-case-name x) y))
-                            (else y)))))
-      (fold-test-results results null test-suites)))
-  
-  (define test-expression-parser (expression-parser "test"))
-  
-  (define test-type-parser (type-parser "test"))
-  
   ; parse-expression :: string -> term
   (define (parse-expression expression)
     (let ((port (open-input-string expression)))
@@ -48,133 +21,92 @@
       (normalize-type-variables (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x))
                                           (test-type-parser (lambda () (language-lexer port)))))))
   
-  ; prelude-context :: [(string, type)]
-  (define prelude-context (module-context null (read-module "Prelude.hs" (open-input-file "Prelude.hs"))))
+  ; run-tests :: (string)
+  (define (run-tests)
+    (define (results x y)
+      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
+            ((test-error? x) (cons (test-result-test-case-name x) y))
+            (else y)))
+      (fold-test-results results null typechecker-test-suite))
   
-  ; test-case-success :: string string string -> test-case
-  (define (test-case-success name expression type)
-    (test-equal? name (reconstruct-type prelude-context (parse-expression expression)) (parse-type type)))
+  ; test-expression-parser :: parser
+  (define test-expression-parser (expression-parser "test"))
   
-  ; test-case-error :: string string -> test-case
-  (define (test-case-error name expression)
-    (test-exn name (lambda (x) #t) (lambda () (reconstruct-type prelude-context (parse-expression expression)))))
+  ; test-case-e :: string string string -> test-case
+  (define (test-case-e name expression type)
+    (test-equal? name (reconstruct-type null (parse-expression expression)) (parse-type type)))
   
-  (define application-test-suite
-    (test-suite "application"
-                (test-case-success "app1" "(\\x -> 1) 1" "Int")
-                (test-case-success "app2" "(\\x -> x) 1" "Int")
-                (test-case-success "app3" "(\\x -> \\y -> x) 1" "t -> Int")
-                (test-case-success "app4" "(\\x y -> x) 1" "t -> Int")
-                (test-case-success "app5" "(\\x -> [x]) 1" "[Int]")
-                (test-case-success "app6" "(\\x -> (x, x)) 1" "(Int, Int)")
-                (test-case-success "app7" "(\\x y -> 1) 2 3" "Int")
-                (test-case-error "app8" "1 2")
-                (test-case-error "app9" "(\\x -> x) 1 2")
-                (test-case-error "app10" "let { i x = x ; j = i 1 } in i 'a'")))
+  ; test-case-x :: string string -> test-case
+  (define (test-case-x name expression)
+    (test-exn name (lambda (x) #t) (lambda () (reconstruct-type null (parse-expression expression)))))
   
-  #;(define boolean-test-suite
-      (test-suite "boolean"
-                  (test-case-success "bool1" "True" "Bool")
-                  (test-case-success "bool2" "False" "Bool")))
+  ; test-type-parser :: parser
+  (define test-type-parser (type-parser "test"))
   
-  (define character-test-suite
-    (test-suite "character"
-                (test-case-success "char1" "'a'" "Char")))
-  
-  (define integer-test-suite
-    (test-suite "integer"
-                (test-case-success "int1" "1" "Int")))
-  
-  (define float-test-suite
-    (test-suite "float"
-                (test-case-success "float1" "1.2" "Float")))
-  
-  (define function-test-suite
-    (test-suite "function"
-                (test-case-success "fun1" "\\x -> 1" "t -> Int")
-                (test-case-success "fun2" "\\x -> x" "t -> t")
-                (test-case-success "fun3" "\\x -> \\y -> x" "t -> t1 -> t")
-                (test-case-success "fun4" "\\x y -> x" "t -> t1 -> t")
-                (test-case-success "fun5" "\\x -> \\y -> y" "t -> t1 -> t1")
-                (test-case-success "fun6" "\\x y -> y" "t -> t1 -> t1")
-                (test-case-success "fun7" "\\x -> [x]" "t -> [t]")
-                (test-case-success "fun8" "\\x -> (x, x)" "t -> (t, t)")))
-  
-  (define identifier-test-suite
-    (test-suite "identifier"
-                (test-case-error "id1" "x")))
-  
-  #;(define if-test-suite
-      (test-suite "if"
-                  (test-case-success "if1" "if True then 1 else 2" "Int")
-                  (test-case-success "if2" "if False then 1 else 2" "Int")
-                  (test-case-error "if3" "if 1 then 2 else 3")
-                  (test-case-error "if4" "if True then 1 else 'a'")))
-  
-  (define let-test-suite
-    (test-suite "let"
-                (test-case-success "let1" "let { i = 1 } in 2.3" "Float")
-                (test-case-success "let2" "let { i = 1 } in i" "Int")
-                (test-case-success "let3" "let { i = i } in i" "t")
-                (test-case-success "let4" "let { i = 2 ; j = i } in j" "Int")
-                (test-case-success "let5" "let { i = j ; j = 2 } in j" "Int")
-                (test-case-success "let6" "let { i x = 2 } in i" "t -> Int")
-                (test-case-success "let7" "let { i x = x } in i" "t -> t")
-                (test-case-success "let8" "let { i x y = y } in i" "t -> t1 -> t1")
-                (test-case-success "let9" "let { i x = x ; j = i 2; k = i 3 } in i" "Int -> Int")
-                (test-case-success "let10" "let { i x = 2 } in i 3" "Int")
-                (test-case-success "let11" "let { i x = x } in i 2" "Int")
-                (test-case-success "let12" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in i" "t -> t")
-                (test-case-success "let13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")
-                ;(test-case-success "let14" "let { i = (:) 1 i } in i" "[Int]")
-                ;(test-case-success "let15" "let { even x = if (==) x 0 then True else odd ((-) x 1) ; odd x = if (==) x 0 then False else even ((-) x 1) } in even 1" "Bool")
-                (test-case-error "let16" "let { i = (i, i) } in i")
-                (test-case-error "let17" "let { i x = x ; j = i 1 ; k = i 2.3 } in i")))
-  
-  (define list-test-suite
-    (test-suite "list"
-                (test-case-success "list1" "[]" "[t]")
-                (test-case-success "list2" "[1]" "[Int]")
-                (test-case-success "list3" "\"\"" "[t]")
-                (test-case-success "list4" "\"foo\"" "[Char]")
-                (test-case-error "list5" "[1, 'a']")))
-  
-  (define prelude-test-suite
-    (test-suite "prelude"
-                (test-case-success "pre1" "error" "[Char] -> t")
-                (test-case-success "pre2" "trace" "t -> t1 -> t1")
-                (test-case-success "pre3" "(+)" "Int -> Int -> Int")
-                (test-case-success "pre4" "(-)" "Int -> Int -> Int")
-                (test-case-success "pre5" "(*)" "Int -> Int -> Int")
-                (test-case-success "pre6" "(/)" "Int -> Int -> Int")
-                (test-case-success "pre7" "(==)" "Int -> Int -> Bool")
-                (test-case-success "pre8" "(/=)" "Int -> Int -> Bool")
-                (test-case-success "pre9" "head" "[t] -> t")
-                (test-case-success "pre10" "tail" "[t] -> [t]")
-                (test-case-success "pre11" "null" "[t] -> Bool")
-                (test-case-success "pre12" "fst" "(t, t1) -> t")
-                (test-case-success "pre13" "snd" "(t, t1) -> t1")
-                (test-case-success "pre14" "(&&)" "Bool -> Bool -> Bool")
-                (test-case-success "pre15" "(||)" "Bool -> Bool -> Bool")
-                (test-case-success "pre16" "not" "Bool -> Bool")))
-  
-  (define scheme-test-suite
-    (test-suite "scheme"
-                (test-case-success "scheme1" ":scheme Int \"\"" "Int")))
-  
-  (define tuple-test-suite
-    (test-suite "tuple"
-                (test-case-success "tuple1" "('a', 1)" "(Char, Int)")
-                (test-case-success "tuple2" "('b', 1, 1)" "(Char, Int, Int)")))
-  
-  (define tuplecon-test-suite
-    (test-suite "tuplecon"
-                (test-case-success "tupcon1" "(,)" "t -> t1 -> (t, t1)")
-                (test-case-success "tupcon2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)")
-                (test-case-success "tupcon3" "(,) 1" "t -> (Int, t)")
-                (test-case-success "tupcon4" "(,) 1 2" "(Int, Int)")
-                (test-case-success "tupcon5" "(,,) 1" "t -> t1 -> (Int, t, t1)")
-                (test-case-success "tupcon6" "(,,) 1 2" "t -> (Int, Int, t)")
-                (test-case-success "tupcon7" "(,,) 1 2 3" "(Int, Int, Int)")
-                (test-case-error "tupcon8" "(,) 1 2 3")
-                (test-case-error "tupcon9" "(,,) 1 2 3 4"))))
+  ; typechecker-test-suite :: schemeunit-test-suite
+  (define typechecker-test-suite
+    (test-suite "typechecker"
+                (test-case-e "ap1" "(\\x -> 1) 1" "Int")
+                (test-case-e "ap2" "(\\x -> x) 1" "Int")
+                (test-case-e "ap3" "(\\x -> \\y -> x) 1" "t -> Int")
+                (test-case-e "ap4" "(\\x y -> x) 1" "t -> Int")
+                (test-case-e "ap5" "(\\x -> [x]) 1" "[Int]")
+                (test-case-e "ap6" "(\\x -> (x, x)) 1" "(Int, Int)")
+                (test-case-e "ap7" "(\\x y -> 1) 2 3" "Int")
+                (test-case-x "ap8" "1 2")
+                (test-case-x "ap9" "(\\x -> x) 1 2")
+                (test-case-x "ap10" "let { i x = x ; j = i 1 } in i 'a'")
+                (test-case-e "ch1" "'a'" "Char")
+                (test-case-e "in1" "1" "Int")
+                (test-case-e "fl1" "1.2" "Float")
+                (test-case-e "fu1" "\\x -> 1" "t -> Int")
+                (test-case-e "fu2" "\\x -> x" "t -> t")
+                (test-case-e "fu3" "\\x -> \\y -> x" "t -> t1 -> t")
+                (test-case-e "fu4" "\\x y -> x" "t -> t1 -> t")
+                (test-case-e "fu5" "\\x -> \\y -> y" "t -> t1 -> t1")
+                (test-case-e "fu6" "\\x y -> y" "t -> t1 -> t1")
+                (test-case-e "fu7" "\\x -> [x]" "t -> [t]")
+                (test-case-e "fu8" "\\x -> (x, x)" "t -> (t, t)")
+                (test-case-x "id1" "x")
+                (test-case-e "id2" "(:)" "t -> [t] -> [t]")
+                (test-case-e "id3" "head" "[t] -> t")
+                (test-case-e "id4" "tail" "[t] -> [t]")
+                (test-case-e "id5" "fst" "(t, t1) -> t")
+                (test-case-e "id6" "snd" "(t, t1) -> t1")
+                #;(test-case-e "null" "[t] -> Bool")
+                #;(test-case-e "if1" "if True then 1 else 2" "Int")
+                #;(test-case-e "if2" "if False then 1 else 2" "Int")
+                #;(test-case-x "if3" "if 1 then 2 else 3")
+                #;(test-case-x "if4" "if True then 1 else 'a'")
+                (test-case-e "le1" "let { i = 1 } in 2.3" "Float")
+                (test-case-e "le2" "let { i = 1 } in i" "Int")
+                (test-case-e "le3" "let { i = i } in i" "t")
+                (test-case-e "le4" "let { i = 2 ; j = i } in j" "Int")
+                (test-case-e "le5" "let { i = j ; j = 2 } in j" "Int")
+                (test-case-e "le6" "let { i x = 2 } in i" "t -> Int")
+                (test-case-e "le7" "let { i x = x } in i" "t -> t")
+                (test-case-e "le8" "let { i x y = y } in i" "t -> t1 -> t1")
+                (test-case-e "le9" "let { i x = x ; j = i 2; k = i 3 } in i" "Int -> Int")
+                (test-case-e "le10" "let { i x = 2 } in i 3" "Int")
+                (test-case-e "le11" "let { i x = x } in i 2" "Int")
+                (test-case-e "le12" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in i" "t -> t")
+                (test-case-e "le13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")
+                (test-case-x "le16" "let { i = (i, i) } in i")
+                (test-case-x "le17" "let { i x = x ; j = i 1 ; k = i 2.3 } in i")
+                (test-case-e "li1" "[]" "[t]")
+                (test-case-e "li2" "[1]" "[Int]")
+                (test-case-e "li3" "\"\"" "[t]")
+                (test-case-e "li4" "\"foo\"" "[Char]")
+                (test-case-x "li5" "[1, 'a']")
+                (test-case-e "sc1" ":scheme Int \"\"" "Int")
+                (test-case-e "tu1" "('a', 1)" "(Char, Int)")
+                (test-case-e "tu2" "('b', 1, 1)" "(Char, Int, Int)")
+                (test-case-e "tc1" "(,)" "t -> t1 -> (t, t1)")
+                (test-case-e "tc2" "(,,)" "t -> t1 -> t2 -> (t, t1, t2)")
+                (test-case-e "tc3" "(,) 1" "t -> (Int, t)")
+                (test-case-e "tc4" "(,) 1 2" "(Int, Int)")
+                (test-case-e "tc5" "(,,) 1" "t -> t1 -> (Int, t, t1)")
+                (test-case-e "tc6" "(,,) 1 2" "t -> (Int, Int, t)")
+                (test-case-e "tc7" "(,,) 1 2 3" "(Int, Int, Int)")
+                (test-case-x "tc8" "(,) 1 2 3")
+                (test-case-x "tc9" "(,,) 1 2 3 4"))))
