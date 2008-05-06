@@ -1,6 +1,5 @@
 (module typechecker-test mzscheme
-  (require (only (lib "haskell.ss" "haskell") read-module)
-           (lib "match.ss")
+  (require (lib "match.ss")
            (lib "reader.ss" "haskell")
            (lib "typechecker.ss" "haskell")
            (lib "types.ss" "haskell")
