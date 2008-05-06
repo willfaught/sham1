@@ -117,7 +117,7 @@
       (($ list-type type) `(and/c (listof ,(scheme-contract type))
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
-      (($ tuple-type types) `(vector-immutable/c ,@(map scheme-contract types)))
+      (($ tuple-type types) `(vector/c ,@(map scheme-contract types)))
       (($ type-constructor i) (scheme-contract (translate-type-constructor (make-type-constructor i))))
       (($ type-variable _) `any/c)))
   
@@ -133,6 +133,6 @@
         (($ integer-type) term)
         (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref ,term ,index) depth))))) pairs)))
-                                `(vector-immutable ,@elements)))
+                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref x ,index) depth))))) pairs)))
+                                `(let ((x ,term)) (vector-immutable ,@elements))))
         (($ type-variable _) term)))))
