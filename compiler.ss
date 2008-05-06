@@ -132,7 +132,7 @@
         (($ function-type p r) (let ((i (identifier depth)))
                                  `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i (+ depth 1))) (+ depth 1)))))
         (($ integer-type) term)
-        (($ list-type type) `(foldr (lambda (x y) (cons (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
+        (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref ,term ,index) depth))))) pairs)))
                                 `(vector-immutable ,@elements)))
