@@ -38,7 +38,7 @@
        (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                 (lib "contract.ss")
                 (only (lib "list.ss") foldr)
-                (lib "prelude.ss" "haskell"))
+                (lib "primitives.ss" "haskell"))
        (provide (all-defined))
        ,@(map compile-declaration-term (module-term-declarations module))))
   
