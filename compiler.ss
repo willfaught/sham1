@@ -60,7 +60,7 @@
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
+      (($ scheme-term type identifier) `(let ((x1 (contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell))) ,(scheme->haskell type `x1 2)))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
@@ -133,6 +133,6 @@
         (($ integer-type) term)
         (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(delay (,(scheme->haskell type `(vector-ref x ,index) depth))))) pairs)))
+                                     (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
                                 `(let ((x ,term)) (vector-immutable ,@elements))))
         (($ type-variable _) term)))))
