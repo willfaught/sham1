@@ -13,7 +13,7 @@
   (define (insert-boundary type declaration)
     (match-let* ((($ declaration-term p e) declaration)
                  (term (if (equal? (length p) 1) e (make-function-term (cdr p) e))))
-      (make-declaration-term (list (car p)) (make-haskell-guard-term type (make-haskell-term type term)))))
+      (make-declaration-term (list (car p)) (make-haskell-term type term))))
   
   ; read-haskell-syntax :: string -> port -> datum
   (define (read-haskell-syntax source-name input-port)
