@@ -18,14 +18,4 @@ module Prelude where {
 
 --(/=) = :scheme Int -> Int -> Bool "prelude:int-not-equal";
 
-head = :scheme [a] -> a "prelude:list-head";
-
-tail = :scheme [a] -> [a] "prelude:list-tail";
-
---null = :scheme [a] -> Bool "prelude:list-null";
-
-fst = :scheme (a, b) -> a "prelude:tuple-first";
-
-snd = :scheme (a, b) -> b "prelude:tuple-second"
-
 }
