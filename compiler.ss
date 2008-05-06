@@ -110,7 +110,7 @@
   (define prelude `((":" prelude:list-cons)
                     ("head" prelude:list-head)
                     ("tail" prelude:list-tail)
-                    ("null" prelude:list-null)
+                    #;("null" prelude:list-null)
                     ("fst" prelude:tuple-first)
                     ("snd" prelude:tuple-second)))
   
