@@ -11,13 +11,25 @@
   
   (provide run-tests)
   
-  ; eval-r :: string -> 'a
-  (define (eval-r expression)
-    (eval (compile-term (parse-expression expression))))
-  
   ; test-case-e :: string string 'a -> schemeunit-test-case
   (define (test-case-e name expression value)
     (test-check name strict-equal? (eval-r expression) value))
+  
+  ; test-case-fx :: string string ('a -> 'a) -> schemeunit-test-case
+  (define (test-case-fx name expression f)
+    (test-exn name (lambda (x) #t) (lambda () (f (eval-r expression)))))
+  
+  ; test-case-he :: string string string 'a -> schemeunit-test-case
+  (define (test-case-he name type expression value)
+    (test-check name strict-equal? (eval-h type expression) value))
+  
+  ; test-case-hfx :: string string string ('a -> 'a) -> schemeunit-test-case
+  (define (test-case-hfx name type expression f)
+    (test-exn name (lambda (x) #t) (lambda () (f (eval-h type expression)))))
+  
+  ; test-case-hp :: string string string ('a -> boolean) -> schemeunit-test-case
+  (define (test-case-hp name type expression predicate)
+    (test-pred name predicate (eval-h type expression)))
   
   ; test-case-p :: string string ('a -> boolean) -> schemeunit-test-case
   (define (test-case-p name expression predicate)
@@ -26,31 +38,6 @@
   ; test-case-x :: string string -> schemeunit-test-case
   (define (test-case-x name expression)
     (test-exn name (lambda (x) #t) (lambda () (eval-r expression))))
-  
-  ;;;;;;;;;;;;
-  
-  ; eval-h :: string string -> 'a
-  (define (eval-h type expression)
-    (let ((t (parse-type type)))
-      (eval (compile-term (make-haskell-guard-term t (make-haskell-term t (parse-expression expression)))))))
-  
-  ; test-case-he :: string string string 'a -> schemeunit-test-case
-  (define (test-case-he name type expression value)
-    (test-check name strict-equal? (eval-h type expression) value))
-  
-  ; test-case-hfx :: string string string thunk -> schemeunit-test-case
-  (define (test-case-hfx name type expression f)
-    (test-exn name (lambda (x) #t) (lambda () (f (eval-h type expression)))))
-  
-  ; test-case-hp :: string string string ('a -> boolean) -> schemeunit-test-case
-  (define (test-case-hp name type expression predicate)
-    (test-pred name predicate (eval-h type expression)))
-  
-  ; test-case-hx :: string string string -> schemeunit-test-case
-  (define (test-case-hx name type expression)
-    (test-exn name (lambda (x) #t) (lambda () (eval-h type expression))))
-  
-  ;;;;;;;;;;;;;;
   
   ; compiler-test-suite :: schemeunit-test-suite
   (define compiler-test-suite
@@ -65,45 +52,17 @@
                 (test-case-e "fl2" "1.1" 1.1)
                 (test-case-e "fl3" "123456789.987654321" 123456789.987654321)
                 (test-case-p "fu1" "\\x -> x" (lambda (x) (equal? (x (delay 1)) 1)))
-                (test-case-p "fu2" "\\x y -> x" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
-                (test-case-he "ha-ch1" "Char" "'a'" #\a)
-                (test-case-hx "ha-ch2" "Char" "1.2")
-                (test-case-hx "ha-ch3" "Char" "\\x -> x")
-                (test-case-hx "ha-ch4" "Char" "1")
-                (test-case-hx "ha-ch5" "Char" "[]")
-                (test-case-hx "ha-ch6" "Char" "(1, 2)")
-                (test-case-hx "ha-fl1" "Float" "'a'")
-                (test-case-he "ha-fl2" "Float" "1.2" 1.2)
-                (test-case-hx "ha-fl3" "Float" "\\x -> x")
-                (test-case-he "ha-fl4" "Float" "1" 1)
-                (test-case-hx "ha-fl5" "Float" "[]")
-                (test-case-hx "ha-fl6" "Float" "(1, 2)")
-                (test-case-hfx "ha-fu1" "Int -> Int" "'a'" (lambda (x) (x 1)))
-                (test-case-hfx "ha-fu2" "Int -> Int" "1.2" (lambda (x) (x 1)))
-                (test-case-hp "ha-fu3" "[Int] -> [Int]" "\\x -> x" (lambda (x) (strict-equal? (x (list 1)) (cons (delay 1) (delay null)))))
-                (test-case-hfx "ha-fu4" "[Int] -> [Int]" "\\x -> 1" (lambda (x) (x (list 1))))
-                (test-case-hfx "ha-fu5" "[Int] -> [Int]" "\\x -> x" (lambda (x) (x 1)))
-                (test-case-hfx "ha-fu6" "Int -> Int" "1" (lambda (x) (x 1)))
-                (test-case-hfx "ha-fu7" "Int -> Int" "[]" (lambda (x) (x 1)))
-                (test-case-hfx "ha-fu8" "Int -> Int" "(1, 2)" (lambda (x) (x 1)))
-                (test-case-hx "ha-in1" "Int" "'a'")
-                (test-case-hx "ha-in2" "Int" "1.2")
-                (test-case-hx "ha-in3" "Int" "\\x -> x")
-                (test-case-he "ha-in4" "Int" "1" 1)
-                (test-case-hx "ha-in5" "Int" "[]")
-                (test-case-hx "ha-in6" "Int" "(1, 2)")
-                (test-case-hx "ha-li1" "[a]" "'a'")
-                (test-case-hx "ha-li2" "[a]" "1.2")
-                (test-case-hx "ha-li3" "[a]" "\\x -> x")
-                (test-case-hx "ha-li4" "[a]" "1")
-                (test-case-he "ha-li5" "[a]" "[1]" (cons (delay 1) (delay null)))
-                (test-case-hx "ha-li6" "[a]" "(1, 2)")
-                (test-case-hx "ha-tu1" "(Int, Int)" "'a'")
-                (test-case-hx "ha-tu2" "(Int, Int)" "1.2")
-                (test-case-hx "ha-tu3" "(Int, Int)" "\\x -> x")
-                (test-case-hx "ha-tu4" "(Int, Int)" "1")
-                (test-case-hx "ha-tu5" "(Int, Int)" "[]")
-                (test-case-he "ha-tu6" "(Int, Int)" "(1, 2)" (vector-immutable (delay 1) (delay 2)))
+                (test-case-fx "fu2" "\\x -> x" (lambda (x) ((x (delay 1)) (delay 2))))
+                (test-case-p "fu3" "\\x y -> x" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
+                (test-case-fx "fu4" "\\x y -> x" (lambda (x) (((x (delay 1)) (delay 2)) (delay 3))))
+                (test-case-he "ha1" "Char" "'a'" #\a)
+                (test-case-he "ha2" "Float" "1.2" 1.2)
+                (test-case-hp "ha3" "[Int] -> [Int]" "\\x -> x" (lambda (x) (strict-equal? (x (list 1)) (cons (delay 1) (delay null)))))
+                (test-case-hfx "ha4" "[Int] -> [Int]" "\\x -> x" (lambda (x) (x 1)))
+                (test-case-he "ha5" "Int" "1" 1)
+                (test-case-he "ha6" "[a]" "[1]" (cons (delay 1) (delay null)))
+                (test-case-he "ha7" "(Int, Int)" "(1, 2)" (vector-immutable (delay 1) (delay 2)))
+                (test-case-he "ha8" "a" "1" 1)
                 (test-case-x "id1" "x")
                 (test-case-e "in1" "0" 0)
                 (test-case-e "in2" "1" 1)
@@ -120,12 +79,46 @@
                 (test-case-p "le10" "let { i x y = x } in i" (lambda (x) (procedure? x)))
                 (test-case-p "le11" "let { i x y = x } in i" (lambda (x) (procedure? (x (delay 1)))))
                 (test-case-p "le12" "let { i x y = x } in i" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
-                #;(test-case-p "le13" "let { i = i } in i" (lambda (x) (equal? x (force x))))
-                #;(test-case-p "le14" "let { i = j ; j = i } in (i, j)" (lambda (x) (and (equal? (vector-ref x 0) (force (vector-ref x 1)))
-                                                                                          (equal? (force (vector-ref x 0)) (vector-ref x 1)))))
                 (test-case-e "li1" "[]" null)
                 (test-case-e "li2" "[1]" (cons (delay 1) (delay null)))
                 (test-case-e "li3" "[1, 2]" (cons (delay 1) (delay (cons (delay 2) (delay null)))))
+                (test-case-e "sc-ch1" ":scheme Char \"scheme-character\"" #\a)
+                (test-case-x "sc-ch2" ":scheme Char \"scheme-float\"")
+                (test-case-x "sc-ch3" ":scheme Char \"scheme-function\"")
+                (test-case-x "sc-ch4" ":scheme Char \"scheme-integer\"")
+                (test-case-x "sc-ch5" ":scheme Char \"scheme-list\"")
+                (test-case-x "sc-ch6" ":scheme Char \"scheme-tuple\"")
+                (test-case-x "sc-fl1" ":scheme Float \"scheme-character\"")
+                (test-case-e "sc-fl2" ":scheme Float \"scheme-float\"" 1.2)
+                (test-case-x "sc-fl3" ":scheme Float \"scheme-function\"")
+                (test-case-e "sc-fl4" ":scheme Float \"scheme-integer\"" 1)
+                (test-case-x "sc-fl5" ":scheme Float \"scheme-list\"")
+                (test-case-x "sc-fl6" ":scheme Float \"scheme-tuple\"")
+                (test-case-x "sc-fu1" ":scheme [Int] -> [Int] \"scheme-character\"")
+                (test-case-x "sc-fu2" ":scheme [Int] -> [Int] \"scheme-float\"")
+                (test-case-p "sc-fu3" ":scheme [Int] -> [Int] \"scheme-function\"" (lambda (x) (strict-equal? (x (delay null))
+                                                                                                              (cons (delay 1) (delay null)))))
+                (test-case-x "sc-fu4" ":scheme [Int] -> [Int] \"scheme-integer\"")
+                (test-case-x "sc-fu5" ":scheme [Int] -> [Int] \"scheme-list\"")
+                (test-case-x "sc-fu6" ":scheme [Int] -> [Int] \"scheme-tuple\"")
+                (test-case-x "sc-in1" ":scheme Int \"scheme-character\"")
+                (test-case-x "sc-in2" ":scheme Int \"scheme-float\"")
+                (test-case-x "sc-in3" ":scheme Int \"scheme-function\"")
+                (test-case-e "sc-in4" ":scheme Int \"scheme-integer\"" 1)
+                (test-case-x "sc-in5" ":scheme Int \"scheme-list\"")
+                (test-case-x "sc-in6" ":scheme Int \"scheme-tuple\"")
+                (test-case-x "sc-li1" ":scheme [a] \"scheme-character\"")
+                (test-case-x "sc-li2" ":scheme [a] \"scheme-float\"")
+                (test-case-x "sc-li3" ":scheme [a] \"scheme-function\"")
+                (test-case-x "sc-li4" ":scheme [a] \"scheme-integer\"")
+                (test-case-e "sc-li5" ":scheme [a] \"scheme-list\"" (cons (delay 1) (delay null)))
+                (test-case-x "sc-li6" ":scheme [a] \"scheme-tuple\"")
+                (test-case-x "sc-tu1" ":scheme (Int, Int) \"scheme-character\"")
+                (test-case-x "sc-tu2" ":scheme (Int, Int) \"scheme-float\"")
+                (test-case-x "sc-tu3" ":scheme (Int, Int) \"scheme-function\"")
+                (test-case-x "sc-tu4" ":scheme (Int, Int) \"scheme-integer\"")
+                (test-case-x "sc-tu5" ":scheme (Int, Int) \"scheme-list\"")
+                (test-case-e "sc-tu6" ":scheme (Int, Int) \"scheme-tuple\"" (vector-immutable (delay 1) (delay 2)))
                 (test-case-p "tu1" "(1, 2)" (lambda (x) (immutable? x)))
                 (test-case-e "tu2" "(1, 2)" (vector-immutable (delay 1) (delay 2)))
                 (test-case-p "tu3" "(1, 2, 3)" (lambda (x) (immutable? x)))
@@ -134,6 +127,15 @@
                 (test-case-p "tc2" "(,)" (lambda (x) (strict-equal? ((x (delay 1)) (delay 2)) (vector-immutable (delay 1) (delay 2)))))
                 (test-case-p "tc3" "(,,)" (lambda (x) (immutable? (((x (delay 1)) (delay 2)) (delay 3)))))
                 (test-case-p "tc4" "(,,)" (lambda (x) (strict-equal? (((x (delay 1)) (delay 2)) (delay 3)) (vector-immutable (delay 1) (delay 2) (delay 3)))))))
+  
+  ; eval-h :: string string -> 'a
+  (define (eval-h type expression)
+    (let ((t (parse-type type)))
+      (eval (compile-term (make-haskell-term t (parse-expression expression))))))
+  
+  ; eval-r :: string -> 'a
+  (define (eval-r expression)
+    (eval (compile-term (parse-expression expression))))
   
   ; parse-expression :: string -> term
   (define (parse-expression expression)
@@ -155,6 +157,24 @@
             ((test-error? x) (cons (test-result-test-case-name x) y))
             (else y)))
     (fold-test-results results null compiler-test-suite))
+  
+  ; scheme-character :: char
+  (define scheme-character #\a)
+  
+  ; scheme-float :: number
+  (define scheme-float 1.2)
+  
+  ; scheme-function :: 'a -> [integer]
+  (define scheme-function (lambda (x) (list 1)))
+  
+  ; scheme-integer :: integer
+  (define scheme-integer 1)
+  
+  ; scheme-list :: [integer]
+  (define scheme-list (list 1))
+  
+  ; scheme-tuple :: #(integer integer)
+  (define scheme-tuple (vector 1 2))
   
   ; strict-equal? :: 'a 'a -> boolean
   (define (strict-equal? x y)
