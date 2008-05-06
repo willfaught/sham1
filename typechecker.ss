@@ -15,7 +15,7 @@
   
   (define-struct constraint (left-type right-type) #f)
   
-  ; module-context :: [(string, type)] module-term -> [(string, type)]
+  ; module-context :: ((string type)) module-term -> ((string type))
   (define (module-context import-context module)
     (match-let* ((declarations (module-term-declarations module))
                  (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
@@ -25,10 +25,26 @@
                  (substituted-types (map (lambda (x) (substitute-types substitution x)) types)))
       (zip identifiers substituted-types)))
   
-  ; reconstruct-type :: [(string, type)] term -> type
+  ; reconstruct-type :: ((string type)) term -> type
   (define (reconstruct-type context term)
     (match-let (((type constraints) (reconstruct-types context term)))
       (normalize-type-variables (substitute-types (unify-constraints constraints) type))))
+  
+  ; prelude :: ((string type))
+  (define prelude
+    `((":" ,(make-universal-type (list (make-type-variable "a"))
+                                 (make-function-type (make-type-variable "a")
+                                                     (make-function-type (make-list-type (make-type-variable "a"))
+                                                                         (make-list-type (make-type-variable "a"))))))
+      ("head" ,(make-universal-type (list (make-type-variable "a"))
+                                    (make-function-type (make-list-type (make-type-variable "a"))
+                                                        (make-type-variable "a"))))
+      ("tail" ,(make-universal-type (list (make-type-variable "a"))
+                                    (make-function-type (make-list-type (make-type-variable "a"))
+                                                        (make-list-type (make-type-variable "a")))))
+      #;("null" ,(make-universal-type (list (make-type-variable "a"))
+                                      (make-function-type (make-list-type (make-type-variable "a"))
+                                                          (make-boolean-type))))))
   
   ; reconstruct-types :: [(string, type)] term -> (type, [constraint])
   (define (reconstruct-types context term)
@@ -48,14 +64,14 @@
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                           ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
                                (list (foldr (lambda (x y) (make-function-type x y)) type p-types) constraints)))
-      (($ identifier-term i) (match (assoc i context)
-                               ((_ type) (if (universal-type? type)
-                                             (list (instantiate type) null)
-                                             (list type null)))
-                               (_ (if (equal? i ":")
-                                      (let ((t (fresh-type-variable)))
-                                        (list (make-function-type t (make-function-type (make-list-type t) (make-list-type t))) null))
-                                      (error 'reconstruct-types "Not in scope: '~a'" i)))))
+      (($ identifier-term i) (let ((t (match (assoc i prelude)
+                                        ((_ t) t)
+                                        (_ (match (assoc i context)
+                                             ((_ t) t)
+                                             (_ (error 'reconstruct-types "Not in scope: '~a'" i)))))))
+                               (if (universal-type? t)
+                                   (list (instantiate t) null)
+                                   (list t null))))
       (($ if-term g t e) (match-let (((g-type g-constraints) (reconstruct-types context g))
                                      ((t-type t-constraints) (reconstruct-types context t))
                                      ((e-type e-constraints) (reconstruct-types context e)))
