@@ -55,14 +55,12 @@
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) (haskell->scheme type (compile-term term) 1))
-      (($ haskell-guard-term type term) `(contract ,(haskell-contract type) ,(compile-term term) 'haskell 'scheme))
       (($ identifier-term i) `(force ,(string->symbol (if (equal? i ":") "prelude:list-cons" (string-append "haskell:" i)))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ scheme-term type identifier) (scheme->haskell type (string->symbol identifier) 1))
-      (($ scheme-guard-term type term) `(contract ,(scheme-contract type) ,(compile-term term) 'scheme 'haskell))
+      (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
@@ -78,16 +76,17 @@
   
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
-    (match type
-      (($ boolean-type) `(flat-contract boolean?))
-      (($ character-type) `(flat-contract char?))
-      (($ float-type) `(flat-contract number?))
-      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
-      (($ integer-type) `(flat-contract integer?))
-      (($ list-type _) `(cons-immutable/c (flat-contract promise?) (flat-contract promise?)))
-      (($ tuple-type _) `(vector-immutableof (flat-contract promise?)))
-      (($ type-constructor i) (haskell-contract (translate-type-constructor (make-type-constructor identifier))))
-      (($ type-variable _) `any/c)))
+    (let ((c `(flat-contract promise?)))
+      (match type
+        (($ boolean-type) c)
+        (($ character-type) c)
+        (($ float-type) c)
+        (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
+        (($ integer-type) c)
+        (($ list-type _) c)
+        (($ tuple-type _) c)
+        (($ type-constructor _) c)
+        (($ type-variable _) c))))
   
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
@@ -115,7 +114,7 @@
       (($ float-type) `(flat-contract number?))
       (($ function-type p r) `(-> ,(haskell-contract p) ,(scheme-contract r)))
       (($ integer-type) `(flat-contract integer?))
-      (($ list-type type) `(and/c (listof ,(haskell-contract type))
+      (($ list-type type) `(and/c (listof ,(scheme-contract type))
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
       (($ tuple-type types) `(vector-immutable/c ,@(map scheme-contract types)))
