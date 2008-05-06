@@ -34,18 +34,13 @@
     (define compile-declaration-term
       (match-lambda
         (($ declaration-term p e) `(define ,(string->symbol (string-append "haskell:" (car p))) (delay ,(compile-term e))))))
-    (let ((requires (list `(only (lib "1.ss" "srfi") circular-list? proper-list?)
-                          `(lib "contract.ss")
-                          `(only (lib "list.ss") foldr)))
-          (provides (list `(all-defined))))
-      `(module ,(string->symbol (module-term-identifier module)) mzscheme
-         (require ,@(if (equal? (module-term-identifier module) "Prelude")
-                        (cons `(lib "prelude.ss" "haskell") requires)
-                        (cons `(lib "Prelude.hs" "haskell") requires)))
-         (provide ,@(if (equal? (module-term-identifier module) "Prelude")
-                        (cons `(all-from (lib "prelude.ss" "haskell")) provides)
-                        provides))
-         ,@(map compile-declaration-term (module-term-declarations module)))))
+    `(module ,(string->symbol (module-term-identifier module)) mzscheme
+       (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                (lib "contract.ss")
+                (only (lib "list.ss") foldr)
+                (lib "prelude.ss" "haskell"))
+       (provide (all-defined))
+       ,@(map compile-declaration-term (module-term-declarations module))))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
