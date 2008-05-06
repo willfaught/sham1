@@ -55,7 +55,7 @@
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) (haskell->scheme type (compile-term term) 1))
-      (($ identifier-term i) `(force ,(string->symbol (if (equal? i ":") "prelude:list-cons" (string-append "haskell:" i)))))
+      (($ identifier-term i) (let ((x (assoc i prelude))) (if x x `(force ,(string->symbol (string-append "haskell:" i))))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
@@ -105,6 +105,14 @@
   ; identifier :: integer -> symbol
   (define (identifier n)
     (string->symbol (string-append "x" (number->string n))))
+  
+  ; prelude :: immutable-hash-table
+  (define prelude `((":" prelude:list-cons)
+                    ("head" prelude:list-head)
+                    ("tail" prelude:list-tail)
+                    ("null" prelude:list-null)
+                    ("fst" prelude:tuple-first)
+                    ("snd" prelude:tuple-second)))
   
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
