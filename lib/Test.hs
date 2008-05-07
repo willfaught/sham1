@@ -1,6 +1,6 @@
 #reader (lib "reader.ss" "haskell")
 
-module TypeTests where {
+module Test where {
 
 -- character tests
 
