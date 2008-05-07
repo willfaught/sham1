@@ -1,0 +1,44 @@
+Author: Will Faught (wfaught@calpoly.edu)
+Date: May 6, 2008
+
+1. GRAMMAR
+
+A subset of the Haskell 98 grammar, extended with a Scheme embedding expression, is supported.
+
+The following notable grammar is not supported:
+
+  - Layout
+
+    Braces and semicolons must be used where appropriate.
+
+  - Pattern matching
+
+    Only variable patterns are supported.
+
+  - Infix application
+
+    Binary functions must be applied in prefix position.  For example, (:) 1 [2] instead of 1 : [2].
+
+  - Conditional and case expressions
+
+    Conditional expressions are not supported yet because data types are not yet supported.  Case expressions are useless without pattern matching.
+
+Many other grammar features are also not supported, but too numerous to enumerate here.  Stick to the "basics" or check the parser definition in parsers.ss to be sure you use correct grammar.
+
+The Scheme embedding expression grammar is:
+
+  :scheme <type> "<identifier>"
+
+where <type> is a Haskell type and <identifier> is a Scheme identifier defined in primitives.ss.
+
+2. RUNNING
+
+Put the following line at the top of any Haskell file:
+
+#reader (lib "reader.ss" "haskell")
+
+The file can then be run.  All top-level Haskell identifiers are prefixed with "scheme:", but exported unchanged.
+
+3. REMARKS
+
+See lib/Test.hs for an example of the supported grammar in use.
