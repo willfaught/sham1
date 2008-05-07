@@ -8,6 +8,7 @@
            (only (lib "list.ss") foldr)
            (lib "list.ss" "haskell")
            (lib "match.ss")
+           (lib "pretty.ss")
            (lib "terms.ss" "haskell")
            (lib "typechecker.ss" "haskell")
            (lib "types.ss" "haskell"))
@@ -38,21 +39,22 @@
         (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
                                                                                  (compile-term e)
                                                                                  (compile-term (make-function-term (cdr p) e))))))))
-    ; scheme-declaration :: (declaration-term type) -> declaration-term
+    ; scheme-declaration :: (string type) -> declaration-term
     (define scheme-declaration
-      (match-lambda ((($ declaration-term (i . _) _) t) (make-declaration-term (list (string-append "scheme:" i))
-                                                                               (make-haskell-term t (make-identifier-term i))))))
+      (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
     (match-let* ((($ module-term i ds) m)
                  ((is ts) (lunzip2 (module-context null m)))
-                 (sds (map scheme-declaration (zip ds ts)))
-                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
-      `(module ,(string->symbol i) mzscheme
-         (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
-                  (lib "contract.ss")
-                  (only (lib "list.ss") foldr)
-                  (lib "primitives.ss" "haskell"))
-         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
-         ,@(map compile-declaration-term (append sds ds)))))
+                 (sds (map scheme-declaration (zip is ts)))
+                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds))
+                 (x `(module ,(string->symbol i) mzscheme
+                       (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                                (lib "contract.ss")
+                                (only (lib "list.ss") foldr)
+                                (lib "primitives.ss" "haskell"))
+                       (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
+                       ,@(map compile-declaration-term (append sds ds)))))
+      (pretty-print x)
+      x))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
@@ -61,13 +63,13 @@
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
-      (($ haskell-term type term) (haskell->scheme type (compile-term term) 1))
+      (($ haskell-term type term) `(contract ,(haskell-contract type) ,(haskell->scheme type (compile-term term) 1) 'haskell 'scheme))
       (($ identifier-term i) (let ((x (assoc i prelude))) (if x (list-ref x 1) `(force ,(string->symbol (string-append "haskell:" i))))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      (($ scheme-term type identifier) `(let ((x1 (contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell))) ,(scheme->haskell type `x1 2)))
+      (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
@@ -83,17 +85,16 @@
   
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
-    (let ((c `(flat-contract promise?)))
-      (match type
-        (($ boolean-type) c)
-        (($ character-type) c)
-        (($ float-type) c)
-        (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
-        (($ integer-type) c)
-        (($ list-type _) c)
-        (($ tuple-type _) c)
-        (($ type-constructor _) c)
-        (($ type-variable _) c))))
+    (match type
+      (($ boolean-type) `any/c)
+      (($ character-type) `any/c)
+      (($ float-type) `any/c)
+      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
+      (($ integer-type) `any/c)
+      (($ list-type _) `any/c)
+      (($ tuple-type _) `any/c)
+      (($ type-constructor i) `any/c)
+      (($ type-variable _) `any/c)))
   
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
