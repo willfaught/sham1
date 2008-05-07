@@ -97,13 +97,13 @@
                 (test-case-e "sc-fl4" ":scheme Float \"scheme-integer\"" 1)
                 (test-case-x "sc-fl5" ":scheme Float \"scheme-list\"")
                 (test-case-x "sc-fl6" ":scheme Float \"scheme-tuple\"")
-                (test-case-x "sc-fu1" ":scheme [Int] -> [Int] \"scheme-character\"")
-                (test-case-x "sc-fu2" ":scheme [Int] -> [Int] \"scheme-float\"")
+                (test-case-fx "sc-fu1" ":scheme [Int] -> [Int] \"scheme-character\"" (lambda (x) (x (delay 1))))
+                (test-case-fx "sc-fu2" ":scheme [Int] -> [Int] \"scheme-float\"" (lambda (x) (x (delay 1))))
                 (test-case-p "sc-fu3" ":scheme [Int] -> [Int] \"scheme-function\"" (lambda (x) (strict-equal? (x (delay null))
                                                                                                               (cons (delay 1) (delay null)))))
-                (test-case-x "sc-fu4" ":scheme [Int] -> [Int] \"scheme-integer\"")
-                (test-case-x "sc-fu5" ":scheme [Int] -> [Int] \"scheme-list\"")
-                (test-case-x "sc-fu6" ":scheme [Int] -> [Int] \"scheme-tuple\"")
+                (test-case-fx "sc-fu4" ":scheme [Int] -> [Int] \"scheme-integer\"" (lambda (x) (x (delay 1))))
+                (test-case-fx "sc-fu5" ":scheme [Int] -> [Int] \"scheme-list\"" (lambda (x) (x (delay 1))))
+                (test-case-fx "sc-fu6" ":scheme [Int] -> [Int] \"scheme-tuple\"" (lambda (x) (x (delay 1))))
                 (test-case-p "sc-fu7" ":scheme Int -> Int -> Int \"primitive:int-add\"" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 3)))
                 (test-case-x "sc-in1" ":scheme Int \"scheme-character\"")
                 (test-case-x "sc-in2" ":scheme Int \"scheme-float\"")
@@ -134,8 +134,7 @@
   
   ; eval-h :: string string -> 'a
   (define (eval-h type expression)
-    (let ((t (parse-type type)))
-      (eval (compile-term (make-haskell-term t (parse-expression expression))))))
+    (eval (compile-term (make-haskell-term (parse-type type) (parse-expression expression)))))
   
   ; eval-r :: string -> 'a
   (define (eval-r expression)
@@ -154,7 +153,7 @@
       (normalize-type-variables (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x))
                                           (test-type-parser (lambda () (language-lexer port)))))))
   
-  ; run-tests :: [string]
+  ; run-tests :: (string)
   (define (run-tests)
     (define (results x y)
       (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
@@ -168,13 +167,13 @@
   ; scheme-float :: number
   (define scheme-float 1.2)
   
-  ; scheme-function :: 'a -> [integer]
+  ; scheme-function :: 'a -> (integer)
   (define scheme-function (lambda (x) (list 1)))
   
   ; scheme-integer :: integer
   (define scheme-integer 1)
   
-  ; scheme-list :: [integer]
+  ; scheme-list :: (integer)
   (define scheme-list (list 1))
   
   ; scheme-tuple :: #(integer integer)
