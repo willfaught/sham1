@@ -1,4 +1,4 @@
-(module reader mzscheme
+(module parsers mzscheme
   (require (only (lib "1.ss" "srfi") zip)
            (only (lib "13.ss" "srfi") string-concatenate)
            (lib "lex.ss" "parser-tools")

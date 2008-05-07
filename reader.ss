@@ -1,4 +1,4 @@
-(module haskell mzscheme
+(module reader mzscheme
   (require (lib "compiler.ss" "haskell")
            (lib "parsers.ss" "haskell"))
   
