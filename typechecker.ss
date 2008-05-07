@@ -3,7 +3,6 @@
 
 (module typechecker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list unzip2 zip)
-           (lib "compiler.ss" "haskell")
            (lib "list.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
