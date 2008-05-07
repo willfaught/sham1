@@ -8,7 +8,6 @@
            (only (lib "list.ss") foldr)
            (lib "list.ss" "haskell")
            (lib "match.ss")
-           (lib "pretty.ss")
            (lib "terms.ss" "haskell")
            (lib "typechecker.ss" "haskell")
            (lib "types.ss" "haskell"))
@@ -45,16 +44,14 @@
     (match-let* ((($ module-term i ds) m)
                  ((is ts) (lunzip2 (module-context null m)))
                  (sds (map scheme-declaration (zip is ts)))
-                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds))
-                 (x `(module ,(string->symbol i) mzscheme
-                       (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
-                                (lib "contract.ss")
-                                (only (lib "list.ss") foldr)
-                                (lib "primitives.ss" "haskell"))
-                       (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
-                       ,@(map compile-declaration-term (append sds ds)))))
-      (pretty-print x)
-      x))
+                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
+      `(module ,(string->symbol i) mzscheme
+         (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                  (lib "contract.ss")
+                  (only (lib "list.ss") foldr)
+                  (lib "primitives.ss" "haskell"))
+         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
+         ,@(map compile-declaration-term (append sds ds)))))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
