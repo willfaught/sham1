@@ -9,6 +9,7 @@
            (lib "list.ss" "haskell")
            (lib "match.ss")
            (lib "terms.ss" "haskell")
+           (lib "typechecker.ss" "haskell")
            (lib "types.ss" "haskell"))
   
   (provide compile-term compile-module)
@@ -29,18 +30,27 @@
                                                                                                                  (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
-  ; compile-module :: module-term [type] -> datum
-  (define (compile-module module declaration-types)
+  ; compile-module :: module-term -> datum
+  (define (compile-module m)
+    ; compile-declaration-term :: declaration-term -> datum
     (define compile-declaration-term
       (match-lambda
-        (($ declaration-term p e) `(define ,(string->symbol (string-append "haskell:" (car p))) (delay ,(compile-term e))))))
-    `(module ,(string->symbol (module-term-identifier module)) mzscheme
-       (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
-                (lib "contract.ss")
-                (only (lib "list.ss") foldr)
-                (lib "primitives.ss" "haskell"))
-       (provide (all-defined))
-       ,@(map compile-declaration-term (module-term-declarations module))))
+        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(compile-term e))))))
+    ; scheme-declaration :: (declaration-term type) -> declaration-term
+    (define scheme-declaration
+      (match-lambda ((($ declaration-term (i . _) _) t) (make-declaration-term (list (string-append "scheme:" i))
+                                                                               (make-haskell-term t (make-identifier-term i))))))
+    (match-let* ((($ module-term i ds) m)
+                 ((is ts) (lunzip2 (module-context null m)))
+                 (sds (map scheme-declaration (zip ds ts)))
+                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
+      `(module ,(string->symbol i) mzscheme
+         (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                  (lib "contract.ss")
+                  (only (lib "list.ss") foldr)
+                  (lib "primitives.ss" "haskell"))
+         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
+         ,@(map compile-declaration-term (append sds ds)))))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
