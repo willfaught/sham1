@@ -35,7 +35,9 @@
     ; compile-declaration-term :: declaration-term -> datum
     (define compile-declaration-term
       (match-lambda
-        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(compile-term e))))))
+        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
+                                                                                 (compile-term e)
+                                                                                 (compile-term (make-function-term (cdr p) e))))))))
     ; scheme-declaration :: (declaration-term type) -> declaration-term
     (define scheme-declaration
       (match-lambda ((($ declaration-term (i . _) _) t) (make-declaration-term (list (string-append "scheme:" i))

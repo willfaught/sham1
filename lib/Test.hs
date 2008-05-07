@@ -99,8 +99,6 @@ let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a;
 
 (/) = :scheme Int -> Int -> Int "primitive:int-divide";
 
-test = (+) 3 4;
-
 pr1 = let { i = [(+) ((+) 1 2) (((+) 1) 2), (-) ((-) 1 2) (((-) 1) 2), (*) ((*) 1 2) (((*) 1) 2), (/) ((/) 1 2) (((/) 1) 2)] } in i;
 pr2 = let { i = (:) 'f' ((:) 'o' "o") } in i;
 pr3 = let { i = (:) (head ['a']) [] } in i;
