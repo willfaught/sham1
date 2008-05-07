@@ -1,8 +1,6 @@
-#reader (lib "haskell.ss" "haskell")
+#reader (lib "reader.ss" "haskell")
 
 module TypeTests where {
-
-foo = :scheme Int -> Int -> Int "+";
 
 -- character tests
 
@@ -52,7 +50,6 @@ fun1 = \x -> 1;
 fun2 = \x -> x;
 fun3 = \x y -> x;
 fun4 = \x y -> y;
-fun5 = \x -> \y -> y;
 
 -- application tests
 
@@ -92,22 +89,24 @@ let10 = let { a = 1 } in let { b = a } in b;
 let11 = let { a x = x } in let { b = a 2 } in b;
 let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a;
 
--- prelude tests
+-- primitive tests
 
-pre1 = error "foo";
-pre2 = error ['t', 'e', 's', 't'];
-pre3 = trace (trace "foo" "bar") (trace "bar" "foo");
-pre4 = trace ['t', 'e', 's', 't'] 1.2;
-pre5 = [(+) ((+) 1 2) (((+) 1) 2),
-        (-) ((-) 1 2) (((-) 1) 2),
-        (*) ((*) 1 2) (((*) 1) 2),
-        (/) ((/) 1 2) (((/) 1) 2)];
-pre6 = (==) ((==) 1 2) (((==) 3) 4);
-pre7 = (:) 'f' ((:) 'o' "o");
-pre8 = (:) (head [1]) [];
-pre9 = (:) 1 (tail [2]);
-pre11 = (:) (fst ('a', 1)) ['b'];
-pre12 = (:) (snd ('a', 1)) [2]
+(+) = :scheme Int -> Int -> Int "primitive:int-add";
+
+(-) = :scheme Int -> Int -> Int "primitive:int-subtract";
+
+(*) = :scheme Int -> Int -> Int "primitive:int-multiply";
+
+(/) = :scheme Int -> Int -> Int "primitive:int-divide";
+
+test = (+) 3 4;
+
+pr1 = let { i = [(+) ((+) 1 2) (((+) 1) 2), (-) ((-) 1 2) (((-) 1) 2), (*) ((*) 1 2) (((*) 1) 2), (/) ((/) 1 2) (((/) 1) 2)] } in i;
+pr2 = let { i = (:) 'f' ((:) 'o' "o") } in i;
+pr3 = let { i = (:) (head ['a']) [] } in i;
+pr4 = let { i = (:) 'a' (tail ['b']) } in i;
+pr5 = let { i = (:) (fst ('a', 1)) [] } in i;
+pr6 = let { i = (:) (snd (1, 'a')) [] } in i
 
 -- nested tests
 {-

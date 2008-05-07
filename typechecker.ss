@@ -8,7 +8,7 @@
            (lib "types.ss" "haskell")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
-           (lib "reader.ss" "haskell"))
+           (lib "parsers.ss" "haskell"))
   
   (provide module-context reconstruct-type)
   

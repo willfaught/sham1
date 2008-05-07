@@ -5,7 +5,7 @@
            (lib "list.ss")
            (lib "match.ss")
            (lib "primitives.ss" "haskell")
-           (lib "reader.ss" "haskell")
+           (lib "parsers.ss" "haskell")
            (lib "terms.ss" "haskell")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
