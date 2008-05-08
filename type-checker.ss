@@ -1,6 +1,3 @@
-; known issues:
-;   - there cannot be ambiguity for an identifier occurrence; the sets of exported module identifiers must be disjoint
-
 (module type-checker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list unzip2 zip)
            (lib "list.ss" "haskell")
@@ -29,8 +26,8 @@
     (match-let (((type constraints) (reconstruct-types context term)))
       (normalize-type-variables (substitute-types (unify-constraints constraints) type))))
   
-  ; prelude :: ((string type))
-  (define prelude
+  ; primitives :: ((string type))
+  (define primitives
     `((":" ,(make-universal-type (list (make-type-variable "a"))
                                  (make-function-type (make-type-variable "a")
                                                      (make-function-type (make-list-type (make-type-variable "a"))
@@ -73,7 +70,7 @@
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                           ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
                                (list (foldr (lambda (x y) (make-function-type x y)) type p-types) constraints)))
-      (($ identifier-term i) (let ((t (match (assoc i prelude)
+      (($ identifier-term i) (let ((t (match (assoc i primitives)
                                         ((_ t) t)
                                         (_ (match (assoc i context)
                                              ((_ t) t)
