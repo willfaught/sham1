@@ -3,9 +3,9 @@
 ; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
 
 (module compiler mzscheme
-  (require (only (lib "1.ss" "srfi") list-tabulate zip)
+  (require (only (lib "1.ss" "srfi") filter list-tabulate zip)
            (lib "contract.ss")
-           (only (lib "list.ss") foldr)
+           (only (lib "list.ss") foldl foldr)
            (lib "list.ss" "haskell")
            (lib "match.ss")
            (lib "terms.ss" "haskell")
@@ -35,14 +35,13 @@
     ; compile-declaration-term :: declaration-term -> datum
     (define compile-declaration-term
       (match-lambda
-        (($ declaration-term p e) `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p))
-                                                                                 (compile-term e)
-                                                                                 (compile-term (make-function-term (cdr p) e))))))))
+        (($ declaration-term p e)
+         `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
     ; scheme-declaration :: (string type) -> declaration-term
     (define scheme-declaration
       (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
     (match-let* ((($ module-term i ds) m)
-                 ((is ts) (lunzip2 (module-context null m)))
+                 ((is ts) (lunzip2 (module-context (data-context (filter data-term? ds)) m)))
                  (sds (map scheme-declaration (zip is ts)))
                  (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
       `(module ,(string->symbol i) mzscheme
@@ -80,6 +79,26 @@
           `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
     (nest 1))
   
+  ; data-context :: (data-term) -> ((string type))
+  (define (data-context d)
+    ; field-context :: data-field-term type-constructor -> ((string type))
+    (define (field-context f t)
+      (match f
+        (($ data-field-term i t1)
+         (append (map (lambda (x) (list x (make-function-type t t1))) i)
+                 (map (lambda (x) (list (string-append "is" x) (make-function-type t (make-type-constructor "Bool")))))))))
+    ; constructor-context :: data-constructor-term type-constructor -> ((string type))
+    (define (constructor-context c t)
+      (match c
+        (($ data-constructor-term i f)
+         (append (list i (foldr make-function-type t (map (match-lambda (($ data-field-term _ t) t)) f)))
+                 (map (lambda (x) (field-context x t)) f)))))
+    ; data-context :: data-term -> ((string type))
+    (define (data-context d)
+      (match-let* ((($ data-term t c) d))
+        (foldl append null (map (lambda (x) (constructor-context x t)) c))))
+    (foldl append null (map data-context d)))
+  
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
     (match type
@@ -90,7 +109,7 @@
       (($ integer-type) `any/c)
       (($ list-type _) `any/c)
       (($ tuple-type _) `any/c)
-      (($ type-constructor i) `any/c)
+      (($ type-constructor _) `any/c)
       (($ type-variable _) `any/c)))
   
   ; haskell->scheme :: type term integer -> datum
