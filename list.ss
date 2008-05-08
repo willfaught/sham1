@@ -14,16 +14,6 @@
         x
         (drop (cdr x) (- n 1))))
   
-  ; take :: [a] -> integer -> [a]
-  (define (take x n)
-    (if (not (list? x))
-        (error 'take "not a list"))
-    (if (or (< n 0) (> n (length x)))
-        (error 'take "invalid list length"))
-    (if (equal? n 0)
-        null
-        (cons (car x) (take (cdr x) (- n 1)))))
-  
   ; foldr1 :: (a -> a -> a) -> [a] -> a
   (define (foldr1 f xs)
     (match xs
@@ -34,6 +24,16 @@
   ; lunzip2 :: [(a, b)] -> ([a], [b])
   (define (lunzip2 x)
     (let-values (((x y) (unzip2 x))) (list x y)))
+  
+  ; take :: [a] -> integer -> [a]
+  (define (take x n)
+    (if (not (list? x))
+        (error 'take "not a list"))
+    (if (or (< n 0) (> n (length x)))
+        (error 'take "invalid list length"))
+    (if (equal? n 0)
+        null
+        (cons (car x) (take (cdr x) (- n 1)))))
   
   ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
   (define (zip-with f x y)
