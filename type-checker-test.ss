@@ -1,7 +1,7 @@
-(module typechecker-test mzscheme
+(module type-checker-test mzscheme
   (require (lib "match.ss")
            (lib "parsers.ss" "haskell")
-           (lib "typechecker.ss" "haskell")
+           (lib "type-checker.ss" "haskell")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   

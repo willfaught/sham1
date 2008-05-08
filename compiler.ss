@@ -9,7 +9,7 @@
            (lib "list.ss" "haskell")
            (lib "match.ss")
            (lib "terms.ss" "haskell")
-           (lib "typechecker.ss" "haskell")
+           (lib "type-checker.ss" "haskell")
            (lib "types.ss" "haskell"))
   
   (provide compile-term compile-module)

@@ -1,7 +1,7 @@
 ; known issues:
 ;   - there cannot be ambiguity for an identifier occurrence; the sets of exported module identifiers must be disjoint
 
-(module typechecker mzscheme
+(module type-checker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list unzip2 zip)
            (lib "list.ss" "haskell")
            (lib "terms.ss" "haskell")
