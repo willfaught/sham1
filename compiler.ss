@@ -3,7 +3,8 @@
 ; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
 
 (module compiler mzscheme
-  (require (only (lib "1.ss" "srfi") filter list-tabulate zip)
+  (require (only (lib "1.ss" "srfi") filter list-tabulate unzip2 zip)
+           (only (lib "71.ss" "srfi") values->list)
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
            (lib "list.ss" "haskell")
@@ -22,12 +23,35 @@
   (define (compile-application-term f a)
     (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
   
+  ; compile-data-term : data-term -> (datum)
+  (define (compile-data-term d)
+    ; enumerate-identifiers :: integer -> datum
+    (define (enumerate-identifiers n)
+      (if (equal? n 0) null (cons (strings->symbol "x" n) (enumerate-identifiers (- n 1)))))
+    ; nest-functions :: datum integer -> datum
+    (define (nest-functions x n)
+      (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
+    ; compile-constructor :: string integer -> datum
+    (define (compile-constructor i n)
+      (let ((m (strings->symbol "make-haskell:" i)))
+        `(define ,(strings->symbol "haskell:" i) (if (equal? n 0) m (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
+    ; compile-constructor-predicate :: string -> datum
+    (define (compile-constructor-predicate i)
+      `(define ,(strings->symbol "haskell:is" i) (delay ,(strings->symbol "haskell:" i "?"))))
+    ; compile-field :: data-field-term -> datum
+    (define (compile-field ci f)
+      (match f (($ data-field-term fi _) `(define ,(strings->symbol "haskell:" fi) (lambda (x) (force (,(strings->symbol "haskell:" ci "-" fi) (force x))))))))
+    ; compile-data-constructor-term :: data-constructor-term -> (datum)
+    (define (compile-data-constructor-term c)
+      (match-let ((($ data-constructor-term i f) c))
+        (append (list (compile-constructor i (length f)) (compile-constructor-predicate i)) (map (lambda (x) (compile-field i x)) f))))
+    (foldl append null (map compile-constructor (data-term-constructors d))))
+  
   ; compile-let-term :: [declaration-term] term -> datum
   (define (compile-let-term d e)
     (define compile-declaration-term
-      (match-lambda (($ declaration-term p e) `(,(string->symbol (string-append "haskell:" (car p))) (delay ,(if (null? (cdr p))
-                                                                                                                 (compile-term e)
-                                                                                                                 (compile-term (make-function-term (cdr p) e))))))))
+      (match-lambda (($ declaration-term p e)
+                     `(,(strings->symbol "haskell:" (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
   ; compile-module :: module-term -> datum
@@ -41,8 +65,11 @@
     (define scheme-declaration
       (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
     (match-let* ((($ module-term i ds) m)
-                 ((is ts) (lunzip2 (module-context (data-context (filter data-term? ds)) m)))
-                 (sds (map scheme-declaration (zip is ts)))
+                 (data (filter data-term? ds))
+                 (dc (data-context data))
+                 (c (append dc (module-context dc m)))
+                 ((is _) (values->list (unzip2 c)))
+                 (sds (map scheme-declaration c))
                  (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
       `(module ,(string->symbol i) mzscheme
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
@@ -50,6 +77,7 @@
                   (only (lib "list.ss") foldr)
                   (lib "primitives.ss" "haskell"))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
+         ,@(foldl append null (map compile-data-term data))
          ,@(map compile-declaration-term (append sds ds)))))
   
   ; compile-term :: term -> datum
@@ -58,9 +86,9 @@
       (($ application-term f a) (compile-application-term f (reverse a)))
       (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
       (($ float-term f) (string->number f))
-      (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(string->symbol (string-append "haskell:" (car p)))) ,(compile-term (make-function-term (cdr p) b)))))
+      (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(strings->symbol "haskell:" (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) `(contract ,(haskell-contract type) ,(haskell->scheme type (compile-term term) 1) 'haskell 'scheme))
-      (($ identifier-term i) (let ((x (assoc i prelude))) (if x (list-ref x 1) `(force ,(string->symbol (string-append "haskell:" i))))))
+      (($ identifier-term i) (let ((x (assoc i prelude))) (if x (list-ref x 1) `(force ,(strings->symbol "haskell:" i)))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
@@ -75,24 +103,22 @@
       (if (= n 0) null (cons n (enumerate (- n 1)))))
     (define (nest n)
       (if (= n (+ a 1))
-          `(vector-immutable ,@(map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (reverse (enumerate a))))
-          `(lambda (,(string->symbol (string-append "x" (number->string n)))) ,(nest (+ n 1)))))
+          `(vector-immutable ,@(map (lambda (x) (strings->symbol "x" (number->string x))) (reverse (enumerate a))))
+          `(lambda (,(strings->symbol "x" (number->string n))) ,(nest (+ n 1)))))
     (nest 1))
   
   ; data-context :: (data-term) -> ((string type))
   (define (data-context d)
     ; field-context :: data-field-term type-constructor -> ((string type))
-    (define (field-context f t)
-      (match f
-        (($ data-field-term i t1)
-         (append (map (lambda (x) (list x (make-function-type t t1))) i)
-                 (map (lambda (x) (list (string-append "is" x) (make-function-type t (make-type-constructor "Bool")))))))))
+    (define (field-context f dt)
+      (match f (($ data-field-term i ft)
+                (list (list i (make-function-type dt ft))
+                      (list (string-append "is" i) (make-function-type dt (make-type-constructor "Bool")))))))
     ; constructor-context :: data-constructor-term type-constructor -> ((string type))
     (define (constructor-context c t)
-      (match c
-        (($ data-constructor-term i f)
-         (append (list i (foldr make-function-type t (map (match-lambda (($ data-field-term _ t) t)) f)))
-                 (map (lambda (x) (field-context x t)) f)))))
+      (match c (($ data-constructor-term i f)
+                (append (list i (foldr make-function-type t (map (match-lambda (($ data-field-term _ t) t)) f)))
+                        (map (lambda (x) (field-context x t)) f)))))
     ; data-context :: data-term -> ((string type))
     (define (data-context d)
       (match-let* ((($ data-term t c) d))
@@ -167,4 +193,7 @@
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
                                 `(let ((x ,term)) (vector-immutable ,@elements))))
-        (($ type-variable _) term)))))
+        (($ type-variable _) term))))
+  
+  ; strings->symbol :: string... -> symbol
+  (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x)))))
