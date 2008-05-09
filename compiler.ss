@@ -50,8 +50,8 @@
       (match-let ((($ data-constructor-term i f) c))
         `(define-struct (,(strings->symbol "haskell:" i) ,(strings->symbol "Haskell:" t)) ,(map (match-lambda (($ data-field-term i _) (string->symbol i))) f))))
     (match-let ((($ data-term ($ type-constructor i) c) d))
-      (append `(define-struct ,(strings->symbol "Haskell:" i) ())
-              (foldl append null (map (lambda (x) (compile-constructor-structure x i)) c))
+      (append (list `(define-struct ,(strings->symbol "Haskell:" i) ()))
+              (map (lambda (x) (compile-constructor-structure x i)) c)
               (foldl append null (map compile-data-constructor-term c)))))
   
   ; compile-let-term :: [declaration-term] term -> datum
