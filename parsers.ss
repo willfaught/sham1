@@ -11,7 +11,7 @@
            (lib "types.ss" "haskell")
            (lib "yacc.ss" "parser-tools"))
   
-  (provide expression-parser language-lexer module-parser type-parser)
+  (provide declaration-parser expression-parser language-lexer module-parser type-parser)
   
   (define-lex-abbrevs
     (a-whitespace (:: a-whitestuff (:* a-whitestuff)))
@@ -50,7 +50,7 @@
     (a-reservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
     (a-reservedop (:or ":" "::" "=" #\\ "|" "->")))
   
-  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-scheme t-semicolon t-then t-underscore t-where))
+  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-data t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-pipe t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-scheme t-semicolon t-then t-underscore t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
@@ -61,6 +61,7 @@
                    (":" (token-t-colon))
                    ("::" (token-t-coloncolon))
                    ("," (token-t-comma))
+                   ("data" (token-t-data))
                    ("else" (token-t-else))
                    ("=" (token-t-equal))
                    ("if" (token-t-if))
@@ -72,6 +73,7 @@
                    ("[" (token-t-lsbracket))
                    ("module" (token-t-module))
                    ("of" (token-t-of))
+                   ("|" (token-t-pipe))
                    ("()" (token-t-rbracketcon))
                    ("}" (token-t-rcbracket))
                    (")" (token-t-rrbracket))
@@ -132,7 +134,7 @@
   (define (language-parsers source-name)
     (parser (src-pos)
             (tokens keywords regular)
-            (start nt-exp nt-module nt-type)
+            (start nt-exp nt-module nt-topdecl nt-type)
             (end eof)
             (error (lambda (token-ok token-name token-value start-pos end-pos)
                      (raise-read-error (format "error: malformed ~a (~a ~a:~a): ~a"
@@ -154,7 +156,20 @@
                                   ((nt-topdecl nt-topdecls-2) (cons $1 $2)))
                      (nt-topdecls-2 (() null)
                                     ((t-semicolon nt-topdecl nt-topdecls-2) (cons $2 $3)))
-                     (nt-topdecl ((nt-decl) $1))
+                     (nt-topdecl ((t-data nt-simpletype t-equal nt-constrs) (make-data-term $2 $4))
+                                 ((nt-decl) $1))
+                     (nt-simpletype ((nt-tycon) (make-type-constructor $1)))
+                     (nt-constrs ((nt-constr nt-constrs-2) (cons $1 $2)))
+                     (nt-constrs-2 (() null)
+                                   ((t-pipe nt-constr nt-constrs-2) (cons $2 $3)))
+                     (nt-constr ((nt-con nt-constr-2) (make-data-constructor-term $1 null)))
+                     (nt-constr-2 (() null)
+                                  ((t-lcbracket nt-constr-3 t-rcbracket) $2))
+                     (nt-constr-3 (() null)
+                                  ((nt-fielddecl nt-constr-4) (append $1 $2)))
+                     (nt-constr-4 (() null)
+                                  ((t-comma nt-fielddecl nt-constr-4) (append $2 $3)))
+                     (nt-fielddecl ((nt-vars t-coloncolon nt-type) (map (lambda (x) (make-data-field-term x $3)) $1)))
                      (nt-decls ((t-lcbracket nt-decls-2 t-rcbracket) $2))
                      (nt-decls-2 (() null)
                                  ((nt-decl nt-decls-3) (cons $1 $2)))
@@ -165,6 +180,9 @@
                                 ((nt-apat nt-varop nt-apat) (list $2 $1 $3)))
                      (nt-funlhs-2 (() null)
                                   ((nt-apat nt-funlhs-2) (cons $1 $2)))
+                     (nt-vars ((nt-var nt-vars-2) (cons $1 $2)))
+                     (nt-vars-2 (() null)
+                                ((t-comma nt-var nt-vars-2) (cons $2 $3)))
                      (nt-var ((t-varid) $1)
                              ((t-lrbracket t-varsym t-rrbracket) $2))
                      (nt-varop ((t-varsym) $1)
@@ -197,6 +215,8 @@
                               ((nt-qcon) $1))
                      (nt-gcon-2 (() 0)
                                 ((t-comma nt-gcon-2) (+ $2 1)))
+                     (nt-con ((t-conid) (make-identifier-term $1))
+                             ((t-lrbracket t-consym t-rrbracket) (make-identifier-term $2)))
                      (nt-qcon ((nt-qconid) $1)
                               ((t-lrbracket nt-gconsym t-rrbracket) $2))
                      (nt-qconid ((t-conid) (make-identifier-term $1)))
@@ -224,6 +244,10 @@
                      (nt-tycon ((t-conid) $1))
                      (nt-tyvar ((t-varid) $1)))))
   
+  ; declaration-parser :: string -> parser
+  (define (declaration-parser source-name)
+    (list-ref (language-parsers source-name) 3))
+  
   ; expression-parser :: string -> parser
   (define (expression-parser source-name)
     (list-ref (language-parsers source-name) 0))
@@ -234,4 +258,4 @@
   
   ; type-parser :: string -> parser
   (define (type-parser source-name)
-    (list-ref (language-parsers source-name) 2)))
+    (list-ref (language-parsers source-name) 4)))
