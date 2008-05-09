@@ -34,7 +34,7 @@
     ; compile-constructor :: string integer -> datum
     (define (compile-constructor i n)
       (let ((m (strings->symbol "make-haskell:" i)))
-        `(define ,(strings->symbol "haskell:" i) (if (equal? n 0) m (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
+        `(define ,(strings->symbol "haskell:" i) ,(if (equal? n 0) m (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
     ; compile-constructor-predicate :: string -> datum
     (define (compile-constructor-predicate i)
       `(define ,(strings->symbol "haskell:is" i) (delay ,(strings->symbol "haskell:" i "?"))))
