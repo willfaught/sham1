@@ -193,7 +193,7 @@
                                 ("Char" (scheme-contract (make-character-type)))
                                 ("Float" (scheme-contract (make-float-type)))
                                 ("Int" (scheme-contract (make-integer-type)))
-                                (_ `(flat-contract ,(strings->symbol "Haskell:" i "?")))))
+                                (_ `(flat-contract ,(strings->symbol "haskell-type:" i "?")))))
       (($ type-variable _) `any/c)))
   
   ; scheme->haskell :: type term integer -> datum
