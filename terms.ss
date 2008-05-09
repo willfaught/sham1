@@ -12,14 +12,14 @@
   ; character-term :: char
   (define-struct (character-term term) (character) #f)
   
-  ; data-term :: type-constructor (data-constructor-term)
-  (define-struct (data-term term) (type constructors) #f)
+  ; data-term :: string (constructor-term)
+  (define-struct (data-term term) (identifier constructors) #f)
   
-  ; data-constructor-term :: string (data-field-term)
-  (define-struct (data-constructor-term term) (identifier fields) #f)
+  ; constructor-term :: string (data-field-term)
+  (define-struct (constructor-term term) (identifier fields) #f)
   
-  ; data-field-term :: string type
-  (define-struct (data-field-term term) (identifier type) #f)
+  ; field-term :: string type
+  (define-struct (field-term term) (identifier type) #f)
   
   ; declaration-term :: (string) term
   (define-struct (declaration-term term) (patterns expression) #f)
