@@ -71,7 +71,7 @@
                  (c (append dc mc))
                  ((di _) (values->list (unzip2 c)))
                  (sd (map scheme-declaration c))
-                 (hd (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) md)))
+                 (hd (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) de)))
       `(module ,(string->symbol mi) mzscheme
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                   (lib "contract.ss")
