@@ -34,7 +34,7 @@
     ; compile-constructor :: string integer -> datum
     (define (compile-constructor i n)
       (let ((m (strings->symbol "make-haskell:" i)))
-        `(define ,(strings->symbol "haskell:" i) ,(if (equal? n 0) m (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
+        `(define ,(strings->symbol "haskell:" i) (delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n))))))
     ; compile-constructor-predicate :: string -> datum
     (define (compile-constructor-predicate i)
       `(define ,(strings->symbol "haskell:is" i) (delay ,(strings->symbol "haskell:" i "?"))))
@@ -45,7 +45,14 @@
     (define (compile-data-constructor-term c)
       (match-let ((($ data-constructor-term i f) c))
         (append (list (compile-constructor i (length f)) (compile-constructor-predicate i)) (map (lambda (x) (compile-field i x)) f))))
-    (foldl append null (map compile-data-constructor-term (data-term-constructors d))))
+    ; compile-constructor-structure :: data-constructor-term string -> datum
+    (define (compile-constructor-structure c t)
+      (match-let ((($ data-constructor-term i f) c))
+        `(define-struct (,(strings->symbol "haskell:" i) ,(strings->symbol "Haskell:" t)) ,(map (match-lambda (($ data-field-term i _) (string->symbol i))) f))))
+    (match-let ((($ data-term ($ type-constructor i) c) d))
+      (append `(define-struct ,(strings->symbol "Haskell:" i) ())
+              (foldl append null (map (lambda (x) (compile-constructor-structure x i)) c))
+              (foldl append null (map compile-data-constructor-term c)))))
   
   ; compile-let-term :: [declaration-term] term -> datum
   (define (compile-let-term d e)
@@ -182,7 +189,7 @@
                                 ("Char" (scheme-contract (make-character-type)))
                                 ("Float" (scheme-contract (make-float-type)))
                                 ("Int" (scheme-contract (make-integer-type)))
-                                (_ `(flat-contract ,(strings->symbol "haskell:" i "?")))))
+                                (_ `(flat-contract ,(strings->symbol "Haskell:" i "?")))))
       (($ type-variable _) `any/c)))
   
   ; scheme->haskell :: type term integer -> datum
