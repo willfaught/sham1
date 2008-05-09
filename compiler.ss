@@ -3,7 +3,7 @@
 ; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
 
 (module compiler mzscheme
-  (require (only (lib "1.ss" "srfi") filter list-tabulate unzip2 zip)
+  (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
@@ -64,21 +64,22 @@
     ; scheme-declaration :: (string type) -> declaration-term
     (define scheme-declaration
       (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
-    (match-let* ((($ module-term i ds) m)
-                 (data (filter data-term? ds))
-                 (dc (data-context data))
-                 (c (append dc (module-context dc m)))
-                 ((is _) (values->list (unzip2 c)))
-                 (sds (map scheme-declaration c))
-                 (ds (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) ds)))
-      `(module ,(string->symbol i) mzscheme
+    (match-let* ((($ module-term mi md) m)
+                 ((da de) (values->list (partition data-term? md)))
+                 (dc (data-context da))
+                 (mc (module-context dc (make-module-term mi de)))
+                 (c (append dc mc))
+                 ((di _) (values->list (unzip2 c)))
+                 (sd (map scheme-declaration c))
+                 (hd (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) md)))
+      `(module ,(string->symbol mi) mzscheme
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                   (lib "contract.ss")
                   (only (lib "list.ss") foldr)
                   (lib "primitives.ss" "haskell"))
-         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) is))
+         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
          ,@(foldl append null (map compile-data-term data))
-         ,@(map compile-declaration-term (append sds ds)))))
+         ,@(map compile-declaration-term (append sd hd)))))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
