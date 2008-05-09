@@ -45,7 +45,7 @@
     (define (compile-data-constructor-term c)
       (match-let ((($ data-constructor-term i f) c))
         (append (list (compile-constructor i (length f)) (compile-constructor-predicate i)) (map (lambda (x) (compile-field i x)) f))))
-    (foldl append null (map compile-constructor (data-term-constructors d))))
+    (foldl append null (map compile-data-constructor-term (data-term-constructors d))))
   
   ; compile-let-term :: [declaration-term] term -> datum
   (define (compile-let-term d e)
