@@ -4,6 +4,12 @@
   
   (provide (all-defined))
   
+  (define-struct haskell-type:Bool ())
+  
+  (define-struct (haskell-constructor:False haskell-type:Bool) ())
+  
+  (define-struct (haskell-constructor:True haskell-type:Bool) ())
+  
   (define primitive:error
     (lambda (s) (error (string-append "*** Exception: " (list->string (primitive:strict s))))))
   
