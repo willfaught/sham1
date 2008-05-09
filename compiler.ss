@@ -89,7 +89,7 @@
       (($ float-term f) (string->number f))
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(strings->symbol "haskell:" (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) `(contract ,(haskell-contract type) ,(haskell->scheme type (compile-term term) 1) 'haskell 'scheme))
-      (($ identifier-term i) (let ((x (assoc i prelude))) (if x (list-ref x 1) `(force ,(strings->symbol "haskell:" i)))))
+      (($ identifier-term i) (let ((x (assoc i primitives))) (if x (list-ref x 1) `(force ,(strings->symbol "haskell:" i)))))
       (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
@@ -151,19 +151,20 @@
         (($ integer-type) term)
         (($ list-type _) term)
         (($ tuple-type _) term)
+        (($ type-constructor _) term)
         (($ type-variable _) term))))
   
   ; identifier :: integer -> symbol
   (define (identifier n)
     (string->symbol (string-append "x" (number->string n))))
   
-  ; prelude :: immutable-hash-table
-  (define prelude `((":" primitive:list-cons)
-                    ("head" primitive:list-head)
-                    ("tail" primitive:list-tail)
-                    #;("null" primitive:list-null)
-                    ("fst" primitive:tuple-first)
-                    ("snd" primitive:tuple-second)))
+  ; primitives :: immutable-hash-table
+  (define primitives `((":" primitive:list-cons)
+                       ("head" primitive:list-head)
+                       ("tail" primitive:list-tail)
+                       #;("null" primitive:list-null)
+                       ("fst" primitive:tuple-first)
+                       ("snd" primitive:tuple-second)))
   
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
@@ -177,7 +178,11 @@
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
       (($ tuple-type types) `(vector/c ,@(map scheme-contract types)))
-      (($ type-constructor i) (scheme-contract (translate-type-constructor (make-type-constructor i))))
+      (($ type-constructor i) (match i
+                                ("Char" (scheme-contract (make-character-type)))
+                                ("Float" (scheme-contract (make-float-type)))
+                                ("Int" (scheme-contract (make-integer-type)))
+                                (_ `(flat-contract ,(strings->symbol "haskell:" i "?")))))
       (($ type-variable _) `any/c)))
   
   ; scheme->haskell :: type term integer -> datum
@@ -194,6 +199,7 @@
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
                                 `(let ((x ,term)) (vector-immutable ,@elements))))
+        (($ type-constructor _) term)
         (($ type-variable _) term))))
   
   ; strings->symbol :: string... -> symbol
