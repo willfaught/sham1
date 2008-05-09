@@ -33,7 +33,7 @@
       (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
     ; compile-constructor :: string integer -> datum
     (define (compile-constructor i n)
-      (let ((m (strings->symbol "make-haskell:" i)))
+      (let ((m (strings->symbol "make-haskell-constructor:" i)))
         `(define ,(strings->symbol "haskell:" i) (delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n))))))
     ; compile-constructor-predicate :: string -> datum
     (define (compile-constructor-predicate i)
