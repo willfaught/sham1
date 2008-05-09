@@ -78,7 +78,7 @@
                   (only (lib "list.ss") foldr)
                   (lib "primitives.ss" "haskell"))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
-         ,@(foldl append null (map compile-data-term data))
+         ,@(foldl append null (map compile-data-term da))
          ,@(map compile-declaration-term (append sd hd)))))
   
   ; compile-term :: term -> datum
