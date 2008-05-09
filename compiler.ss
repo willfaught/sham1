@@ -37,7 +37,11 @@
         `(define ,(strings->symbol "haskell:" i) (delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n))))))
     ; compile-constructor-predicate :: string -> datum
     (define (compile-constructor-predicate i)
-      `(define ,(strings->symbol "haskell:is" i) (delay ,(strings->symbol "haskell-constructor:" i "?"))))
+      (let ((pi (strings->symbol "haskell:is" i))
+            (pb `(delay (lambda (x) (if (,(strings->symbol "haskell-constructor:" i "?") (force x))
+                                        (make-haskell-constructor:True)
+                                        (make-haskell-constructor:False))))))
+        `(define ,pi ,pb)))
     ; compile-field :: data-field-term -> datum
     (define (compile-field ci f)
       (match-let ((($ data-field-term fi _) f))
