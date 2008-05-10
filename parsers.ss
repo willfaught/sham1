@@ -162,7 +162,7 @@
                      (nt-constrs ((nt-constr nt-constrs-2) (cons $1 $2)))
                      (nt-constrs-2 (() null)
                                    ((t-pipe nt-constr nt-constrs-2) (cons $2 $3)))
-                     (nt-constr ((nt-con nt-constr-2) (make-constructor-term $1 null)))
+                     (nt-constr ((nt-con nt-constr-2) (make-constructor-term $1 $2)))
                      (nt-constr-2 (() null)
                                   ((t-lcbracket nt-constr-3 t-rcbracket) $2))
                      (nt-constr-3 (() null)
