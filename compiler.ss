@@ -19,50 +19,62 @@
   (define characters
     (make-immutable-hash-table `() 'equal))
   
-  ; compile-application-term :: term [term] -> datum
+  ; compile-application-term :: term (term) -> datum
   (define (compile-application-term f a)
     (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
   
-  ; compile-data-term : data-term -> (datum)
-  (define (compile-data-term d)
-    ; enumerate-identifiers :: integer -> datum
-    (define (enumerate-identifiers n)
-      (if (equal? n 0) null (cons (strings->symbol "x" n) (enumerate-identifiers (- n 1)))))
-    ; nest-functions :: datum integer -> datum
-    (define (nest-functions x n)
-      (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
-    ; compile-constructor :: string integer -> datum
-    (define (compile-constructor i n)
-      (let ((m (strings->symbol "make-haskell-constructor:" i)))
-        `(define ,(strings->symbol "haskell:" i) (delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n))))))
-    ; compile-constructor-predicate :: string -> datum
-    (define (compile-constructor-predicate i)
-      (let ((pi (strings->symbol "haskell:is" i))
-            (pb `(delay (lambda (x) (if (,(strings->symbol "haskell-constructor:" i "?") (force x))
+  ; compile-constructor-term :: string constructor-term -> (datum)
+  (define (compile-constructor-term ct c)
+    ; constructor :: string integer -> datum
+    (define (constructor i n)
+      ; enumerate-identifiers :: integer -> datum
+      (define (enumerate-identifiers n)
+        (if (equal? n 0) null (cons (strings->symbol "x" n) (enumerate-identifiers (- n 1)))))
+      ; nest-functions :: datum integer -> datum
+      (define (nest-functions x n)
+        (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
+      (let* ((di (strings->symbol "haskell:" i))
+             (m (strings->symbol "make-haskell-constructor:" i))
+             (db `(delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
+        `(define ,di ,db)))
+    ; constructor-type :: string (string) -> datum
+    (define (constructor-type ci fi)
+      (let ((di (strings->symbol "haskell-constructor:" ci))
+            (dt (strings->symbol "haskell-type:" ct))
+            (df (map (lambda (x) (string->symbol x)) fi)))
+        `(define-struct (,di ,dt) ,df)))
+    ; predicate :: string -> datum
+    (define (predicate i)
+      (let ((di (strings->symbol "haskell:is" i))
+            (db `(delay (lambda (x) (if (,(strings->symbol "haskell-constructor:" i "?") (force x))
                                         (make-haskell-constructor:True)
                                         (make-haskell-constructor:False))))))
-        `(define ,pi ,pb)))
-    ; compile-field :: data-field-term -> datum
-    (define (compile-field ci f)
-      (match-let ((($ data-field-term fi _) f))
-        `(define ,(strings->symbol "haskell:" fi) (lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x)))))))
-    ; compile-data-constructor-term :: data-constructor-term -> (datum)
-    (define (compile-data-constructor-term c)
-      (match-let ((($ data-constructor-term i f) c))
-        (append (list (compile-constructor i (length f)) (compile-constructor-predicate i)) (map (lambda (x) (compile-field i x)) f))))
-    ; compile-constructor-structure :: data-constructor-term string -> datum
-    (define (compile-constructor-structure c t)
-      (match-let* ((($ data-constructor-term i f) c)
-                   (ci (strings->symbol "haskell-constructor:" i))
-                   (ct (strings->symbol "haskell-type:" t))
-                   (cf (map (match-lambda (($ data-field-term i _) (string->symbol i))) f)))
-        `(define-struct (,ci ,ct) ,cf)))
-    (match-let ((($ data-term ($ type-constructor i) c) d))
-      (append (list `(define-struct ,(strings->symbol "haskell-type:" i) ()))
-              (map (lambda (x) (compile-constructor-structure x i)) c)
-              (foldl append null (map compile-data-constructor-term c)))))
+        `(define ,di ,db)))
+    (match-let* ((($ constructor-term ci cf) c)
+                (fi (map (match-lambda (($ field-term i _) i)) cf)))
+      (append (list (constructor-type ci fi)
+                    (constructor ci (length cf))
+                    (predicate ci))
+              (map (lambda (x) (compile-field-term ci x)) cf))))
   
-  ; compile-let-term :: [declaration-term] term -> datum
+  ; compile-field-term :: string field-term -> datum
+  (define (compile-field-term ci f)
+    (match-let* ((($ field-term fi _) f)
+                 (di (strings->symbol "haskell:" fi))
+                 (db `(lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x))))))
+      `(define ,di ,db)))
+  
+  ; compile-data-term : data-term -> (datum)
+  (define (compile-data-term d)
+    ; data-type :: string -> datum
+    (define (data-type i)
+      (let ((ti (strings->symbol "haskell-type:" i)))
+        `(define-struct ,ti ())))
+    (match-let ((($ data-term di dc) d))
+      (append (list (data-type di))
+              (map (lambda (x) (compile-constructor-term di x)) dc))))
+  
+  ; compile-let-term :: (declaration-term) term -> datum
   (define (compile-let-term d e)
     (define compile-declaration-term
       (match-lambda (($ declaration-term p e)
@@ -125,21 +137,21 @@
   
   ; data-context :: data-term -> ((string type))
   (define (data-context d)
-    ; field-context :: data-field-term type-constructor -> ((string type))
-    (define (field-context f dt)
-      (match-let ((($ data-field-term i ft) f))
-        (list i (make-function-type dt ft))))
-    ; constructor-context :: data-constructor-term type-constructor -> ((string type))
-    (define (constructor-context c t)
-      (match-let ((($ data-constructor-term i f) c))
-        (append (list (list i (foldr make-function-type t (map (match-lambda (($ data-field-term _ t) t)) f)))
-                      (list (if (equal? (string-ref i 0) #\:)
-                                (string-append i "?")
-                                (string-append "is" i))
-                            (make-function-type t (make-type-constructor "Bool"))))
-                (map (lambda (x) (field-context x t)) f))))
-    (match-let ((($ data-term t c) d))
-      (foldl append null (map (lambda (x) (constructor-context x t)) c))))
+    ; field :: type-constructor field-term -> (string type)
+    (define (field dt f)
+      (match-let ((($ field-term fi ft) f))
+        (list fi (make-function-type dt ft))))
+    ; constructor :: type-constructor constructor-term -> ((string type))
+    (define (constructor dt c)
+      (match-let ((($ constructor-term ci cf) c))
+        (append (list (list ci (foldr make-function-type dt (map (match-lambda (($ field-term _ t) t)) cf)))
+                      (list (if (equal? (string-ref ci 0) #\:)
+                                (string-append ci "?")
+                                (string-append "is" ci))
+                            (make-function-type dt (make-type-constructor "Bool"))))
+                (map (lambda (x) (field dt x)) cf))))
+    (match-let ((($ data-term di dc) d))
+      (foldl append null (map (lambda (x) (constructor (make-type-constructor di) x)) dc))))
   
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
