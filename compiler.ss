@@ -32,7 +32,7 @@
         (if (equal? n 0) null (cons (strings->symbol "x" (number->string n)) (enumerate-identifiers (- n 1)))))
       ; nest-functions :: datum integer -> datum
       (define (nest-functions x n)
-        (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
+        (if (equal? n 0) x `(lambda (,(strings->symbol "x" (number->string n))) ,(nest-functions x (- n 1)))))
       (let* ((di (strings->symbol "haskell:" i))
              (m (strings->symbol "make-haskell-constructor:" i))
              (db `(delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,(enumerate-identifiers n)) n)))))
