@@ -2,6 +2,12 @@
 
 module Test where {
 
+data Tree = Branch { left :: Tree, right :: Tree } | Leaf { leaf :: Fruit } | Ha;
+
+data Fruit = Apple { foo :: Tree } | Orange { bar :: Tree };
+
+data A = A;
+
 -- character tests
 
 char1 = 'a';
