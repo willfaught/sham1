@@ -1,5 +1,6 @@
 (module primitives mzscheme
   (require (only (lib "43.ss" "srfi") vector-map)
+           (lib "contract.ss")
            (lib "match.ss"))
   
   (provide (all-defined))
@@ -9,6 +10,22 @@
   (define-struct (haskell-constructor:False haskell-type:Bool) ())
   
   (define-struct (haskell-constructor:True haskell-type:Bool) ())
+  
+  (define haskell:isFalse (delay (lambda (x) (if (haskell-constructor:False? (force x)) (make-haskell-constructor:True) (make-haskell-constructor:False)))))
+  
+  (define haskell:isTrue (delay (lambda (x) (if (haskell-constructor:True? (force x)) (make-haskell-constructor:True) (make-haskell-constructor:False)))))
+  
+  (define haskell:False (delay (make-haskell-constructor:False)))
+  
+  (define haskell:True (delay (make-haskell-constructor:True)))
+  
+  (define scheme:isFalse (delay (contract (-> (flat-contract haskell-type:Bool?) any/c) (lambda (x1) ((force haskell:isFalse) (delay x1))) 'haskell 'scheme)))
+  
+  (define scheme:isTrue (delay (contract (-> (flat-contract haskell-type:Bool?) any/c) (lambda (x1) ((force haskell:isTrue) (delay x1))) 'haskell 'scheme)))
+  
+  (define scheme:False (delay (contract any/c (force haskell:False) 'haskell 'scheme)))
+  
+  (define scheme:True (delay (contract any/c (force haskell:True) 'haskell 'scheme)))
   
   (define primitive:error
     (lambda (s) (error (string-append "*** Exception: " (list->string (primitive:strict s))))))
