@@ -72,7 +72,7 @@
   (define (compile-field-term ci f)
     (match-let* ((($ field-term fi _) f)
                  (di (strings->symbol "haskell:" fi))
-                 (db `(lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x))))))
+                 (db `(delay (lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x)))))))
       `(define ,di ,db)))
   
   ; compile-let-term :: (declaration-term) term -> datum
