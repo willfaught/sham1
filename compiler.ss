@@ -29,7 +29,7 @@
     (define (constructor i n)
       ; enumerate-identifiers :: integer -> datum
       (define (enumerate-identifiers n)
-        (if (equal? n 0) null (cons (strings->symbol "x" n) (enumerate-identifiers (- n 1)))))
+        (if (equal? n 0) null (cons (strings->symbol "x" (number->string n)) (enumerate-identifiers (- n 1)))))
       ; nest-functions :: datum integer -> datum
       (define (nest-functions x n)
         (if (equal? n 0) x `(lambda (,(strings->symbol "x" n)) ,(nest-functions x (- n 1)))))
