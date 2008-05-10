@@ -15,9 +15,10 @@
   (define (module-context import-context module)
     (match-let* ((declarations (module-term-declarations module))
                  (identifiers (map (lambda (x) (car (declaration-term-patterns x))) declarations))
-                 (context (append (map (lambda (x) (list x (fresh-type-variable))) identifiers) import-context))
+                 (type-variables (map (lambda (x) (fresh-type-variable)) declarations))
+                 (context (append (zip identifiers type-variables) import-context))
                  ((types constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) declarations)))
-                 (substitution (unify-constraints (foldl append null constraints)))
+                 (substitution (unify-constraints (append (zip-with make-constraint type-variables types) (foldl append null constraints))))
                  (substituted-types (map (lambda (x) (substitute-types substitution x)) types)))
       (zip identifiers substituted-types)))
   
