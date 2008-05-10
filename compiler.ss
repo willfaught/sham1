@@ -72,7 +72,7 @@
         `(define-struct ,ti ())))
     (match-let ((($ data-term di dc) d))
       (append (list (data-type di))
-              (map (lambda (x) (compile-constructor-term di x)) dc))))
+              (foldl append null (map (lambda (x) (compile-constructor-term di x)) dc)))))
   
   ; compile-let-term :: (declaration-term) term -> datum
   (define (compile-let-term d e)
