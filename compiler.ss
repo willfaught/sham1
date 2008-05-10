@@ -11,7 +11,8 @@
            (lib "match.ss")
            (lib "terms.ss" "haskell")
            (lib "type-checker.ss" "haskell")
-           (lib "types.ss" "haskell"))
+           (lib "types.ss" "haskell")
+           (lib "parsers.ss" "haskell"))
   
   (provide compile-term compile-module)
   
@@ -51,18 +52,11 @@
                                         (make-haskell-constructor:False))))))
         `(define ,di ,db)))
     (match-let* ((($ constructor-term ci cf) c)
-                (fi (map (match-lambda (($ field-term i _) i)) cf)))
+                 (fi (map (match-lambda (($ field-term i _) i)) cf)))
       (append (list (constructor-type ci fi)
                     (constructor ci (length cf))
                     (predicate ci))
               (map (lambda (x) (compile-field-term ci x)) cf))))
-  
-  ; compile-field-term :: string field-term -> datum
-  (define (compile-field-term ci f)
-    (match-let* ((($ field-term fi _) f)
-                 (di (strings->symbol "haskell:" fi))
-                 (db `(lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x))))))
-      `(define ,di ,db)))
   
   ; compile-data-term : data-term -> (datum)
   (define (compile-data-term d)
@@ -73,6 +67,13 @@
     (match-let ((($ data-term di dc) d))
       (append (list (data-type di))
               (foldl append null (map (lambda (x) (compile-constructor-term di x)) dc)))))
+  
+  ; compile-field-term :: string field-term -> datum
+  (define (compile-field-term ci f)
+    (match-let* ((($ field-term fi _) f)
+                 (di (strings->symbol "haskell:" fi))
+                 (db `(lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x))))))
+      `(define ,di ,db)))
   
   ; compile-let-term :: (declaration-term) term -> datum
   (define (compile-let-term d e)
