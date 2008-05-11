@@ -5,11 +5,11 @@
   
   (provide (all-defined))
   
-  (define-struct haskell-type:Bool ())
+  (define-struct haskell-type:Bool () #f)
   
-  (define-struct (haskell-constructor:False haskell-type:Bool) ())
+  (define-struct (haskell-constructor:False haskell-type:Bool) () #f)
   
-  (define-struct (haskell-constructor:True haskell-type:Bool) ())
+  (define-struct (haskell-constructor:True haskell-type:Bool) () #f)
   
   (define haskell:isFalse (delay (lambda (x) (if (haskell-constructor:False? (force x)) (make-haskell-constructor:True) (make-haskell-constructor:False)))))
   
