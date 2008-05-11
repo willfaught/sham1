@@ -14,7 +14,7 @@
            (lib "types.ss" "haskell")
            (lib "parsers.ss" "haskell"))
   
-  (provide compile-term compile-module)
+  (provide compile-data-term compile-term compile-module)
   
   ; characters :: immutable-hash-table
   (define characters
@@ -43,13 +43,13 @@
       (let ((di (strings->symbol "haskell-constructor:" ci))
             (dt (strings->symbol "haskell-type:" ct))
             (df (map (lambda (x) (string->symbol x)) fi)))
-        `(define-struct (,di ,dt) ,df)))
+        `(define-struct (,di ,dt) ,df #f)))
     ; predicate :: string -> datum
     (define (predicate i)
       (let ((di (strings->symbol "haskell:is" i))
             (db `(delay (lambda (x) (if (,(strings->symbol "haskell-constructor:" i "?") (force x))
-                                        (make-haskell-constructor:True)
-                                        (make-haskell-constructor:False))))))
+                                        (force haskell:True)
+                                        (force haskell:False))))))
         `(define ,di ,db)))
     (match-let* ((($ constructor-term ci cf) c)
                  (fi (map (match-lambda (($ field-term i _) i)) cf)))
@@ -63,7 +63,7 @@
     ; data-type :: string -> datum
     (define (data-type i)
       (let ((ti (strings->symbol "haskell-type:" i)))
-        `(define-struct ,ti ())))
+        `(define-struct ,ti () #f)))
     (match-let ((($ data-term di dc) d))
       (append (list (data-type di))
               (foldl append null (map (lambda (x) (compile-constructor-term di x)) dc)))))
