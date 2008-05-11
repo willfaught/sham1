@@ -13,6 +13,12 @@
       (port-count-lines! port)
       (test-expression-parser (lambda () (language-lexer port)))))
   
+  ; parse-module :: string -> term
+  (define (parse-module expression)
+    (let ((port (open-input-string expression)))
+      (port-count-lines! port)
+      (test-module-parser (lambda () (language-lexer port)))))
+  
   ; parse-type :: string -> type
   (define (parse-type type)
     (let ((port (open-input-string type)))
@@ -38,6 +44,17 @@
   ; test-case-x :: string string -> test-case
   (define (test-case-x name expression)
     (test-exn name (lambda (x) #t) (lambda () (reconstruct-type null (parse-expression expression)))))
+  
+  ; test-case-mnx :: string string -> test-case
+  (define (test-case-mnx name module)
+    (test-not-exn name (lambda () (module-context null (parse-module module)))))
+  
+  ; test-case-mx :: string string -> test-case
+  (define (test-case-mx name module)
+    (test-exn name (lambda (x) #t) (lambda () (module-context null (parse-module module)))))
+  
+  ; test-module-parser :: parser
+  (define test-module-parser (module-parser "test"))
   
   ; test-type-parser :: parser
   (define test-type-parser (type-parser "test"))
@@ -90,13 +107,31 @@
                 (test-case-e "le11" "let { i x = x } in i 2" "Int")
                 (test-case-e "le12" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in i" "t -> t")
                 (test-case-e "le13" "let { i x = x } in let { j = i 2 ; k = i 3.4 } in j" "Int")
-                (test-case-x "le16" "let { i = (i, i) } in i")
-                (test-case-x "le17" "let { i x = x ; j = i 1 ; k = i 2.3 } in i")
+                (test-case-x "le16" "let { i = [i] } in i")
+                (test-case-x "le17" "let { i = (i, i) } in i")
+                (test-case-x "le18" "let { i x = x ; j = i 1 ; k = i 2.3 } in i")
                 (test-case-e "li1" "[]" "[t]")
                 (test-case-e "li2" "[1]" "[Int]")
                 (test-case-e "li3" "\"\"" "[t]")
                 (test-case-e "li4" "\"foo\"" "[Char]")
                 (test-case-x "li5" "[1, 'a']")
+                (test-case-mnx "mo1" "{ i = 1 }")
+                (test-case-mnx "mo2" "{ i = i }")
+                (test-case-mnx "mo3" "{ i x = 1 }")
+                (test-case-mnx "mo4" "{ i x = x }")
+                (test-case-mnx "mo5" "{ i x y = x }")
+                (test-case-mnx "mo6" "{ i = 1 ; j = i }")
+                (test-case-mnx "mo7" "{ i = j ; j = 1 }")
+                (test-case-mnx "mo8" "{ i = j ; j = i }")
+                (test-case-mnx "mo9" "{ i = 1 ; j = i }")
+                (test-case-mnx "mo10" "{ i x = x ; j = i 1 }")
+                (test-case-mx "mo11" "{ i = 1 ; j = i 2 }")
+                (test-case-mx "mo12" "{ i x = x ; j = i 1 2 }")
+                (test-case-mnx "mo13" "{ i x = x ; j = i 1 ; k = 2 }")
+                (test-case-mx "mo14" "{ i x = x ; j = i 1 ; k = i 'a' }")
+                (test-case-mnx "mo15" "{ i = let { i x = x } in i ; j = i 1 }")
+                (test-case-mx "mo16" "{ i = [i] }")
+                (test-case-mx "mo17" "{ i = (i, i) }")
                 (test-case-e "sc1" ":scheme Int -> Int -> Int \"primitive:int-add\"" "Int -> Int -> Int")
                 (test-case-e "tu1" "('a', 1)" "(Char, Int)")
                 (test-case-e "tu2" "('b', 1, 1)" "(Char, Int, Int)")
