@@ -12,6 +12,10 @@
   
   (provide run-tests)
   
+  ; test-case-dp :: string (string) datum -> schemeunit-test-case
+  (define (test-case-dp n d p)
+    (test-true n (eval `(begin ,@(foldl append null (map (lambda (x) (compile-data-term (parse-declaration x))) d)) (,p)))))
+  
   ; test-case-e :: string string 'a -> schemeunit-test-case
   (define (test-case-e name expression value)
     (test-check name strict-equal? (eval-r expression) value))
@@ -48,6 +52,30 @@
                 (test-case-x "ap3" "1 2")
                 (test-case-x "ap4" "(\\x -> x) 1 2")
                 (test-case-e "ch1" "'a'" #\a)
+                (test-case-dp "da1"
+                              (list "data A = B")
+                              `(lambda () (equal? (force haskell:B) (make-haskell-constructor:B))))
+                (test-case-dp "da2"
+                              (list "data A = B")
+                              `(lambda () (equal? ((force haskell:isB) (delay (force haskell:B))) (force haskell:True))))
+                (test-case-dp "da3"
+                              (list "data A = B")
+                              `(lambda () (haskell-type:A? (force haskell:B))))
+                (test-case-dp "da4"
+                              (list "data A = B | C")
+                              `(lambda () (equal? ((force haskell:isB) (delay (force haskell:B))) (force haskell:True))))
+                (test-case-dp "da5"
+                              (list "data A = B | C")
+                              `(lambda () (equal? ((force haskell:isB) (delay (force haskell:C))) (force haskell:False))))
+                (test-case-dp "da6"
+                              (list "data A = B | C")
+                              `(lambda () (equal? ((force haskell:isC) (delay (force haskell:B))) (force haskell:False))))
+                (test-case-dp "da7"
+                              (list "data A = B | C")
+                              `(lambda () (equal? ((force haskell:isC) (delay (force haskell:C))) (force haskell:True))))
+                (test-case-dp "da8"
+                              (list "data A = B { c :: A } | D")
+                              `(lambda () (equal? ((force haskell:c) (delay ((force haskell:B) (delay (force haskell:D))))) (force haskell:D))))
                 (test-case-e "fl1" "1.2" 1.2)
                 (test-case-p "fu1" "\\x -> x" (lambda (x) (equal? (x (delay 1)) 1)))
                 (test-case-fx "fu2" "\\x -> x" (lambda (x) ((x (delay 1)) (delay 2))))
@@ -140,6 +168,12 @@
   (define (eval-r expression)
     (eval (compile-term (parse-expression expression))))
   
+  ; parse-declaration :: string -> term
+  (define (parse-declaration d)
+    (let ((port (open-input-string d)))
+      (port-count-lines! port)
+      (test-declaration-parser (lambda () (language-lexer port)))))
+  
   ; parse-expression :: string -> term
   (define (parse-expression expression)
     (let ((port (open-input-string expression)))
@@ -186,6 +220,9 @@
           ((and (vector? x) (vector? y) (equal? (vector-length x) (vector-length y)))
            (foldl (lambda (x y) (and y (strict-equal? (list-ref x 0) (list-ref x 1)))) #t (zip (vector->list x) (vector->list y))))
           (else (equal? x y))))
+  
+  ; test-declaration-parser :: parser
+  (define test-declaration-parser (declaration-parser "test"))
   
   ; test-expression-parser :: parser
   (define test-expression-parser (expression-parser "test"))
