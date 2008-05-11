@@ -246,7 +246,7 @@
   
   ; declaration-parser :: string -> parser
   (define (declaration-parser source-name)
-    (list-ref (language-parsers source-name) 3))
+    (list-ref (language-parsers source-name) 2))
   
   ; expression-parser :: string -> parser
   (define (expression-parser source-name)
@@ -258,4 +258,4 @@
   
   ; type-parser :: string -> parser
   (define (type-parser source-name)
-    (list-ref (language-parsers source-name) 4)))
+    (list-ref (language-parsers source-name) 3)))
