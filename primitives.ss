@@ -87,22 +87,22 @@
                                     'haskell
                                     'scheme)))
   
-  ; incomplete
-  
   (define primitive:error
     (lambda (s) (error (string-append "*** Exception: " (list->string (primitive:strict s))))))
   
-  (define primitive:int-add (lambda (x) (lambda (y) (+ (force x) (force y)))))
+  (define primitive:number-add (lambda (x) (lambda (y) (+ (force x) (force y)))))
   
-  (define primitive:int-subtract (lambda (x) (lambda (y) (- (force x) (force y)))))
+  (define primitive:number-subtract (lambda (x) (lambda (y) (- (force x) (force y)))))
   
-  (define primitive:int-multiply (lambda (x) (lambda (y) (* (force x) (force y)))))
+  (define primitive:number-multiply (lambda (x) (lambda (y) (* (force x) (force y)))))
   
-  (define primitive:int-divide (lambda (x) (lambda (y) (/ (force x) (force y)))))
+  (define primitive:number-divide (lambda (x) (lambda (y) (/ (force x) (force y)))))
   
-  #;(define primitive:int-equal (lambda (x) (lambda (y) (equal? (force x) (force y)))))
+  (define primitive:equal (lambda (x) (lambda (y) (if (equal? (force x) (force y))
+                                                      (force haskell:True)
+                                                      (force haskell:False)))))
   
-  #;(define primitive:int-not-equal (lambda (x) (lambda (y) (not (equal? (force x) (force y))))))
+  (define primitive:not-equal (lambda (x) (lambda (y) (not (equal? (force x) (force y))))))
   
   (define (primitive:strict term)
     (let ((value (force term)))
