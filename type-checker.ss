@@ -18,7 +18,7 @@
                  (dc (foldl append null (map data-context da)))
                  (di (map (lambda (x) (car (declaration-term-patterns x))) de))
                  (dt (map (lambda (x) (fresh-type-variable)) de))
-                 (tc (append (zip di dt) ic))
+                 (tc (append (zip di dt) dc ic))
                  ((t c) (lunzip2 (map (lambda (x) (reconstruct-types tc x)) de)))
                  (s (unify-constraints (append (zip-with make-constraint dt t) (foldl append null c))))
                  (st (map (lambda (x) (substitute-types s x)) t)))
