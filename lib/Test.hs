@@ -75,10 +75,10 @@ tupcon5 = (,) (,) (,);
 
 -- if tests
 
-{-if1 = if true then 1 else 2;
-if2 = if false then 'a' else 'b';
-if3 = if (\x -> x) false then 1 else 2;
-if4 = if if true then true else false then 'a' else 'b';-}
+if1 = if True then 1 else 2;
+if2 = if False then 'a' else 'b';
+if3 = if (\x -> x) False then 1 else 2;
+if4 = if if True then True else False then 'a' else 'b';
 
 -- let tests
 
@@ -95,26 +95,36 @@ let10 = let { a = 1 } in let { b = a } in b;
 let11 = let { a x = x } in let { b = a 2 } in b;
 let12 = let { a x = x } in let { b = a 2 ; c = a 'b' } in a;
 
--- primitive tests
+-- prelude tests
 
-(+) = :scheme Int -> Int -> Int "primitive:int-add";
+(+) = :scheme Int -> Int -> Int "primitive:number-add";
 
-(-) = :scheme Int -> Int -> Int "primitive:int-subtract";
+(-) = :scheme Int -> Int -> Int "primitive:number-subtract";
 
-(*) = :scheme Int -> Int -> Int "primitive:int-multiply";
+(*) = :scheme Int -> Int -> Int "primitive:number-multiply";
 
-(/) = :scheme Int -> Int -> Int "primitive:int-divide";
+(/) = :scheme Int -> Int -> Int "primitive:number-divide";
+
+(==) = :scheme Int -> Int -> Bool "primitive:equal";
+
+(/=) = :scheme Int -> Int -> Bool "primitive:not-equal";
 
 pr1 = let { i = [(+) ((+) 1 2) (((+) 1) 2), (-) ((-) 1 2) (((-) 1) 2), (*) ((*) 1 2) (((*) 1) 2), (/) ((/) 1 2) (((/) 1) 2)] } in i;
 pr2 = let { i = (:) 'f' ((:) 'o' "o") } in i;
 pr3 = let { i = (:) (head ['a']) [] } in i;
 pr4 = let { i = (:) 'a' (tail ['b']) } in i;
 pr5 = let { i = (:) (fst ('a', 1)) [] } in i;
-pr6 = let { i = (:) (snd (1, 'a')) [] } in i
+pr6 = let { i = (:) (snd (1, 'a')) [] } in i;
 
 -- nested tests
-{-
-hmap f x = if null x then [] else (:) (f (head x)) (hmap f (tail x));
+
+x && y = if isFalse x then False else y;
+
+x || y = if isTrue x then True else y;
+
+not x = if isTrue x then False else True;
+
+map f x = if null x then [] else (:) (f (head x)) (map f (tail x));
 
 filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h then (:) h (filter p t) else filter p t;
 
@@ -126,7 +136,7 @@ hor x = if null x then False else (||) (head x) (hor (tail x));
 
 foldr f z x = let { fold x = if null x then z else f (head x) (fold (tail x)) } in fold x;
 
-hlength x = if null x then 0 else (+) 1 (hlength (tail x));
+length x = if null x then 0 else (+) 1 (length (tail x));
 
 flip f x y = f y x;
 
@@ -143,5 +153,5 @@ x !! n = if (==) n 0 then head x else (!!) (tail x) ((-) n 1);
 x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
 
 fib = (:) 0 ((:) 1 (zipWith (+) fib (tail fib)))
--}
+
 }
