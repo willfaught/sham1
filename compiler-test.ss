@@ -53,14 +53,14 @@
                 (test-case-x "ap4" "(\\x -> x) 1 2")
                 (test-case-e "ch1" "'a'" #\a)
                 (test-case-dp "da1"
-                              (list "data A = B")
-                              `(lambda () (equal? (force haskell:B) (make-haskell-constructor:B))))
+                              (list "data A = A")
+                              `(lambda () (equal? (force haskell:A) (make-haskell-constructor:A))))
                 (test-case-dp "da2"
-                              (list "data A = B")
-                              `(lambda () (equal? ((force haskell:isB) (delay (force haskell:B))) (force haskell:True))))
+                              (list "data A = A")
+                              `(lambda () (equal? ((force haskell:isA) (delay (force haskell:A))) (force haskell:True))))
                 (test-case-dp "da3"
-                              (list "data A = B")
-                              `(lambda () (haskell-type:A? (force haskell:B))))
+                              (list "data A = A")
+                              `(lambda () (haskell-type:A? (force haskell:A))))
                 (test-case-dp "da4"
                               (list "data A = B | C")
                               `(lambda () (equal? ((force haskell:isB) (delay (force haskell:B))) (force haskell:True))))
