@@ -5,7 +5,6 @@
   (provide (all-defined-except type-variable-count))
   
   (define-struct type () #f)
-  (define-struct (boolean-type type) () #f)
   (define-struct (character-type type) () #f)
   (define-struct (float-type type) () #f)
   (define-struct (function-type type) (parameter-type result-type) #f)
@@ -30,10 +29,8 @@
   ; translate-type-constructor :: type-constructor -> type
   (define (translate-type-constructor type)
     (match type
-      (($ type-constructor "Bool") (make-boolean-type))
       (($ type-constructor "Char") (make-character-type))
       (($ type-constructor "Int") (make-integer-type))
-      (($ type-constructor "Integer") (make-integer-type))
       (($ type-constructor "Float") (make-float-type))
       (type type)))
   

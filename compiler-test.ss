@@ -97,6 +97,8 @@
                 (test-case-p "id5" "tail" (lambda (x) (strict-equal? (x (delay (cons (delay 1) (delay null)))) null)))
                 (test-case-p "id6" "fst" (lambda (x) (equal? (x (delay (vector-immutable (delay 1) (delay 2)))) 1)))
                 (test-case-p "id7" "snd" (lambda (x) (equal? (x (delay (vector-immutable (delay 1) (delay 2)))) 2)))
+                (test-case-e "if1" "if True then 1 else 2" 1)
+                (test-case-e "if2" "if False then 1 else 2" 2)
                 (test-case-e "in1" "1" 1)
                 (test-case-e "le1" "let { i = 1 } in 2" 2)
                 (test-case-e "le2" "let { i = 1 ; j = 2 } in 3" 3)

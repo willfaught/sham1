@@ -116,7 +116,7 @@
       (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(strings->symbol "haskell:" (car p))) ,(compile-term (make-function-term (cdr p) b)))))
       (($ haskell-term type term) `(contract ,(haskell-contract type) ,(haskell->scheme type (compile-term term) 1) 'haskell 'scheme))
       (($ identifier-term i) (let ((x (assoc i primitives))) (if x (list-ref x 1) `(force ,(strings->symbol "haskell:" i)))))
-      (($ if-term g t e) `(if ,(compile-term g) ,(compile-term t) ,(compile-term e)))
+      (($ if-term g t e) `(if (equal? ,(compile-term g) (force haskell:True)) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
