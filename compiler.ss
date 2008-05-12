@@ -137,7 +137,6 @@
   ; haskell-contract :: type -> contract
   (define (haskell-contract type)
     (match type
-      (($ boolean-type) `any/c)
       (($ character-type) `any/c)
       (($ float-type) `any/c)
       (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
@@ -151,7 +150,6 @@
   (define (haskell->scheme type term depth)
     (let ((id `(lambda (x) x)))
       (match type
-        (($ boolean-type) term)
         (($ character-type) term)
         (($ float-type) term)
         (($ function-type p r) (let ((i (identifier depth)))
@@ -177,7 +175,6 @@
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
     (match type
-      (($ boolean-type) `(flat-contract boolean?))
       (($ character-type) `(flat-contract char?))
       (($ float-type) `(flat-contract number?))
       (($ function-type p r) `(-> ,(haskell-contract p) ,(scheme-contract r)))
@@ -197,7 +194,6 @@
   (define (scheme->haskell type term depth)
     (let ((id `(lambda (x) x)))
       (match type
-        (($ boolean-type) term)
         (($ character-type) term)
         (($ float-type) term)
         (($ function-type p r) (let ((i (identifier depth)))
