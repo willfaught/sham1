@@ -47,8 +47,8 @@
     (match-let (((type constraints) (reconstruct-types context term)))
       (normalize-type-variables (substitute-types (unify-constraints constraints) type))))
   
-  ; primitives :: ((string type))
-  (define primitives
+  ; prelude :: ((string type))
+  (define prelude
     `((":" ,(make-universal-type (list (make-type-variable "a"))
                                  (make-function-type (make-type-variable "a")
                                                      (make-function-type (make-list-type (make-type-variable "a"))
@@ -59,9 +59,9 @@
       ("tail" ,(make-universal-type (list (make-type-variable "a"))
                                     (make-function-type (make-list-type (make-type-variable "a"))
                                                         (make-list-type (make-type-variable "a")))))
-      #;("null" ,(make-universal-type (list (make-type-variable "a"))
-                                      (make-function-type (make-list-type (make-type-variable "a"))
-                                                          (make-boolean-type))))
+      ("null" ,(make-universal-type (list (make-type-variable "a"))
+                                    (make-function-type (make-list-type (make-type-variable "a"))
+                                                        (make-type-constructor "Bool"))))
       ("fst" ,(make-universal-type (list (make-type-variable "a")
                                          (make-type-variable "b"))
                                    (make-function-type (make-tuple-type (list (make-type-variable "a")
@@ -93,7 +93,7 @@
       (($ function-term p b) (match-let* ((p-types (map (lambda (x) (fresh-type-variable)) p)) 
                                           ((type constraints) (reconstruct-types (append (zip p p-types) context) b)))
                                (list (foldr (lambda (x y) (make-function-type x y)) type p-types) constraints)))
-      (($ identifier-term i) (let ((t (match (assoc i primitives)
+      (($ identifier-term i) (let ((t (match (assoc i prelude)
                                         ((_ t) t)
                                         (_ (match (assoc i context)
                                              ((_ t) t)
