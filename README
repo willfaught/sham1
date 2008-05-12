@@ -19,13 +19,13 @@ The following notable grammar is not supported:
 
     Binary functions must be applied in prefix position.  For example, (:) 1 [2] instead of 1 : [2].
 
-  - Conditional and case expressions
+  - Case expressions
 
-    Conditional expressions are not supported yet because data types are not yet supported.  Case expressions are useless without pattern matching.
+    Case expressions are useless without pattern matching.
 
   - Parameterized data types
 
-    Data type variables are not supported.  Types must appear alone on the left hand side of a data type declaration.
+    Data declaration type variables are not supported.  Types must appear alone on the left hand side of a data type declaration.
 
   - Anonymous data fields
 
@@ -51,7 +51,7 @@ Put the following line at the top of any Haskell file:
 
 #reader (lib "reader.ss" "haskell")
 
-The file can then be run.  All top-level Haskell identifiers are prefixed with "scheme:", but exported unchanged.
+The file can then be run.  All top-level Haskell identifiers are prefixed with "scheme:", but are exported unchanged.
 
 4. REMARKS
 
