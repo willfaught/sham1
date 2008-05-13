@@ -2,6 +2,7 @@
   (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
            (only (lib "43.ss" "srfi") vector-map)
            (lib "contract.ss")
+           (only (lib "list.ss") foldr)
            (lib "match.ss"))
   
   (provide (all-defined))
@@ -35,57 +36,110 @@
   (define scheme:fst (delay (contract (-> (vector/c any/c
                                                     any/c)
                                           any/c)
-                                      (force haskell:fst)
+                                      (lambda (x1)
+                                        ((force haskell:fst) (delay (let ((x x1))
+                                                                      (vector-immutable (delay (vector-ref x
+                                                                                                           0))
+                                                                                        (delay (vector-ref x
+                                                                                                           1)))))))
                                       'haskell
                                       'scheme)))
   
-  (define scheme:head (delay (contract (-> (and/c (listof any/c)
-                                                  (flat-contract proper-list?)
-                                                  (flat-contract (lambda (x) (not (circular-list? x)))))
-                                           any/c)
-                                       (force haskell:head)
-                                       'haskell
-                                       'scheme)))
+  (define scheme:head (delay (contract
+                              (-> (and/c (listof any/c)
+                                         (flat-contract proper-list?)
+                                         (flat-contract (lambda (x)
+                                                          (not (circular-list? x)))))
+                                  any/c)
+                              (lambda (x1)
+                                ((force haskell:head) (delay (foldr (lambda (x y)
+                                                                      (cons-immutable (delay x)
+                                                                                      (delay y)))
+                                                                    null
+                                                                    x1))))
+                              'haskell
+                              'scheme)))
   
-  (define scheme:isFalse (delay (contract (-> (flat-contract haskell-type:Bool?) any/c) (lambda (x1) ((force haskell:isFalse) (delay x1))) 'haskell 'scheme)))
+  (define scheme:isFalse (delay (contract (-> (flat-contract haskell-type:Bool?)
+                                              any/c)
+                                          (lambda (x1)
+                                            ((force haskell:isFalse) (delay x1)))
+                                          'haskell
+                                          'scheme)))
   
-  (define scheme:isTrue (delay (contract (-> (flat-contract haskell-type:Bool?) any/c) (lambda (x1) ((force haskell:isTrue) (delay x1))) 'haskell 'scheme)))
+  (define scheme:isTrue (delay (contract (-> (flat-contract haskell-type:Bool?)
+                                             any/c)
+                                         (lambda (x1)
+                                           ((force haskell:isTrue) (delay x1)))
+                                         'haskell
+                                         'scheme)))
   
-  (define scheme:null (delay (contract (-> (and/c (listof any/c)
-                                                  (flat-contract proper-list?)
-                                                  (flat-contract (lambda (x) (not (circular-list? x)))))
-                                           any/c)
-                                       (force haskell:null)
-                                       'haskell
-                                       'scheme)))
+  (define scheme:null (delay (contract
+                              (-> (and/c (listof any/c)
+                                         (flat-contract proper-list?)
+                                         (flat-contract (lambda (x)
+                                                          (not (circular-list? x)))))
+                                  any/c)
+                              (lambda (x1)
+                                ((force haskell:null) (delay (foldr (lambda (x y)
+                                                                      (cons-immutable (delay x)
+                                                                                      (delay y)))
+                                                                    null
+                                                                    x1))))
+                              'haskell
+                              'scheme)))
   
   (define scheme:snd (delay (contract (-> (vector/c any/c
                                                     any/c)
                                           any/c)
-                                      (force haskell:snd)
+                                      (lambda (x1)
+                                        ((force haskell:snd) (delay (let ((x x1))
+                                                                      (vector-immutable (delay (vector-ref x 0))
+                                                                                        (delay (vector-ref x 1)))))))
                                       'haskell
                                       'scheme)))
   
-  (define scheme:tail (delay (contract (-> (and/c (listof any/c)
-                                                  (flat-contract proper-list?)
-                                                  (flat-contract (lambda (x) (not (circular-list? x)))))
-                                           any/c)
-                                       (force haskell:tail)
+  (define scheme:tail (delay (contract
+                              (-> (and/c (listof any/c)
+                                         (flat-contract proper-list?)
+                                         (flat-contract (lambda (x)
+                                                          (not (circular-list? x)))))
+                                  any/c)
+                              (lambda (x1)
+                                ((force haskell:tail) (delay (foldr (lambda (x y)
+                                                                      (cons-immutable (delay x)
+                                                                                      (delay y)))
+                                                                    null
+                                                                    x1))))
+                              'haskell
+                              'scheme)))
+  
+  (define scheme:False (delay (contract any/c
+                                        (force haskell:False)
+                                        'haskell
+                                        'scheme)))
+  
+  (define scheme:True (delay (contract any/c
+                                       (force haskell:True)
                                        'haskell
                                        'scheme)))
   
-  (define scheme:False (delay (contract any/c (force haskell:False) 'haskell 'scheme)))
-  
-  (define scheme:True (delay (contract any/c (force haskell:True) 'haskell 'scheme)))
-  
-  (define scheme:: (delay (contract (-> any/c
-                                        (-> (and/c (listof any/c)
-                                                   (flat-contract proper-list?)
-                                                   (flat-contract (lambda (x) (not (circular-list? x)))))
-                                            any/c))
-                                    (force haskell::)
-                                    'haskell
-                                    'scheme)))
+  (define scheme:: (delay (contract
+                           (-> any/c
+                               (-> (and/c (listof any/c)
+                                          (flat-contract proper-list?)
+                                          (flat-contract (lambda (x)
+                                                           (not (circular-list? x)))))
+                                   any/c))
+                           (lambda (x1)
+                             (lambda (x2)
+                               (((force haskell::) (delay x1)) (delay (foldr (lambda (x y)
+                                                                                  (cons-immutable (delay x)
+                                                                                                  (delay y)))
+                                                                                null
+                                                                                x2)))))
+                           'haskell
+                           'scheme)))
   
   (define primitive:error
     (lambda (s) (error (string-append "*** Exception: " (list->string (primitive:strict s))))))
