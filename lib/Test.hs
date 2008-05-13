@@ -130,9 +130,9 @@ filter p x = if null x then [] else let { h = head x ; t = tail x } in if p h th
 
 foldl f z x = let { fold z x = if null x then z else fold (f z (head x)) (tail x) } in fold z x;
 
-hand x = if null x then True else (&&) (head x) (hand (tail x));
+and x = if null x then True else (&&) (head x) (and (tail x));
 
-hor x = if null x then False else (||) (head x) (hor (tail x));
+or x = if null x then False else (||) (head x) (or (tail x));
 
 foldr f z x = let { fold x = if null x then z else f (head x) (fold (tail x)) } in fold x;
 
@@ -140,7 +140,7 @@ length x = if null x then 0 else (+) 1 (length (tail x));
 
 flip f x y = f y x;
 
-hreverse x = let { rev x a = if null x then a else rev (tail x) ((:) (head x) a) } in rev x [];
+reverse x = let { rev x a = if null x then a else rev (tail x) ((:) (head x) a) } in rev x [];
 
 (.) f g x = f (g x);
 
