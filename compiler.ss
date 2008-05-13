@@ -1,5 +1,4 @@
 ; known issues:
-; - declarations shadowing prelude declarations don't work
 ; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
 
 (module compiler mzscheme
