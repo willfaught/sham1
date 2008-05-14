@@ -10,7 +10,7 @@
            (lib "types.ss" "haskell")
            (lib "parsers.ss" "haskell"))
   
-  (provide compile-data-term compile-term compile-module)
+  (provide compile-data-term compile-term)
   
   ; characters :: immutable-hash-table
   (define characters
@@ -78,8 +78,8 @@
                      `(,(strings->symbol "haskell:" (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
-  ; compile-module :: module-term -> datum
-  (define (compile-module m)
+  ; compile-module-term :: module-term -> datum
+  (define (compile-module-term m)
     ; compile-declaration-term :: declaration-term -> datum
     (define compile-declaration-term
       (match-lambda
@@ -116,6 +116,7 @@
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
+      ((? module-term? m) (compile-module-term m))
       (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
