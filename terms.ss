@@ -39,6 +39,9 @@
   ; if-term :: term term term
   (define-struct (if-term term) (guard then else) #f)
   
+  ; import-term :: string string
+  (define-struct (import-term term) (path alias) #f)
+  
   ; integer-term :: integer
   (define-struct (integer-term term) (integer) #f)
   
@@ -48,8 +51,8 @@
   ; list-term :: (term)
   (define-struct (list-term term) (expressions) #f)
   
-  ; module-term :: string (declaration-term)
-  (define-struct (module-term term) (identifier declarations) #f)
+  ; module-term :: string import-term (declaration-term)
+  (define-struct (module-term term) (identifier imports declarations) #f)
   
   ; scheme-term :: type string
   (define-struct (scheme-term term) (type identifier) #f)

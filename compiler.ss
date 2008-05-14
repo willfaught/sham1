@@ -71,6 +71,15 @@
                  (db `(delay (lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x)))))))
       `(define ,di ,db)))
   
+  ; compile-import-term :: import-term -> datum
+  (define (compile-import-term i)
+    (let* ((p (import-term-path i)))
+      (if (not (file-exists? p))
+          (error 'compile-import-term "error: ~a is not a file" p)
+          (let ((f `(file ,p))
+                (a (import-term-alias i)))
+            (if (not (equal? a #f)) `(prefix ,(string->symbol a) ,f) f)))))
+  
   ; compile-let-term :: (declaration-term) term -> datum
   (define (compile-let-term d e)
     (define compile-declaration-term
@@ -98,7 +107,8 @@
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                   (lib "contract.ss")
                   (only (lib "list.ss") foldr)
-                  (lib "primitives.ss" "haskell"))
+                  (lib "primitives.ss" "haskell")
+                  ,@(map compile-import-term mim))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
          ,@(foldl append null (map compile-data-term da))
          ,@(map compile-declaration-term (append sd hd)))))

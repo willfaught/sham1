@@ -2,6 +2,8 @@
 
 module Test where {
 
+import "/Users/wfaught/haskell/lib/empty.ss";
+
 data Tree = Branch { left :: Tree, right :: Tree } | Leaf { leaf :: Fruit } | Ha;
 
 data Fruit = Apple { foo :: Tree } | Orange { bar :: Tree };

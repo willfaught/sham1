@@ -127,22 +127,22 @@
                                                     (make-integer-term "2"))))
                 (test-case-me "mo1"
                               "module M where {}"
-                              (make-module-term "M" null))
+                              (make-module-term "M" null null))
                 (test-case-me "mo2"
                               "{}"
-                              (make-module-term "none" null))
+                              (make-module-term "none" null null))
                 (test-case-me "mo3"
                               "{ x = 1 }"
-                              (make-module-term "none" (list (make-declaration-term (list "x")
+                              (make-module-term "none" null (list (make-declaration-term (list "x")
                                                                                     (make-integer-term "1")))))
                 (test-case-me "mo4"
                               "{ x = 1 ; data A = B }"
-                              (make-module-term "none" (list (make-declaration-term (list "x")
+                              (make-module-term "none" null (list (make-declaration-term (list "x")
                                                                                     (make-integer-term "1"))
                                                              (make-data-term "A" (list (make-constructor-term "B" null))))))
                 (test-case-me "mo5"
                               "{ data A = B ; x = 1 }"
-                              (make-module-term "none" (list (make-data-term "A" (list (make-constructor-term "B" null)))
+                              (make-module-term "none" null (list (make-data-term "A" (list (make-constructor-term "B" null)))
                                                              (make-declaration-term (list "x")
                                                                                     (make-integer-term "1")))))
                 (test-case-ee "sc1"
