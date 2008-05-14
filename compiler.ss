@@ -1,6 +1,3 @@
-; known issues:
-; - cannot enforce arguments corresponding with the same type variable to have the same type using any/c
-
 (module compiler mzscheme
   (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
@@ -91,7 +88,7 @@
     ; scheme-declaration :: (string type) -> declaration-term
     (define scheme-declaration
       (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
-    (match-let* ((($ module-term mi md) m)
+    (match-let* ((($ module-term mi mim md) m)
                  ((da de) (values->list (partition data-term? md)))
                  (mc (module-context null m))
                  ((di _) (values->list (unzip2 mc)))
