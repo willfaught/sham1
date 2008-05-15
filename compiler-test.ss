@@ -12,6 +12,8 @@
   
   (provide run-tests)
   
+  (define-struct lump (contents))
+  
   ; test-case-dp :: string (string) datum -> schemeunit-test-case
   (define (test-case-dp n d p)
     (test-true n (eval `(begin ,@(foldl append null (map (lambda (x) (compile-data-term (parse-declaration x))) d)) (,p)))))
@@ -88,7 +90,7 @@
                 (test-case-he "ha5" "Int" "1" 1)
                 (test-case-he "ha6" "[a]" "[1]" (cons (delay 1) (delay null)))
                 (test-case-he "ha7" "(Int, Int)" "(1, 2)" (vector-immutable (delay 1) (delay 2)))
-                (test-case-he "ha8" "a" "1" 1)
+                (test-case-hp "ha8" "a" "1" (lambda (x) (equal? (lump-contents x) 1)))
                 (test-case-x "id1" "x")
                 (test-case-p "id2" "(:)" (lambda (x) (strict-equal? ((x (delay 1)) (delay null)) (cons (delay 1) (delay null)))))
                 (test-case-p "id3" "(:)" (lambda (x) (strict-equal? ((x (delay 1)) (delay (cons (delay 2) (delay null))))

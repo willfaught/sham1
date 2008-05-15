@@ -1,3 +1,4 @@
 (module empty mzscheme
   (provide (all-defined))
-  (define foo 42))
+  
+  (define (empty:id x) x))

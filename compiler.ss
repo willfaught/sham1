@@ -110,6 +110,7 @@
                   (lib "primitives.ss" "haskell")
                   ,@(map compile-import-term mim))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
+         (define-struct lump (contents))
          ,@(foldl append null (map compile-data-term da))
          ,@(map compile-declaration-term (append sd hd)))))
   
@@ -165,7 +166,7 @@
         (($ list-type _) term)
         (($ tuple-type _) term)
         (($ type-constructor _) term)
-        (($ type-variable _) term))))
+        (($ type-variable _) `(make-lump ,term)))))
   
   ; identifier :: integer -> symbol
   (define (identifier n)
@@ -203,7 +204,7 @@
                                      (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
                                 `(let ((x ,term)) (vector-immutable ,@elements))))
         (($ type-constructor _) term)
-        (($ type-variable _) term))))
+        (($ type-variable _) `(let ((x ,term)) (if (lump? x) (force (lump-contents x)) x))))))
   
   ; strings->symbol :: string... -> symbol
   (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x)))))
