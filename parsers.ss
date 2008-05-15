@@ -155,7 +155,7 @@
                               ((t-lcbracket nt-impdecls t-rcbracket) (cons $2 null))
                               ((t-lcbracket nt-topdecls t-rcbracket) (cons null $2)))
                      (nt-impdecls ((nt-impdecl) (list $1))
-                                  ((nt-impdecls t-semicolon nt-impdecl) (cons $3 $1)))
+                                  #;((nt-impdecls t-semicolon nt-impdecl) (cons $3 $1)))
                      (nt-impdecl ((t-import t-string) (make-import-term (foldr (lambda (x y) (string-append (character-term-character x) y)) "" $2) #f))
                                  ((t-import t-varid t-string t-varid nt-modid)
                                   (cond ((not (equal? $2 "qualified"))
