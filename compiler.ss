@@ -92,7 +92,7 @@
     (match-let ((($ ml-term t i) term))
       `(let ((x (assoc ,i ml:types)))
          (if (and (not (equal? x #f))
-                  (primitive:type-less-general? ,(type->datum t) (list-ref x 1)))
+                  (primitive:type-less-general? ,(type->datum (translate-type-constructor t)) (list-ref x 1)))
              ,(ml->haskell t (string->symbol i) 1)
              (error "Haskell and ML type mismatch")))))
   
@@ -169,14 +169,14 @@
   (define (haskell->ml type term depth)
     (match type
       (($ character-type) (error 'haskell->ml "ML does not have a character type"))
-      (($ float-type) term)
+      (($ float-type) `(primitive:strict ,term))
       (($ function-type p r) (let ((i (identifier depth)))
                                `(lambda (,i) ,(haskell->ml r `(,term (delay ,(ml->haskell p i (+ depth 1)))) (+ depth 1)))))
-      (($ integer-type) term)
+      (($ integer-type) `(primitive:strict ,term))
       (($ list-type _) (error 'haskell->ml "ML does not have a list type"))
       (($ tuple-type _) `(primitive:strict ,term))
       (($ type-constructor _) (error 'haskell->ml "ML does not have a compound type"))
-      (($ type-variable _) term)))
+      (($ type-variable _) `(primitive:strict ,term))))
   
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
@@ -195,21 +195,6 @@
   ; identifier :: integer -> symbol
   (define (identifier n)
     (string->symbol (string-append "x" (number->string n))))
-  
-  ; map-parameters :: datum (datum -> datum) integer -> datum
-  (define (map-parameters function mapper parameter-number)
-    ; nest-arguments :: integer -> datum
-    (define (nest-arguments argument-count)
-      (if (equal? argument-count 0)
-          function
-          `(,(nest-arguments (- argument-count 1)) ,(mapper (identifier argument-count)))))
-    ; nest-functions :: datum integer integer -> datum
-    (define (nest-functions applications function-number function-count)
-      (if (equal? function-number function-count)
-          applications
-          (let ((c (+ function-count 1)))
-            `(lambda (,(identifier c)) ,(nest-functions applications function-number c)))))
-    (nest-functions (nest-arguments parameter-number) parameter-number 0))
   
   ; ml->haskell :: type term integer -> datum
   (define (ml->haskell type term depth)
