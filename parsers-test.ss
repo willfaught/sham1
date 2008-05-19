@@ -125,6 +125,10 @@
                               "[1, 2]"
                               (make-list-term (list (make-integer-term "1")
                                                     (make-integer-term "2"))))
+                (test-case-ee "ml1"
+                              ":ml Int \"x\""
+                              (make-ml-term (make-integer-type)
+                                            "x"))
                 (test-case-me "mo1"
                               "module M where {}"
                               (make-module-term "M" null null))
@@ -133,18 +137,24 @@
                               (make-module-term "none" null null))
                 (test-case-me "mo3"
                               "{ x = 1 }"
-                              (make-module-term "none" null (list (make-declaration-term (list "x")
-                                                                                    (make-integer-term "1")))))
+                              (make-module-term "none"
+                                                null
+                                                (list (make-declaration-term (list "x")
+                                                                             (make-integer-term "1")))))
                 (test-case-me "mo4"
                               "{ x = 1 ; data A = B }"
-                              (make-module-term "none" null (list (make-declaration-term (list "x")
-                                                                                    (make-integer-term "1"))
-                                                             (make-data-term "A" (list (make-constructor-term "B" null))))))
+                              (make-module-term "none"
+                                                null
+                                                (list (make-declaration-term (list "x")
+                                                                             (make-integer-term "1"))
+                                                      (make-data-term "A" (list (make-constructor-term "B" null))))))
                 (test-case-me "mo5"
                               "{ data A = B ; x = 1 }"
-                              (make-module-term "none" null (list (make-data-term "A" (list (make-constructor-term "B" null)))
-                                                             (make-declaration-term (list "x")
-                                                                                    (make-integer-term "1")))))
+                              (make-module-term "none"
+                                                null
+                                                (list (make-data-term "A" (list (make-constructor-term "B" null)))
+                                                      (make-declaration-term (list "x")
+                                                                             (make-integer-term "1")))))
                 (test-case-ee "sc1"
                               ":scheme A \"x\""
                               (make-scheme-term (make-type-constructor "A")

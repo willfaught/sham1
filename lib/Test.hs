@@ -2,7 +2,9 @@
 
 module Test where {
 
-import "/Users/wfaught/haskell/lib/empty.ss";
+import "/Applications/PLT Scheme v371/collects/smootxes/examples/simple.ocaml";
+
+
 
 data Tree = Branch { left :: Tree, right :: Tree } | Leaf { leaf :: Fruit } | Ha;
 

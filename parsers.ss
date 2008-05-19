@@ -50,7 +50,7 @@
     (a-reservedid (:or "case" "class" "data" "default" "deriving" "do" "else" "if" "import" "in" "infix" "infixl" "infixr" "instance" "let" "module" "newtype" "of" "then" "type" "where" "_"))
     (a-reservedop (:or ":" "::" "=" #\\ "|" "->")))
   
-  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-data t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-module t-of t-pipe t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-scheme t-semicolon t-then t-underscore t-where))
+  (define-empty-tokens keywords (eof t-backslash t-backtick t-case t-colon t-coloncolon t-comma t-data t-else t-equal t-if t-import t-in t-lcbracket t-let t-lrbracket t-lsbracket t-ml t-module t-of t-pipe t-rbracketcon t-rcbracket t-rrbracket t-rsbracket t-singlearrow t-sbracketcon t-scheme t-semicolon t-then t-underscore t-where))
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
@@ -71,6 +71,7 @@
                    ("let" (token-t-let))
                    ("(" (token-t-lrbracket))
                    ("[" (token-t-lsbracket))
+                   (":ml" (token-t-ml))
                    ("module" (token-t-module))
                    ("of" (token-t-of))
                    ("|" (token-t-pipe))
@@ -214,7 +215,9 @@
                               ((t-lrbracket nt-exp nt-aexp-2 t-rrbracket) (if (null? $3) $2 (make-tuple-term (cons $2 $3))))
                               ((t-lsbracket nt-exp nt-aexp-2 t-rsbracket) (make-list-term (cons $2 $3)))
                               ((t-scheme nt-type t-string) (make-scheme-term (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x)) $2)
-                                                                             (foldr (lambda (x y) (string-append (character-term-character x) y)) "" $3))))
+                                                                             (foldr (lambda (x y) (string-append (character-term-character x) y)) "" $3)))
+                              ((t-ml nt-type t-string) (make-ml-term (map-type (lambda (x) (if (type-constructor? x) (translate-type-constructor x) x)) $2)
+                                                                     (foldr (lambda (x y) (string-append (character-term-character x) y)) "" $3))))
                      (nt-aexp-2 (() null)
                                 ((t-comma nt-exp nt-aexp-2) (cons $2 $3)))
                      (nt-qvar ((nt-qvarid) $1)

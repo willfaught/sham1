@@ -87,6 +87,15 @@
                      `(,(strings->symbol "haskell:" (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
     `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
   
+  ; compile-ml-term :: ml-term -> datum
+  (define (compile-ml-term term)
+    (match-let ((($ ml-term t i) term))
+      `(let ((x (assoc ,i ml:types)))
+         (if (and (not (equal? x #f))
+                  (primitive:type-less-general? ,(type->datum t) (list-ref x 1)))
+             ,(ml->haskell t (string->symbol i) 1)
+             (error "Haskell and ML type mismatch")))))
+  
   ; compile-module-term :: module-term -> datum
   (define (compile-module-term m)
     ; compile-declaration-term :: declaration-term -> datum
@@ -106,7 +115,7 @@
       `(module ,(string->symbol mi) mzscheme
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                   (lib "contract.ss")
-                  (only (lib "list.ss") foldr)
+                  (only (lib "list.ss") foldl foldr)
                   (lib "primitives.ss" "haskell")
                   ,@(map compile-import-term mim))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
@@ -127,6 +136,7 @@
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
       (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
+      ((? ml-term? x) (compile-ml-term x))
       ((? module-term? m) (compile-module-term m))
       (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
@@ -154,6 +164,19 @@
       (($ type-constructor _) `any/c)
       (($ type-variable _) `any/c)))
   
+  ; haskell->ml :: type term integer -> datum
+  (define (haskell->ml type term depth)
+    (match type
+      (($ character-type) (error 'haskell->ml "ML does not have a character type"))
+      (($ float-type) term)
+      (($ function-type p r) (let ((i (identifier depth)))
+                               `(lambda (,i) ,(haskell->ml r `(,term (delay ,(ml->haskell p i (+ depth 1)))) (+ depth 1)))))
+      (($ integer-type) term)
+      (($ list-type _) (error 'haskell->ml "ML does not have a list type"))
+      (($ tuple-type _) `(primitive:strict ,term))
+      (($ type-constructor _) (error 'haskell->ml "ML does not have a compound type"))
+      (($ type-variable _) term)))
+  
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
     (let ((id `(lambda (x) x)))
@@ -171,6 +194,34 @@
   ; identifier :: integer -> symbol
   (define (identifier n)
     (string->symbol (string-append "x" (number->string n))))
+  
+  ; map-parameters :: datum (datum -> datum) integer -> datum
+  (define (map-parameters function mapper parameter-number)
+    ; nest-arguments :: integer -> datum
+    (define (nest-arguments argument-count)
+      (if (equal? argument-count 0)
+          function
+          `(,(nest-arguments (- argument-count 1)) ,(mapper (identifier argument-count)))))
+    ; nest-functions :: datum integer integer -> datum
+    (define (nest-functions applications function-number function-count)
+      (if (equal? function-number function-count)
+          applications
+          (let ((c (+ function-count 1)))
+            `(lambda (,(identifier c)) ,(nest-functions applications function-number c)))))
+    (nest-functions (nest-arguments parameter-number) parameter-number 0))
+  
+  ; ml->haskell :: type term integer -> datum
+  (define (ml->haskell type term depth)
+    (match type
+      (($ function-type p r) (let ((i (identifier depth)))
+                               `(lambda (,i) ,(ml->haskell r `(,term ,(haskell->ml p i (+ depth 1))) (+ depth 1)))))
+      (($ integer-type) term)
+      (($ list-type ($ character-type)) `(foldr (lambda (x y) (cons-immutable (delay x) (delay y))) null (string->list ,term)))
+      (($ tuple-type t) (let* ((pairs (zip t (list-tabulate (length t) (lambda (x) x))))
+                               (elements (map (match-lambda ((t i) `(delay ,(ml->haskell t `(vector-ref x ,i) depth)))) pairs)))
+                          `(let ((x ,term)) (vector-immutable ,@elements))))
+      (($ type-constructor "Bool") `(if ,term (force haskell:True) (force haskell:False)))
+      (($ type-variable _) term)))
   
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
@@ -207,4 +258,16 @@
         (($ type-variable _) `(let ((x ,term)) (if (lump? x) (force (lump-contents x)) x))))))
   
   ; strings->symbol :: string... -> symbol
-  (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x)))))
+  (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
+  
+  ; type->datum :: type -> datum
+  (define (type->datum type)
+    (match type
+      (($ character-type) `(make-character-type))
+      (($ float-type) `(make-float-type))
+      (($ function-type p r) `(make-function-type ,(type->datum p) ,(type->datum r)))
+      (($ integer-type) `(make-integer-type))
+      (($ list-type t) `(make-list-type ,(type->datum t)))
+      (($ tuple-type t) `(make-tuple-type (list ,@(map type->datum t))))
+      (($ type-constructor i) `(make-type-constructor ,i))
+      (($ type-variable i) `(make-type-variable ,i)))))

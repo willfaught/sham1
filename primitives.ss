@@ -2,8 +2,9 @@
   (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
            (only (lib "43.ss" "srfi") vector-map)
            (lib "contract.ss")
-           (only (lib "list.ss") foldr)
-           (lib "match.ss"))
+           (only (lib "list.ss") foldl foldr)
+           (lib "match.ss")
+           (lib "types.ss" "haskell"))
   
   (provide (all-defined))
   
@@ -185,4 +186,16 @@
                             (if ((force primitive:boolean-not) (delay ((force primitive:list-null) (delay ((force primitive:list-tail) (delay (force v)))))))
                                 (print-list (delay ((force primitive:list-tail) (delay (force v))))))))
                  (display ")")
-                 (force r)))))))
+                 (force r))))))
+  
+  ; primitive:type-less-general? :: type type -> boolean
+  (define (primitive:type-less-general? x y)
+    (match (list x y)
+      (((? type-variable? _) (? type-variable? _)) #t)
+      (((? (lambda (x) (not (type-variable? x)))) (? type-variable? _)) #t)
+      (((? type-variable? _) (? (lambda (x) (not (type-variable? x))))) #f)
+      ((($ function-type p1 r1) ($ function-type p2 r2)) (and (primitive:type-less-general? p1 p2)
+                                                              (primitive:type-less-general? r1 r2)))
+      ((($ tuple-type t1) ($ tuple-type t2)) (and (equal? (length t1) (length t2))
+                                                  (foldl (lambda (x y) (and x y)) #t (map primitive:type-less-general? t1 t2))))
+      ((x y) (equal? x y)))))

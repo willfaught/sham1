@@ -51,6 +51,9 @@
   ; list-term :: (term)
   (define-struct (list-term term) (expressions) #f)
   
+  ; ml-term :: type string
+  (define-struct (ml-term term) (type identifier) #f)
+  
   ; module-term :: string import-term (declaration-term)
   (define-struct (module-term term) (identifier imports declarations) #f)
   
