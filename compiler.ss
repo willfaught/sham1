@@ -207,6 +207,7 @@
                                (elements (map (match-lambda ((t i) `(delay ,(ml->haskell t `(vector-ref x ,i) depth)))) pairs)))
                           `(let ((x ,term)) (vector-immutable ,@elements))))
       (($ type-constructor "Bool") `(if ,term (force haskell:True) (force haskell:False)))
+      (($ type-constructor "()") `(force haskell:|()|))
       (($ type-variable _) term)))
   
   ; scheme-contract :: type -> contract
