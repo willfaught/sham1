@@ -92,6 +92,9 @@
                 (test-case-ee "id3"
                               "(:)"
                               (make-identifier-term ":"))
+                (test-case-ee "id4"
+                              "()"
+                              (make-identifier-term "()"))
                 (test-case-ee "if1"
                               "if x then 1 else 2"
                               (make-if-term (make-identifier-term "x")
@@ -190,7 +193,10 @@
                                                      (make-type-constructor "B"))))
                 (test-case-te "ty5"
                               "a"
-                              (make-type-variable "a"))))
+                              (make-type-variable "a"))
+                (test-case-te "ty6"
+                              "()"
+                              (make-type-constructor "()"))))
   
   ; parse-declaration :: string -> term
   (define (parse-declaration expression)

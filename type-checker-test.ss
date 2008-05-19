@@ -119,6 +119,7 @@
                 (test-case-e "id9" "False" "Bool")
                 (test-case-e "id10" "True" "Bool")
                 (test-case-e "id11" "(:)" "t -> [t] -> [t]")
+                (test-case-e "id12" "()" "()")
                 (test-case-e "if1" "if True then 1 else 2" "Int")
                 (test-case-x "if2" "if 1 then 2 else 3")
                 (test-case-x "if3" "if True then 1 else 'a'")

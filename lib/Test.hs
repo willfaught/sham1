@@ -4,7 +4,15 @@ module Test where {
 
 import "/Applications/PLT Scheme v371/collects/smootxes/examples/simple.ocaml";
 
-test = (:ml Int -> Int "fact") 5;
+-- units
+
+un1 = ();
+
+-- ml expressions
+
+ml1 = (:ml Int -> Int "fact") 5;
+
+-- types
 
 data Tree = Branch { left :: Tree, right :: Tree } | Leaf { leaf :: Fruit } | Ha;
 
@@ -12,15 +20,15 @@ data Fruit = Apple { foo :: Tree } | Orange { bar :: Tree };
 
 data A = A;
 
--- character tests
+-- characters
 
 char1 = 'a';
 
--- float tests
+-- floats
 
 float1 = 1.2;
 
--- integer tests
+-- integers
 
 int1 = 3;
 

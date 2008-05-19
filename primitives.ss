@@ -14,15 +14,25 @@
   
   (define-struct (haskell-constructor:True haskell-type:Bool) () #f)
   
+  (define-struct haskell-type:|()| () #f)
+  
+  (define-struct (haskell-constructor:|()| haskell-type:|()|) () #f)
+  
   (define haskell:fst (delay (lambda (t) (force (vector-ref (force t) 0)))))
   
   (define haskell:head (delay (lambda (l) (force (car (force l))))))
   
-  (define haskell:isFalse (delay (lambda (x) (if (haskell-constructor:False? (force x)) (make-haskell-constructor:True) (make-haskell-constructor:False)))))
+  (define haskell:isFalse (delay (lambda (x) (if (haskell-constructor:False? (force x))
+                                                 (make-haskell-constructor:True)
+                                                 (make-haskell-constructor:False)))))
   
-  (define haskell:isTrue (delay (lambda (x) (if (haskell-constructor:True? (force x)) (make-haskell-constructor:True) (make-haskell-constructor:False)))))
+  (define haskell:isTrue (delay (lambda (x) (if (haskell-constructor:True? (force x))
+                                                (make-haskell-constructor:True)
+                                                (make-haskell-constructor:False)))))
   
-  (define haskell:null (delay (lambda (l) (null? (force l)))))
+  (define haskell:null (delay (lambda (x) (if (null? (force x))
+                                              (make-haskell-constructor:True)
+                                              (make-haskell-constructor:False)))))
   
   (define haskell:snd (delay (lambda (t) (force (vector-ref (force t) 1)))))
   
@@ -33,6 +43,8 @@
   (define haskell:True (delay (make-haskell-constructor:True)))
   
   (define haskell:: (delay (lambda (h) (lambda (t) (cons-immutable h t)))))
+  
+  (define haskell:|()| (delay (make-haskell-constructor:|()|)))
   
   (define scheme:fst (delay (contract (-> (vector/c any/c
                                                     any/c)
@@ -141,6 +153,11 @@
                                                                                 x2)))))
                            'haskell
                            'scheme)))
+  
+  (define scheme:\(\) (delay (contract any/c
+                                       (force haskell:|()|)
+                                       'haskell
+                                       'scheme)))
   
   (define primitive:error
     (lambda (s) (error (string-append "*** Exception: " (list->string (primitive:strict s))))))

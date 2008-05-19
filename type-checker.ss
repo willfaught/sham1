@@ -78,7 +78,8 @@
       (":" ,(make-universal-type (list (make-type-variable "a"))
                                  (make-function-type (make-type-variable "a")
                                                      (make-function-type (make-list-type (make-type-variable "a"))
-                                                                         (make-list-type (make-type-variable "a"))))))))
+                                                                         (make-list-type (make-type-variable "a"))))))
+      ("()" ,(make-type-constructor "()"))))
   
   ; reconstruct-types :: [(string, type)] term -> (type, [constraint])
   (define (reconstruct-types context term)
