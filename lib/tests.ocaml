@@ -1,0 +1,23 @@
+#reader (lib "reader.ss" "smootxes")
+
+#module ("tests")
+
+#include ()
+
+let mlBoolean1 = false;;
+
+let mlBoolean2 = true;;
+
+let mlFunction1 = fun x -> x;;
+
+let mlFunction2 = fun (a, (b, (c, (d, e)))) -> (e, (d, (c, (b, a))));;
+
+let rec mlFunction3 n = if n = 0 then 0 else n + mlFunction3 (n - 1);;
+
+let mlInt = 1;;
+
+let mlString = "test";;
+
+let mlTuple = (false, (true, ((fun x -> x), (1, "test"))));;
+
+let mlUnit = ();;
