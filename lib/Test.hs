@@ -4,7 +4,7 @@ module Test where {
 
 import "/Applications/PLT Scheme v371/collects/smootxes/examples/simple.ocaml";
 
-
+test = (:ml Int -> Int "fact") 5;
 
 data Tree = Branch { left :: Tree, right :: Tree } | Leaf { leaf :: Fruit } | Ha;
 
