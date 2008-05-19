@@ -1,6 +1,7 @@
 (module type-checker-test mzscheme
   (require (lib "match.ss")
            (lib "parsers.ss" "haskell")
+           (lib "test.ocaml" "haskell" "lib")
            (lib "type-checker.ss" "haskell")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
@@ -145,6 +146,7 @@
                 (test-case-e "li3" "\"\"" "[t]")
                 (test-case-e "li4" "\"foo\"" "[Char]")
                 (test-case-x "li5" "[1, 'a']")
+                (test-case-e "ml1" ":ml Int \"mlInt\"" "Int")
                 (test-case-mnx "mo1" "{}")
                 (test-case-mnx "mo2" "{ i = 1 }")
                 (test-case-mnx "mo3" "{ i = i }")
