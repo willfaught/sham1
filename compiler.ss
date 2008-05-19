@@ -117,6 +117,7 @@
                   (lib "contract.ss")
                   (only (lib "list.ss") foldl foldr)
                   (lib "primitives.ss" "haskell")
+                  (lib "types.ss" "haskell")
                   ,@(map compile-import-term mim))
          (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
          (define-struct lump (contents))
