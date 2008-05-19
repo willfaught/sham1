@@ -127,6 +127,7 @@
                              (list (make-list-type head-type)
                                    (append (map (lambda (x) (make-constraint head-type x)) tail-types)
                                            (foldl append null e-constraints))))))
+      (($ ml-term t _) (list t null))
       (($ scheme-term type _) (list type null))
       (($ tuple-term e) (match-let (((e-types e-constraints) (lunzip2 (map (lambda (x) (reconstruct-types context x)) e))))
                           (list (make-tuple-type e-types) (foldl append null e-constraints))))
