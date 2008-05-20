@@ -2,7 +2,7 @@
 
 module SchemeTest where {
 
-import "test.ss";
+import "scheme.ss";
 
 sc1 = :scheme Bool "schemeBoolean1";
 sc2 = :scheme Bool "schemeBoolean2";
