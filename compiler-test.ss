@@ -7,6 +7,7 @@
            (lib "primitives.ss" "haskell")
            (lib "parsers.ss" "haskell")
            (lib "terms.ss" "haskell")
+           (lib "test.ocaml" "haskell" "lib")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
@@ -124,31 +125,68 @@
                 (test-case-e "li1" "[]" null)
                 (test-case-e "li2" "[1]" (cons (delay 1) (delay null)))
                 (test-case-e "li3" "[1, 2]" (cons (delay 1) (delay (cons (delay 2) (delay null)))))
-                (test-case-e "ml-bo1" ":ml Bool \"ml-boolean\"" (force haskell:True))
-                (test-case-x "ml-bo2" ":ml Bool \"ml-integer\"")
-                (test-case-x "ml-bo3" ":ml Bool \"ml-string\"")
-                (test-case-x "ml-bo4" ":ml Bool \"ml-tuple\"")
-                (test-case-x "ml-bo5" ":ml Bool \"ml-unit\"")
-                (test-case-x "ml-in1" ":ml Int \"ml-boolean\"")
-                (test-case-e "ml-in2" ":ml Int \"ml-integer\"" 1)
-                (test-case-x "ml-in3" ":ml Int \"ml-string\"")
-                (test-case-x "ml-in4" ":ml Int \"ml-tuple\"")
-                (test-case-x "ml-in5" ":ml Int \"ml-unit\"")
-                (test-case-x "ml-st1" ":ml [Char] \"ml-boolean\"")
-                (test-case-x "ml-st2" ":ml [Char] \"ml-integer\"")
-                (test-case-e "ml-st3" ":ml [Char] \"ml-string\"" (cons (delay #\a) (delay null)))
-                (test-case-x "ml-st4" ":ml [Char] \"ml-tuple\"")
-                (test-case-x "ml-st5" ":ml [Char] \"ml-unit\"")
-                (test-case-x "ml-tu1" ":ml (Int, Int) \"ml-boolean\"")
-                (test-case-x "ml-tu2" ":ml (Int, Int) \"ml-integer\"")
-                (test-case-x "ml-tu3" ":ml (Int, Int) \"ml-string\"")
-                (test-case-e "ml-tu4" ":ml (Int, Int) \"ml-tuple\"" (vector-immutable (delay 1) (delay 2)))
-                (test-case-x "ml-tu5" ":ml (Int, Int) \"ml-unit\"")
-                (test-case-x "ml-un1" ":ml () \"ml-boolean\"")
-                (test-case-x "ml-un2" ":ml () \"ml-integer\"")
-                (test-case-x "ml-un3" ":ml () \"ml-string\"")
-                (test-case-x "ml-un4" ":ml () \"ml-tuple\"")
-                (test-case-e "ml-un5" ":ml () \"ml-unit\"" (force haskell:|()|))
+                (test-case-e "ml-bo1" ":ml Bool \"mlBoolean1\"" (force haskell:False))
+                (test-case-x "ml-bo2" ":ml Bool \"mlFunction1\"")
+                (test-case-x "ml-bo3" ":ml Bool \"mlInteger\"")
+                (test-case-x "ml-bo4" ":ml Bool \"mlString\"")
+                (test-case-x "ml-bo5" ":ml Bool \"mlTuple\"")
+                (test-case-x "ml-bo6" ":ml Bool \"mlUnit\"")
+                (test-case-x "ml-in1" ":ml Int \"mlBoolean1\"")
+                (test-case-x "ml-in2" ":ml Int \"mlFunction1\"")
+                (test-case-e "ml-in3" ":ml Int \"mlInteger\"" 1)
+                (test-case-x "ml-in4" ":ml Int \"mlString\"")
+                (test-case-x "ml-in5" ":ml Int \"mlTuple\"")
+                (test-case-x "ml-in6" ":ml Int \"mlUnit\"")
+                (test-case-x "ml-st1" ":ml [Char] \"mlBoolean1\"")
+                (test-case-x "ml-st2" ":ml [Char] \"mlFunction1\"")
+                (test-case-x "ml-st3" ":ml [Char] \"mlInteger\"")
+                (test-case-e "ml-st4" ":ml [Char] \"mlString\"" (cons (delay #\a) (delay (cons (delay #\b) (delay null)))))
+                (test-case-x "ml-st5" ":ml [Char] \"mlTuple\"")
+                (test-case-x "ml-st6" ":ml [Char] \"mlUnit\"")
+                (test-case-x "ml-fu1" ":ml Int -> Int \"mlBoolean1\"")
+                (test-case-p "ml-fu2" ":ml Int -> Int \"mlFunction1\"" (lambda (x) (equal? (x (delay 1)) 1)))
+                (test-case-x "ml-fu3" ":ml Int -> Int \"mlInteger\"")
+                (test-case-x "ml-fu4" ":ml Int -> Int \"mlString\"")
+                (test-case-x "ml-fu5" ":ml Int -> Int \"mlTuple\"")
+                (test-case-x "ml-fu6" ":ml Int -> Int \"mlUnit\"")
+                (test-case-p "ml-fu7"
+                             ":ml Bool -> Bool \"mlFunction1\""
+                             (lambda (x)
+                               (strict-equal? (x (delay (force haskell:False)))
+                                              (force haskell:False))))
+                (test-case-p "ml-fu8"
+                             ":ml ((Bool, Bool), (Bool, Bool)) -> ((Bool, Bool), (Bool, Bool)) \"mlFunction1\""
+                             (lambda (x)
+                               (let ((v (vector-immutable (delay (vector-immutable (delay (force haskell:True))
+                                                                                   (delay (force haskell:False))))
+                                                          (delay (vector-immutable (delay (force haskell:True))
+                                                                                   (delay (force haskell:False)))))))
+                                 (strict-equal? (x (delay v)) v))))
+                (test-case-p "ml-fu9" ":ml () -> () \"mlFunction1\"" (lambda (x) (equal? (x (delay (force haskell:|()|))) (force haskell:|()|))))
+                (test-case-p "ml-fu10"
+                             ":ml a -> a \"mlFunction1\""
+                             (lambda (x)
+                               (let ((s (cons (delay #\a)
+                                              (delay (cons (delay #\b)
+                                                           (delay null))))))
+                                 (strict-equal? (x (delay s)) s))))
+                (test-case-x "ml-tu1" ":ml (Bool, [Char]) \"mlBoolean1\"")
+                (test-case-x "ml-tu2" ":ml (Bool, [Char]) \"mlFunction1\"")
+                (test-case-x "ml-tu3" ":ml (Bool, [Char]) \"mlInteger\"")
+                (test-case-x "ml-tu4" ":ml (Bool, [Char]) \"mlString\"")
+                (test-case-e "ml-tu5"
+                             ":ml (Bool, [Char]) \"mlTuple\""
+                             (vector-immutable (delay (force haskell:False))
+                                               (delay (cons (delay #\a)
+                                                            (delay (cons (delay #\b)
+                                                                         (delay null)))))))
+                (test-case-x "ml-tu6" ":ml (Bool, [Char]) \"mlUnit\"")
+                (test-case-x "ml-un1" ":ml () \"mlBoolean1\"")
+                (test-case-x "ml-un2" ":ml () \"mlFunction1\"")
+                (test-case-x "ml-un3" ":ml () \"mlInteger\"")
+                (test-case-x "ml-un4" ":ml () \"mlString\"")
+                (test-case-x "ml-un5" ":ml () \"mlTuple\"")
+                (test-case-e "ml-un6" ":ml () \"mlUnit\"" (force haskell:|()|))
                 (test-case-e "sc-ch1" ":scheme Char \"scheme-character\"" #\a)
                 (test-case-x "sc-ch2" ":scheme Char \"scheme-float\"")
                 (test-case-x "sc-ch3" ":scheme Char \"scheme-function\"")
@@ -202,34 +240,6 @@
   ; eval-r :: string -> 'a
   (define (eval-r expression)
     (eval (compile-term (parse-expression expression))))
-  
-  ; ml-boolean :: boolean
-  (define ml-boolean #t)
-  
-  ; ml-integer :: integer
-  (define ml-integer 1)
-  
-  ; ml-function :: boolean -> boolean
-  (define ml-function (lambda (x) (not x)))
-  
-  ; ml-string :: string
-  (define ml-string "a")
-  
-  ; ml-tuple :: vector
-  (define ml-tuple (vector-immutable 1 2))
-  
-  ; ml-unit :: haskell-constructor:|()|
-  (define ml-unit (force haskell:|()|))
-  
-  ; ml:types :: ((string type))
-  (define ml:types `(("ml-boolean" ,(make-type-constructor "Bool"))
-                     ("ml-integer" ,(make-integer-type))
-                     ("ml-function" ,(make-function-type (make-type-constructor "Bool")
-                                                         (make-type-constructor "Bool")))
-                     ("ml-string" ,(make-list-type (make-character-type)))
-                     ("ml-tuple" ,(make-tuple-type (list (make-integer-type)
-                                                         (make-integer-type))))
-                     ("ml-unit" ,(make-type-constructor "()"))))
   
   ; parse-declaration :: string -> term
   (define (parse-declaration d)

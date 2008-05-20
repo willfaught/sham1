@@ -168,15 +168,19 @@
   ; haskell->ml :: type term integer -> datum
   (define (haskell->ml type term depth)
     (match type
-      (($ character-type) (error 'haskell->ml "ML does not have a character type"))
-      (($ float-type) `(primitive:strict ,term))
+      (($ character-type) (error 'haskell->ml "ML does not support a character type"))
+      (($ float-type) term)
       (($ function-type p r) (let ((i (identifier depth)))
                                `(lambda (,i) ,(haskell->ml r `(,term (delay ,(ml->haskell p i (+ depth 1)))) (+ depth 1)))))
-      (($ integer-type) `(primitive:strict ,term))
-      (($ list-type _) (error 'haskell->ml "ML does not have a list type"))
-      (($ tuple-type _) `(primitive:strict ,term))
-      (($ type-constructor _) (error 'haskell->ml "ML does not have a compound type"))
-      (($ type-variable _) `(primitive:strict ,term))))
+      (($ integer-type) term)
+      (($ list-type _) (error 'haskell->ml "ML does not support a compound type"))
+      (($ tuple-type t) `(vector-immutable ,@(map (match-lambda ((t i) (haskell->ml t `(vector-ref (force ,term) ,i) 1)))
+                                                  (zip t (list-tabulate (length t) (lambda (x) x))))))
+      (($ type-constructor "Bool") `(equal? (force ,term) (force haskell:True)))
+      (($ type-constructor "()") `(begin (force ,term)
+                                         (vector-immutable)))
+      (($ type-constructor _) (error 'haskell->ml "ML does not support a compound type"))
+      (($ type-variable _) term)))
   
   ; haskell->scheme :: type term integer -> datum
   (define (haskell->scheme type term depth)
