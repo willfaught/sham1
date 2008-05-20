@@ -1,4 +1,4 @@
-(module test mzscheme
+(module scheme mzscheme
   (provide (all-defined))
   
   (define schemeBoolean1 #f)
@@ -9,7 +9,7 @@
   
   (define schemeFloat 1.2)
   
-  (define schemeFunction1 (lambda (x) x))
+  (define schemeFunction (lambda (x) x))
   
   (define schemeInteger 1)
   
