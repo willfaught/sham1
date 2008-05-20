@@ -2,7 +2,7 @@
 
 module MLTest where {
 
-import "test.ocaml";
+import "ml.ml";
 
 ml1 = :ml Bool "mlBoolean1";
 ml2 = :ml Bool "mlBoolean2";
