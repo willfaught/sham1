@@ -1,12 +1,12 @@
 (module type-checker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
-           (lib "list.ss" "haskell")
-           (lib "terms.ss" "haskell")
-           (lib "types.ss" "haskell")
+           (lib "list.ss" "sham" "haskell")
+           (lib "terms.ss" "sham" "haskell")
+           (lib "types.ss" "sham" "haskell")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
-           (lib "parsers.ss" "haskell"))
+           (lib "parsers.ss" "sham" "haskell"))
   
   (provide module-context reconstruct-type)
   

@@ -265,10 +265,10 @@
   ;;
   ;; READ
   ;;
-  (require (lib "list.ss" "haskell")
+  (require (lib "list.ss" "sham" "haskell")
            (lib "match.ss")
            (lib "pretty.ss")
-           (prefix haskell. (lib "types.ss" "haskell")))
+           (prefix haskell. (lib "types.ss" "sham" "haskell")))
   
   ; convert-type :: type -> haskell.type
   (define (convert-type type)
@@ -313,7 +313,7 @@
                    #`(module #,(program-module program) mzscheme
                        (require (lib "contract.ss")
                                 (lib "ml-primitives.ss" "smootxes")
-                                (prefix haskell. (lib "types.ss" "haskell"))
+                                (prefix haskell. (lib "types.ss" "sham" "haskell"))
                                 #,@(map (lambda (include) (list 'file include)) (program-includes program)))
                        (provide (all-defined))
                        #,(type-exports (map (lambda (x) (symbol->string (id-val (let-def-id x)))) let-defs) types)

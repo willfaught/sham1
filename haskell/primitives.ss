@@ -4,7 +4,7 @@
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
            (lib "match.ss")
-           (lib "types.ss" "haskell"))
+           (lib "types.ss" "sham" "haskell"))
   
   (provide (all-defined))
   

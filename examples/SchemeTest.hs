@@ -1,4 +1,4 @@
-#reader (lib "reader.ss" "haskell")
+#reader (lib "reader.ss" "sham" "haskell")
 
 module SchemeTest where {
 

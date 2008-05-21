@@ -1,15 +1,15 @@
 (module compiler-test mzscheme
   (require (only (lib "1.ss" "srfi") circular-list? proper-list? zip)
-           (lib "compiler.ss" "haskell")
+           (lib "compiler.ss" "sham" "haskell")
            (lib "contract.ss")
            (lib "list.ss")
            (lib "match.ss")
-           (lib "ml.ml" "haskell" "lib")
-           (lib "primitives.ss" "haskell")
-           (lib "parsers.ss" "haskell")
-           (lib "scheme.ss" "haskell" "lib")
-           (lib "terms.ss" "haskell")
-           (lib "types.ss" "haskell")
+           (lib "ml.ml" "sham" "examples")
+           (lib "primitives.ss" "sham" "haskell")
+           (lib "parsers.ss" "sham" "haskell")
+           (lib "scheme.ss" "sham" "examples")
+           (lib "terms.ss" "sham" "haskell")
+           (lib "types.ss" "sham" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide run-tests)
@@ -27,18 +27,6 @@
   ; test-case-fx :: string string ('a -> 'a) -> schemeunit-test-case
   (define (test-case-fx name expression f)
     (test-exn name (lambda (x) #t) (lambda () (f (eval-r expression)))))
-  
-  ; test-case-he :: string string string 'a -> schemeunit-test-case
-  (define (test-case-he name type expression value)
-    (test-check name strict-equal? (eval-h type expression) value))
-  
-  ; test-case-hfx :: string string string ('a -> 'a) -> schemeunit-test-case
-  (define (test-case-hfx name type expression f)
-    (test-exn name (lambda (x) #t) (lambda () (f (eval-h type expression)))))
-  
-  ; test-case-hp :: string string string ('a -> boolean) -> schemeunit-test-case
-  (define (test-case-hp name type expression predicate)
-    (test-pred name predicate (eval-h type expression)))
   
   ; test-case-p :: string string ('a -> boolean) -> schemeunit-test-case
   (define (test-case-p name expression predicate)
@@ -85,14 +73,6 @@
                 (test-case-fx "fu2" "\\x -> x" (lambda (x) ((x (delay 1)) (delay 2))))
                 (test-case-p "fu3" "\\x y -> x" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
                 (test-case-fx "fu4" "\\x y -> x" (lambda (x) (((x (delay 1)) (delay 2)) (delay 3))))
-                (test-case-he "ha1" "Char" "'a'" #\a)
-                (test-case-he "ha2" "Float" "1.2" 1.2)
-                (test-case-hp "ha3" "[Int] -> [Int]" "\\x -> x" (lambda (x) (strict-equal? (x (list 1)) (cons (delay 1) (delay null)))))
-                (test-case-hfx "ha4" "[Int] -> [Int]" "\\x -> x" (lambda (x) (x 1)))
-                (test-case-he "ha5" "Int" "1" 1)
-                (test-case-he "ha6" "[a]" "[1]" (cons (delay 1) (delay null)))
-                (test-case-he "ha7" "(Int, Int)" "(1, 2)" (vector-immutable (delay 1) (delay 2)))
-                (test-case-hp "ha8" "a" "1" (lambda (x) (equal? (lump-contents x) 1)))
                 (test-case-x "id1" "x")
                 (test-case-p "id2" "fst" (lambda (x) (equal? (x (delay (vector-immutable (delay 1) (delay 2)))) 1)))
                 (test-case-p "id3" "head" (lambda (x) (equal? (x (delay (cons (delay 1) (delay null)))) 1)))

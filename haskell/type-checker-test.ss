@@ -1,9 +1,10 @@
 (module type-checker-test mzscheme
   (require (lib "match.ss")
-           (lib "parsers.ss" "haskell")
-           (lib "test.ocaml" "haskell" "lib")
-           (lib "type-checker.ss" "haskell")
-           (lib "types.ss" "haskell")
+           (lib "parsers.ss" "sham" "haskell")
+           (lib "ml.ml" "sham" "examples")
+           (lib "scheme.ss" "sham" "examples")
+           (lib "type-checker.ss" "sham" "haskell")
+           (lib "types.ss" "sham" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide run-tests)
@@ -165,7 +166,7 @@
                 (test-case-mnx "mo16" "{ i = let { i x = x } in i ; j = i 1 }")
                 (test-case-mx "mo17" "{ i = [i] }")
                 (test-case-mx "mo18" "{ i = (i, i) }")
-                (test-case-e "sc1" ":scheme Int -> Int -> Int \"primitive:int-add\"" "Int -> Int -> Int")
+                (test-case-e "sc1" ":scheme Int \"schemeInteger\"" "Int")
                 (test-case-e "tu1" "('a', 1)" "(Char, Int)")
                 (test-case-e "tu2" "('b', 1, 1)" "(Char, Int, Int)")
                 (test-case-e "tc1" "(,)" "t -> t1 -> (t, t1)")

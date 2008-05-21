@@ -1,6 +1,6 @@
 (module reader mzscheme
-  (require (lib "compiler.ss" "haskell")
-           (lib "parsers.ss" "haskell"))
+  (require (lib "compiler.ss" "sham" "haskell")
+           (lib "parsers.ss" "sham" "haskell"))
   
   (provide (rename read-haskell-syntax read-syntax))
   

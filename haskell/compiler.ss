@@ -3,12 +3,12 @@
            (only (lib "71.ss" "srfi") values->list)
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
-           (lib "list.ss" "haskell")
+           (lib "list.ss" "sham" "haskell")
            (lib "match.ss")
-           (lib "terms.ss" "haskell")
-           (lib "type-checker.ss" "haskell")
-           (lib "types.ss" "haskell")
-           (lib "parsers.ss" "haskell"))
+           (lib "terms.ss" "sham" "haskell")
+           (lib "type-checker.ss" "sham" "haskell")
+           (lib "types.ss" "sham" "haskell")
+           (lib "parsers.ss" "sham" "haskell"))
   
   (provide compile-data-term compile-term)
   
@@ -110,19 +110,19 @@
                  ((da de) (values->list (partition data-term? md)))
                  (mc (module-context null m))
                  ((di _) (values->list (unzip2 mc)))
-                 (sd (map scheme-declaration mc))
+                 #;(sd (map scheme-declaration mc))
                  (hd (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) de)))
       `(module ,(string->symbol mi) mzscheme
          (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
                   (lib "contract.ss")
                   (only (lib "list.ss") foldl foldr)
-                  (lib "primitives.ss" "haskell")
-                  (lib "types.ss" "haskell")
+                  (lib "primitives.ss" "sham" "haskell")
+                  (lib "types.ss" "sham" "haskell")
                   ,@(map compile-import-term mim))
-         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "scheme:" x)) ,(string->symbol x))) di))
+         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "haskell:" x)) ,(string->symbol x))) di))
          (define-struct lump (contents))
          ,@(foldl append null (map compile-data-term da))
-         ,@(map compile-declaration-term (append sd hd)))))
+         ,@(map compile-declaration-term hd))))
   
   ; compile-term :: term -> datum
   (define (compile-term term)
@@ -165,55 +165,6 @@
       (($ type-constructor _) `any/c)
       (($ type-variable _) `any/c)))
   
-  ; haskell->ml :: type term integer -> datum
-  (define (haskell->ml type term depth)
-    (match type
-      (($ character-type) (error 'haskell->ml "ML does not support a character type"))
-      (($ float-type) term)
-      (($ function-type p r) (let ((i (identifier depth)))
-                               `(lambda (,i) ,(haskell->ml r `(,term (delay ,(ml->haskell p i (+ depth 1)))) (+ depth 1)))))
-      (($ integer-type) term)
-      (($ list-type _) (error 'haskell->ml "ML does not support a compound type"))
-      (($ tuple-type t) `(vector-immutable ,@(map (match-lambda ((t i) (haskell->ml t `(vector-ref (force ,term) ,i) 1)))
-                                                  (zip t (list-tabulate (length t) (lambda (x) x))))))
-      (($ type-constructor "Bool") `(equal? (force ,term) (force haskell:True)))
-      (($ type-constructor "()") `(begin (force ,term)
-                                         (vector-immutable)))
-      (($ type-constructor _) (error 'haskell->ml "ML does not support a compound type"))
-      (($ type-variable _) term)))
-  
-  ; haskell->scheme :: type term integer -> datum
-  (define (haskell->scheme type term depth)
-    (let ((id `(lambda (x) x)))
-      (match type
-        (($ character-type) term)
-        (($ float-type) term)
-        (($ function-type p r) (let ((i (identifier depth)))
-                                 `(lambda (,i) ,(haskell->scheme r `(,term (delay ,(scheme->haskell p i (+ depth 1)))) (+ depth 1)))))
-        (($ integer-type) term)
-        (($ list-type _) term)
-        (($ tuple-type _) term)
-        (($ type-constructor _) term)
-        (($ type-variable _) `(make-lump ,term)))))
-  
-  ; identifier :: integer -> symbol
-  (define (identifier n)
-    (string->symbol (string-append "x" (number->string n))))
-  
-  ; ml->haskell :: type term integer -> datum
-  (define (ml->haskell type term depth)
-    (match type
-      (($ function-type p r) (let ((i (identifier depth)))
-                               `(lambda (,i) ,(ml->haskell r `(,term ,(haskell->ml p i (+ depth 1))) (+ depth 1)))))
-      (($ integer-type) term)
-      (($ list-type ($ character-type)) `(foldr (lambda (x y) (cons-immutable (delay x) (delay y))) null (string->list ,term)))
-      (($ tuple-type t) (let* ((pairs (zip t (list-tabulate (length t) (lambda (x) x))))
-                               (elements (map (match-lambda ((t i) `(delay ,(ml->haskell t `(vector-ref x ,i) depth)))) pairs)))
-                          `(let ((x ,term)) (vector-immutable ,@elements))))
-      (($ type-constructor "Bool") `(if ,term (force haskell:True) (force haskell:False)))
-      (($ type-constructor "()") `(force haskell:|()|))
-      (($ type-variable _) term)))
-  
   ; scheme-contract :: type -> contract
   (define (scheme-contract type)
     (match type
@@ -231,22 +182,6 @@
                                 ("Int" (scheme-contract (make-integer-type)))
                                 (_ `(flat-contract ,(strings->symbol "haskell-type:" i "?")))))
       (($ type-variable _) `any/c)))
-  
-  ; scheme->haskell :: type term integer -> datum
-  (define (scheme->haskell type term depth)
-    (let ((f `(if (promise? ,term) (force ,term) ,term)))
-      (match type
-        (($ character-type) f)
-        (($ float-type) f)
-        (($ function-type p r) (let ((i (identifier depth)))
-                                 `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i (+ depth 1))) (+ depth 1)))))
-        (($ integer-type) f)
-        (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,f))
-        (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
-                                     (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
-                                `(let ((x ,f)) (vector-immutable ,@elements))))
-        (($ type-constructor _) f)
-        (($ type-variable _) `(let ((x ,f)) (if (lump? x) (force (lump-contents x)) x))))))
   
   ; strings->symbol :: string... -> symbol
   (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
