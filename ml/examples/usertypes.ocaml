@@ -1,0 +1,18 @@
+#reader(lib "reader.ss" "smootxes")
+
+#module ("usertypes")
+
+#include()
+
+type mytype = ZOOP 
+            | ZOOPR of int * int 
+            | DAGMAR ;;   
+
+let aba = 3;;
+
+let foo = ZOOP;;
+
+(* let froo = ZOOP;; 
+   *)
+
+

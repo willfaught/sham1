@@ -4,11 +4,11 @@
            (lib "contract.ss")
            (lib "list.ss")
            (lib "match.ss")
+           (lib "ml.ml" "haskell" "lib")
            (lib "primitives.ss" "haskell")
            (lib "parsers.ss" "haskell")
+           (lib "scheme.ss" "haskell" "lib")
            (lib "terms.ss" "haskell")
-           (lib "test.ocaml" "haskell" "lib")
-           (lib "test.ss" "haskell" "lib")
            (lib "types.ss" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
@@ -207,6 +207,22 @@
                 (test-case-fx "sc-fu5" ":scheme a -> a \"schemeList1\"" (lambda (x) (x (delay 1))))
                 (test-case-fx "sc-fu6" ":scheme a -> a \"schemeTuple\"" (lambda (x) (x (delay 1))))
                 (test-case-p "sc-fu7" ":scheme Int -> Int -> Int \"primitive:number-add\"" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 3)))
+                (test-case-p "sc-fu8" ":scheme Char -> Char \"schemeFunction\"" (lambda (x) (equal? (x (delay #\a)) #\a)))
+                (test-case-p "sc-fu9" ":scheme Float -> Float \"schemeFunction\"" (lambda (x) (equal? (x (delay 1.2)) 1.2)))
+                (test-case-p "sc-fu10" ":scheme (a -> a) -> a -> a \"schemeFunction\"" (lambda (x) (equal? ((x (delay (lambda (x) (force x)))) 1) 1)))
+                (test-case-p "sc-fu11" ":scheme Int -> Int \"schemeFunction\"" (lambda (x) (equal? (x (delay 1)) 1)))
+                (test-case-p "sc-fu12"
+                             ":scheme [a] -> [a] \"schemeFunction\""
+                             (lambda (x)
+                               (let ((s (cons (delay #\a)
+                                              (delay (cons (delay #\b)
+                                                           (delay null))))))
+                                 (strict-equal? (x (delay s)) s))))
+                (test-case-p "sc-fu13"
+                             ":scheme (a, b) -> (a, b) \"schemeFunction\""
+                             (lambda (x)
+                               (let ((v (vector-immutable (delay 1) (delay 2))))
+                                 (equal? (x (delay v)) v))))
                 (test-case-x "sc-in1" ":scheme Int \"schemeCharacter\"")
                 (test-case-x "sc-in2" ":scheme Int \"schemeFloat\"")
                 (test-case-x "sc-in3" ":scheme Int \"schemeFunction\"")

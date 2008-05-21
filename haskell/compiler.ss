@@ -234,19 +234,19 @@
   
   ; scheme->haskell :: type term integer -> datum
   (define (scheme->haskell type term depth)
-    (let ((id `(lambda (x) x)))
+    (let ((f `(if (promise? ,term) (force ,term) ,term)))
       (match type
-        (($ character-type) term)
-        (($ float-type) term)
+        (($ character-type) f)
+        (($ float-type) f)
         (($ function-type p r) (let ((i (identifier depth)))
                                  `(lambda (,i) ,(scheme->haskell r `(,term ,(haskell->scheme p i (+ depth 1))) (+ depth 1)))))
-        (($ integer-type) term)
-        (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,term))
+        (($ integer-type) f)
+        (($ list-type type) `(foldr (lambda (x y) (cons-immutable (delay ,(scheme->haskell type `x depth)) (delay y))) null ,f))
         (($ tuple-type types) (let* ((pairs (zip types (list-tabulate (length types) (lambda (x) x))))
                                      (elements (map (match-lambda ((type index) `(delay ,(scheme->haskell type `(vector-ref x ,index) depth)))) pairs)))
-                                `(let ((x ,term)) (vector-immutable ,@elements))))
-        (($ type-constructor _) term)
-        (($ type-variable _) `(let ((x ,term)) (if (lump? x) (force (lump-contents x)) x))))))
+                                `(let ((x ,f)) (vector-immutable ,@elements))))
+        (($ type-constructor _) f)
+        (($ type-variable _) `(let ((x ,f)) (if (lump? x) (force (lump-contents x)) x))))))
   
   ; strings->symbol :: string... -> symbol
   (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
