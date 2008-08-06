@@ -1,6 +1,7 @@
 (module compiler mzscheme
   (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
+           (lib "boundary.ss" "sham")
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
            (lib "list.ss" "sham" "haskell")
