@@ -2,7 +2,7 @@
   (require (lib "match.ss")
            (lib "list.ss")
            (lib "contract.ss")
-           (lib "ml-primitives.ss" "smootxes"))
+           (lib "ml-primitives.ss" "sham" "ml"))
   
   (provide (all-defined))
   
