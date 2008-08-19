@@ -42,7 +42,7 @@
   
   (define haskell:True (delay (make-haskell-constructor:True)))
   
-  (define haskell:: (delay (lambda (h) (lambda (t) (cons-immutable h t)))))
+  (define haskell:: (delay (lambda (h) (lambda (t) (cons h t)))))
   
   (define haskell:|()| (delay (make-haskell-constructor:|()|)))
   
@@ -66,8 +66,8 @@
                                   any/c)
                               (lambda (x1)
                                 ((force haskell:head) (delay (foldr (lambda (x y)
-                                                                      (cons-immutable (delay x)
-                                                                                      (delay y)))
+                                                                      (cons (delay x)
+                                                                            (delay y)))
                                                                     null
                                                                     x1))))
                               'haskell
@@ -95,8 +95,8 @@
                                   any/c)
                               (lambda (x1)
                                 ((force haskell:null) (delay (foldr (lambda (x y)
-                                                                      (cons-immutable (delay x)
-                                                                                      (delay y)))
+                                                                      (cons (delay x)
+                                                                            (delay y)))
                                                                     null
                                                                     x1))))
                               'haskell
@@ -120,8 +120,8 @@
                                   any/c)
                               (lambda (x1)
                                 ((force haskell:tail) (delay (foldr (lambda (x y)
-                                                                      (cons-immutable (delay x)
-                                                                                      (delay y)))
+                                                                      (cons (delay x)
+                                                                            (delay y)))
                                                                     null
                                                                     x1))))
                               'haskell
@@ -147,10 +147,10 @@
                            (lambda (x1)
                              (lambda (x2)
                                (((force haskell::) (delay x1)) (delay (foldr (lambda (x y)
-                                                                                  (cons-immutable (delay x)
-                                                                                                  (delay y)))
-                                                                                null
-                                                                                x2)))))
+                                                                               (cons (delay x)
+                                                                                     (delay y)))
+                                                                             null
+                                                                             x2)))))
                            'haskell
                            'scheme)))
   

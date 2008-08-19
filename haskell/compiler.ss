@@ -137,7 +137,7 @@
       (($ if-term g t e) `(if (equal? ,(compile-term g) (force haskell:True)) ,(compile-term t) ,(compile-term e)))
       (($ integer-term i) (string->number i))
       (($ let-term d e) (compile-let-term d e))
-      (($ list-term e) (if (null? e) null `(cons-immutable (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
+      (($ list-term e) (if (null? e) null `(cons (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
       ((? ml-term? x) (compile-ml-term x))
       ((? module-term? m) (compile-module-term m))
       (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
