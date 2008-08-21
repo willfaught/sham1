@@ -56,7 +56,8 @@
   
   ; scheme->haskell :: type term integer -> datum
   (define (scheme->haskell type term depth)
-    (let ((f `(if (promise? ,term) (force ,term) ,term)))
+    (let ((f `(let ((x ,term))
+                (if (promise? x) (force x) x))))
       (match type
         (($ character-type) f)
         (($ float-type) f)
