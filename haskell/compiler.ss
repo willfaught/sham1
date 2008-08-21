@@ -140,7 +140,7 @@
       (($ list-term e) (if (null? e) null `(cons (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
       ((? ml-term? x) (compile-ml-term x))
       ((? module-term? m) (compile-module-term m))
-      (($ scheme-term type identifier) (scheme->haskell type `(contract ,(scheme-contract type) ,(string->symbol identifier) 'scheme 'haskell) 1))
+      (($ scheme-term type identifier) `(contract ,(scheme-contract type) ,(scheme->haskell type (string->symbol identifier) 1) 'scheme 'haskell))
       (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
       (($ tuplecon-term a) (compile-tuplecon-term a))))
   
