@@ -5,6 +5,12 @@
   
   (define-struct (forall-type type) (variable type) #f)
   
+  (define-struct (function-type type) () #f)
+  
+  (define-struct (list-type type) () #f)
+  
+  (define-struct (tuple-type type) () #f)
+  
   (define-struct (type-application type) (operator operand) #f)
   
   (define-struct (type-constructor type) (identifier) #f)
