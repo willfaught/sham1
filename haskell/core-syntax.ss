@@ -1,42 +1,42 @@
-(module terms mzscheme
+(module core-syntax mzscheme
   (provide (all-defined))
   
-  (define-struct term () #f)
+  (define-struct core-syntax () #f)
   
-  (define-struct (application-term term) (operator operand) #f)
+  (define-struct (application core-syntax) (operator operand) #f)
   
-  (define-struct (character-term term) (character) #f)
+  (define-struct (character core-syntax) (value) #f)
   
-  (define-struct (data-term term) (name constructors) #f)
+  (define-struct (constructor core-syntax) (name fields) #f)
   
-  (define-struct (constructor-term term) (name fields) #f)
+  (define-struct (data core-syntax) (name constructors) #f)
   
-  (define-struct (field-term term) (name type) #f)
+  (define-struct (field core-syntax) (name type) #f)
   
-  (define-struct (float-term term) (float) #f)
+  (define-struct (float core-syntax) (value) #f)
   
-  (define-struct (function-term term) (parameter body) #f)
+  (define-struct (function core-syntax) (parameter body) #f)
   
-  (define-struct (haskell-term term) (type term) #f)
+  (define-struct (haskell core-syntax) (type name) #f)
   
-  (define-struct (identifier-term term) (name) #f)
+  (define-struct (identifier core-syntax) (name) #f)
   
-  (define-struct (if-term term) (guard then else) #f)
+  (define-struct (if core-syntax) (guard then else) #f)
   
-  (define-struct (import-term term) (path alias) #f)
+  (define-struct (import core-syntax) (path alias) #f)
   
-  (define-struct (integer-term term) (integer) #f)
+  (define-struct (integer core-syntax) (value) #f)
   
-  (define-struct (let-term term) (declarations body) #f)
+  (define-struct (let core-syntax) (declarations body) #f)
     
-  (define-struct (list-constructor-term) () #f)
+  (define-struct (list-constructor core-syntax) () #f)
   
-  (define-struct (ml-term term) (type identifier) #f)
+  (define-struct (ml core-syntax) (type name) #f)
   
-  (define-struct (module-term term) (identifier imports declarations) #f)
+  (define-struct (module core-syntax) (name imports declarations) #f)
   
-  (define-struct (scheme-term term) (type identifier) #f)
+  (define-struct (scheme core-syntax) (type name) #f)
   
-  (define-struct (tuple-constructor-term term) (arity) #f)
+  (define-struct (tuple-constructor core-syntax) (arity) #f)
   
-  (define-struct (unit-constructor-term term) () #f))
+  (define-struct (unit-constructor core-syntax) () #f))

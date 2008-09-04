@@ -29,7 +29,11 @@
   
   (define-struct (list haskell-syntax) (elements) #f)
   
+  (define-struct (ml haskell-syntax) (type name) #f)
+  
   (define-struct (module haskell-syntax) (name imports declarations) #f)
+  
+  (define-struct (scheme haskell-syntax) (type name) #f)
   
   (define-struct (tuple haskell-syntax) (elements) #f)
   
