@@ -3,18 +3,16 @@
   
   (define-struct type () #f)
   
-  (define-struct (forall-type type) (variable type) #f)
+  (define-struct (application type) (operator operand) #f)
   
-  (define-struct (function-constructor type) () #f)
+  (define-struct (constructor type) (name) #f)
   
-  (define-struct (list-constructor type) () #f)
+  (define-struct (function type) () #f)
   
-  (define-struct (tuple-constructor type) (arity) #f)
+  (define-struct (list type) () #f)
   
-  (define-struct (type-application type) (operator operand) #f)
+  (define-struct (tuple type) (arity) #f)
   
-  (define-struct (type-constructor type) (identifier) #f)
+  (define-struct (variable type) (name) #f)
   
-  (define-struct (type-variable type) (identifier) #f)
-  
-  (define-struct (unit-type type) () #f))
+  (define-struct (unit type) () #f))
