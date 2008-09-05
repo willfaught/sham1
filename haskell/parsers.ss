@@ -1,7 +1,7 @@
 (module parsers mzscheme
   (require (only (lib "1.ss" "srfi") zip)
            (only (lib "13.ss" "srfi") string-concatenate)
-           (lib "haskell-syntax.ss" "sham" "haskell")
+           (lib "HaskellSyntax.ss" "sham" "haskell")
            (lib "lex.ss" "parser-tools")
            (prefix : (lib "lex-sre.ss" "parser-tools"))
            (lib "list.ss")
