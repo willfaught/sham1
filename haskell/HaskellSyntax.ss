@@ -1,4 +1,4 @@
-(module haskell-syntax mzscheme
+(module HaskellSyntax mzscheme
   (provide (all-defined))
   
   (define-struct HaskellSyntax () #f)
@@ -15,7 +15,7 @@
   
   (define-struct (Declaration HaskellSyntax) (lhs rhs) #f)
   
-  (define-struct (Field HaskellSyntax) (name type) #f)
+  (define-struct (Field HaskellSyntax) (names type) #f)
   
   (define-struct (Float HaskellSyntax) (value) #f)
   
