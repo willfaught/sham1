@@ -1,4 +1,4 @@
-(module parsers mzscheme
+(module Parsers mzscheme
   (require (only (lib "1.ss" "srfi") zip)
            (only (lib "13.ss" "srfi") string-concatenate)
            (lib "HaskellSyntax.ss" "sham" "haskell")

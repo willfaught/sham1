@@ -1,6 +1,6 @@
-(module parsers-test mzscheme
-  (require (lib "parsers.ss" "sham" "haskell")
-           (lib "haskell-syntax.ss" "sham" "haskell")
+(module ParsersTest mzscheme
+  (require (lib "Parsers.ss" "sham" "haskell")
+           (lib "HaskellSyntax.ss" "sham" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide run-tests)
