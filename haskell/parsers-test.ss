@@ -1,7 +1,6 @@
 (module parsers-test mzscheme
   (require (lib "parsers.ss" "sham" "haskell")
-           (lib "terms.ss" "sham" "haskell")
-           (lib "types.ss" "sham" "haskell")
+           (lib "haskell-syntax.ss" "sham" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
   (provide run-tests)
@@ -26,177 +25,156 @@
   (define parsers-test-suite
     (test-suite "parsers"
                 (test-case-ee "ap1"
-                              "x 1"
-                              (make-application-term (make-identifier-term "x")
-                                                     (list (make-integer-term "1"))))
+                              "x y"
+                              (make-Application (make-Variable "x") (make-Variable "y")))
                 (test-case-ee "ap2"
-                              "x 1 2"
-                              (make-application-term (make-identifier-term "x")
-                                                     (list (make-integer-term "1")
-                                                           (make-integer-term "2"))))
+                              "x y z"
+                              (make-Application (make-Application (make-Variable "x")
+                                                                  (make-Variable "y"))
+                                                (make-Variable "z")))
                 (test-case-ee "ch1"
                               "'a'"
-                              (make-character-term "a"))
-                (test-case-ee "ch2"
-                              "'Z'"
-                              (make-character-term "Z"))
+                              (make-Character "a"))
                 (test-case-de "da1"
                               "data A = B"
-                              (make-data-term "A" (list (make-constructor-term "B" null))))
+                              (make-Data "A" (list (make-Constructor "B" null))))
                 (test-case-de "da2"
                               "data A = B {}"
-                              (make-data-term "A" (list (make-constructor-term "B" null))))
+                              (make-Data "A" (list (make-Constructor "B" null))))
                 (test-case-de "da3"
                               "data A = B | C"
-                              (make-data-term "A" (list (make-constructor-term "B" null)
-                                                        (make-constructor-term "C" null))))
+                              (make-Data "A" (list (make-Constructor "B" null)
+                                                   (make-Constructor "C" null))))
                 (test-case-de "da4"
                               "data A = B { c :: A }"
-                              (make-data-term "A" (list (make-constructor-term "B" (list (make-field-term "c" (make-type-constructor "A")))))))
+                              (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A")))))))
                 (test-case-de "da5"
                               "data A = B { c :: A, d :: A }"
-                              (make-data-term "A" (list (make-constructor-term "B" (list (make-field-term "c" (make-type-constructor "A"))
-                                                                                         (make-field-term "d" (make-type-constructor "A")))))))
+                              (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A"))
+                                                                               (make-Field "d" (make-TypeConstructor "A")))))))
                 (test-case-de "da6"
                               "data A = B { c, d :: A }"
-                              (make-data-term "A" (list (make-constructor-term "B" (list (make-field-term "c" (make-type-constructor "A"))
-                                                                                         (make-field-term "d" (make-type-constructor "A")))))))
+                              (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A"))
+                                                                               (make-Field "d" (make-TypeConstructor "A")))))))
                 (test-case-de "de1"
                               "x = 1"
-                              (make-declaration-term (list "x") (make-integer-term "1")))
+                              (make-Declaration (make-LHS "x" null) (make-Integer "1")))
                 (test-case-de "de2"
                               "x y = 1"
-                              (make-declaration-term (list "x" "y") (make-integer-term "1")))
+                              (make-Declaration (make-LHS "x" (list "y")) (make-Integer "1")))
                 (test-case-ee "fl1"
                               "1.2"
-                              (make-float-term "1.2"))
+                              (make-Float "1.2"))
                 (test-case-ee "fu1"
                               "\\x -> 1"
-                              (make-function-term (list "x")
-                                                  (make-integer-term "1")))
+                              (make-Function (list "x")
+                                             (make-Integer "1")))
                 (test-case-ee "fu2"
                               "\\x -> \\y -> 1"
-                              (make-function-term (list "x")
-                                                  (make-function-term (list "y")
-                                                                      (make-integer-term "1"))))
+                              (make-Function (list "x")
+                                             (make-Function (list "y")
+                                                            (make-Integer "1"))))
                 (test-case-ee "fu3"
                               "\\x y -> 1"
-                              (make-function-term (list "x" "y")
-                                                  (make-integer-term "1")))
+                              (make-Function (list "x" "y")
+                                             (make-Integer "1")))
                 (test-case-ee "id1"
                               "x"
-                              (make-identifier-term "x"))
+                              (make-Variable "x"))
                 (test-case-ee "id2"
                               "(x)"
-                              (make-identifier-term "x"))
+                              (make-Variable "x"))
                 (test-case-ee "id3"
                               "(:)"
-                              (make-identifier-term ":"))
-                (test-case-ee "id4"
-                              "()"
-                              (make-identifier-term "()"))
+                              (make-Variable ":"))
                 (test-case-ee "if1"
                               "if x then 1 else 2"
-                              (make-if-term (make-identifier-term "x")
-                                            (make-integer-term "1")
-                                            (make-integer-term "2")))
+                              (make-If (make-Variable "x")
+                                       (make-Integer "1")
+                                       (make-Integer "2")))
                 (test-case-ee "in1"
                               "1"
-                              (make-integer-term "1"))
+                              (make-Integer "1"))
                 (test-case-ee "le1"
                               "let {} in 1"
-                              (make-let-term null (make-integer-term "1")))
+                              (make-Let null (make-Integer "1")))
                 (test-case-ee "le2"
                               "let { x = 1 } in x"
-                              (make-let-term (list (make-declaration-term (list "x")
-                                                                          (make-integer-term "1")))
-                                             (make-identifier-term "x")))
+                              (make-Let (list (make-Declaration (make-LHS "x" null) (make-Integer "1")))
+                                        (make-Variable "x")))
                 (test-case-ee "le3"
                               "let { x = 1 ; y = 1} in x"
-                              (make-let-term (list (make-declaration-term (list "x")
-                                                                          (make-integer-term "1"))
-                                                   (make-declaration-term (list "y")
-                                                                          (make-integer-term "1")))
-                                             (make-identifier-term "x")))
+                              (make-Let (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
+                                              (make-Declaration (make-LHS "y" null) (make-Integer "1")))
+                                        (make-Variable "x")))
                 (test-case-ee "li1"
                               "[]"
-                              (make-list-term null))
+                              (make-ListConstructor))
                 (test-case-ee "li2"
                               "[1]"
-                              (make-list-term (list (make-integer-term "1"))))
+                              (make-List (list (make-Integer "1"))))
                 (test-case-ee "li3"
                               "[1, 2]"
-                              (make-list-term (list (make-integer-term "1")
-                                                    (make-integer-term "2"))))
+                              (make-List (list (make-Integer "1")
+                                               (make-Integer "2"))))
                 (test-case-ee "ml1"
                               ":ml Int \"x\""
-                              (make-ml-term (make-integer-type)
-                                            "x"))
+                              (make-ML (make-TypeConstructor "Int")
+                                       "x"))
                 (test-case-me "mo1"
                               "module M where {}"
-                              (make-module-term "M" null null))
+                              (make-Module "M" (make-Body null null)))
                 (test-case-me "mo2"
                               "{}"
-                              (make-module-term "none" null null))
+                              (make-Module "none" (make-Body null null)))
                 (test-case-me "mo3"
                               "{ x = 1 }"
-                              (make-module-term "none"
-                                                null
-                                                (list (make-declaration-term (list "x")
-                                                                             (make-integer-term "1")))))
+                              (make-Module "none" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
                 (test-case-me "mo4"
                               "{ x = 1 ; data A = B }"
-                              (make-module-term "none"
-                                                null
-                                                (list (make-declaration-term (list "x")
-                                                                             (make-integer-term "1"))
-                                                      (make-data-term "A" (list (make-constructor-term "B" null))))))
+                              (make-Module "none" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
+                                                                        (make-Data "A" (list (make-Constructor "B" null)))))))
                 (test-case-me "mo5"
                               "{ data A = B ; x = 1 }"
-                              (make-module-term "none"
-                                                null
-                                                (list (make-data-term "A" (list (make-constructor-term "B" null)))
-                                                      (make-declaration-term (list "x")
-                                                                             (make-integer-term "1")))))
+                              (make-Module "none" (make-Body null (list (make-Data "A" (list (make-Constructor "B" null)))
+                                                                        (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
                 (test-case-ee "sc1"
                               ":scheme A \"x\""
-                              (make-scheme-term (make-type-constructor "A")
-                                                "x"))
+                              (make-Scheme (make-TypeConstructor "A") "x"))
                 (test-case-ee "tu1"
                               "(1, 2)"
-                              (make-tuple-term (list (make-integer-term "1")
-                                                     (make-integer-term "2"))))
+                              (make-Tuple (list (make-Integer "1") (make-Integer "2"))))
                 (test-case-ee "tu1"
                               "(1, 2, 3)"
-                              (make-tuple-term (list (make-integer-term "1")
-                                                     (make-integer-term "2")
-                                                     (make-integer-term "3"))))
+                              (make-Tuple (list (make-Integer "1") (make-Integer "2") (make-Integer "3"))))
                 (test-case-ee "tc1"
                               "(,)"
-                              (make-tuplecon-term 2))
+                              (make-TupleConstructor 2))
                 (test-case-ee "tc2"
                               "(,,)"
-                              (make-tuplecon-term 3))
+                              (make-TupleConstructor 3))
                 (test-case-te "ty1"
                               "A"
-                              (make-type-constructor "A"))
+                              (make-TypeConstructor "A"))
                 (test-case-te "ty2"
                               "A -> B"
-                              (make-function-type (make-type-constructor "A")
-                                                  (make-type-constructor "B")))
+                              (make-FunctionType (make-TypeConstructor "A") (make-TypeConstructor "B")))
                 (test-case-te "ty3"
                               "[A]"
-                              (make-list-type (make-type-constructor "A")))
+                              (make-ListType (make-TypeConstructor "A")))
                 (test-case-te "ty4"
                               "(A, B)"
-                              (make-tuple-type (list (make-type-constructor "A")
-                                                     (make-type-constructor "B"))))
+                              (make-TupleType (list (make-TypeConstructor "A")
+                                                    (make-TypeConstructor "B"))))
                 (test-case-te "ty5"
                               "a"
-                              (make-type-variable "a"))
+                              (make-TypeVariable "a"))
                 (test-case-te "ty6"
                               "()"
-                              (make-type-constructor "()"))))
+                              (make-UnitType))
+                (test-case-ee "un1"
+                              "()"
+                              (make-UnitConstructor))))
   
   ; parse-declaration :: string -> term
   (define (parse-declaration expression)

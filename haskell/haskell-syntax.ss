@@ -1,40 +1,62 @@
 (module haskell-syntax mzscheme
   (provide (all-defined))
   
-  (define-struct haskell-syntax () #f)
+  (define-struct HaskellSyntax () #f)
   
-  (define-struct (application haskell-syntax) (elements) #f)
+  (define-struct (Application HaskellSyntax) (operator operand) #f)
   
-  (define-struct (character haskell-syntax) (value) #f)
+  (define-struct (Body HaskellSyntax) (imports declarations) #f)
   
-  (define-struct (constructor haskell-syntax) (name fields) #f)
+  (define-struct (Character HaskellSyntax) (value) #f)
+
+  (define-struct (Constructor HaskellSyntax) (name fields) #f)
   
-  (define-struct (data haskell-syntax) (name constructors) #f)
+  (define-struct (Data HaskellSyntax) (name constructors) #f)
   
-  (define-struct (declaration haskell-syntax) (name parameters rhs) #f)
+  (define-struct (Declaration HaskellSyntax) (lhs rhs) #f)
   
-  (define-struct (field haskell-syntax) (name type) #f)
+  (define-struct (Field HaskellSyntax) (name type) #f)
   
-  (define-struct (float haskell-syntax) (value) #f)
+  (define-struct (Float HaskellSyntax) (value) #f)
   
-  (define-struct (function haskell-syntax) (parameters body) #f)
+  (define-struct (Function HaskellSyntax) (parameters body) #f)
   
-  (define-struct (variable haskell-syntax) (name) #f)
+  (define-struct (FunctionType HaskellSyntax) (argument result) #f)
   
-  (define-struct (if haskell-syntax) (guard then else) #f)
+  (define-struct (If HaskellSyntax) (guard then else) #f)
   
-  (define-struct (integer haskell-syntax) (value) #f)
+  (define-struct (Integer HaskellSyntax) (value) #f)
   
-  (define-struct (let haskell-syntax) (declarations body) #f)
+  (define-struct (Let HaskellSyntax) (declarations body) #f)
   
-  (define-struct (list haskell-syntax) (elements) #f)
+  (define-struct (LHS HaskellSyntax) (name parameters) #f)
   
-  (define-struct (ml haskell-syntax) (type name) #f)
+  (define-struct (List HaskellSyntax) (elements) #f)
   
-  (define-struct (module haskell-syntax) (name imports declarations) #f)
+  (define-struct (ListConstructor HaskellSyntax) () #f)
   
-  (define-struct (scheme haskell-syntax) (type name) #f)
+  (define-struct (ListType HaskellSyntax) (type) #f)
   
-  (define-struct (tuple haskell-syntax) (elements) #f)
+  (define-struct (ML HaskellSyntax) (type name) #f)
   
-  (define-struct (unit haskell-syntax) () #f))
+  (define-struct (Module HaskellSyntax) (name body) #f)
+  
+  (define-struct (Scheme HaskellSyntax) (type name) #f)
+  
+  (define-struct (Tuple HaskellSyntax) (elements) #f)
+  
+  (define-struct (TupleConstructor HaskellSyntax) (arity) #f)
+  
+  (define-struct (TupleType HaskellSyntax) (types) #f)
+  
+  (define-struct (TypeApplication HaskellSyntax) (types) #f)
+  
+  (define-struct (TypeConstructor HaskellSyntax) (name) #f)
+  
+  (define-struct (TypeVariable HaskellSyntax) (name) #f)
+  
+  (define-struct (UnitConstructor HaskellSyntax) () #f)
+  
+  (define-struct (UnitType HaskellSyntax) () #f)
+  
+  (define-struct (Variable HaskellSyntax) (name) #f))
