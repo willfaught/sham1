@@ -5,21 +5,21 @@
   
   (provide runTests)
   
-  ; tcde :: string string term -> schemeunit-test-case
-  (define (tcde name expression value)
-    (test-equal? name (parseD expression) value))
+  ; tcde :: string string HaskellSyntax -> schemeunit-test-case
+  (define (tcde name expression syntax)
+    (test-equal? name (parseD expression) syntax))
   
-  ; tcee :: string string term -> schemeunit-test-case
-  (define (tcee name expression value)
-    (test-equal? name (parseE expression) value))
+  ; tcee :: string string HaskellSyntax -> schemeunit-test-case
+  (define (tcee name expression syntax)
+    (test-equal? name (parseE expression) syntax))
   
-  ; tcme :: string string term -> schemeunit-test-case
-  (define (tcme name expression value)
-    (test-equal? name (parseM expression) value))
+  ; tcme :: string string HaskellSyntax -> schemeunit-test-case
+  (define (tcme name expression syntax)
+    (test-equal? name (parseM expression) syntax))
   
-  ; tcte :: string string term -> schemeunit-test-case
-  (define (tcte name expression value)
-    (test-equal? name (parseT expression) value))
+  ; tcte :: string string HaskellSyntax -> schemeunit-test-case
+  (define (tcte name expression syntax)
+    (test-equal? name (parseT expression) syntax))
   
   ; tests :: schemeunit-test-suite
   (define tests

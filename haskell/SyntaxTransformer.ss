@@ -12,10 +12,10 @@
     (match syntax
       (($ h/Application r d) (c/make-Application (transformHC r) (transformHC d)))
       (($ h/Character v) (c/make-Character v))
-      (($ h/Constructor n f) (c/make-Constructor n (foldl append null (map transformHC f))))
+      (($ h/Constructor n f) (c/make-Constructor n (map transformHC f)))
       (($ h/Data n c) (c/make-Data n (map transformHC c)))
       (($ h/Declaration ($ h/LHS n p) r) (c/make-Declaration n (curry p (transformHC r))))
-      (($ h/Field n t1) (let ((t2 (transformHC t1))) (map (lambda (x) (c/make-Field x t2)) n)))
+      (($ h/Field n t) (c/make-Field n (transformHC t)))
       (($ h/Float v) (c/make-Float v))
       (($ h/Function p b) (curry p (transformHC b)))
       (($ h/FunctionType a r) (t/make-Application (t/make-Application (t/make-Function) (transformHC a)) (transformHC r)))
@@ -28,7 +28,7 @@
       (($ h/ML t n) (c/make-ML (transformHC t) n))
       (($ h/Module n ($ h/Body i d)) (c/make-Module n i (map transformHC d)))
       (($ h/Scheme t n) (c/make-Scheme (transformHC t) n))
-      (($ h/Tuple e) (foldr (lambda (x y) (c/make-Application y (transformHC x))) (c/make-TupleConstructor (length e)) e))
+      (($ h/Tuple e) (foldl (lambda (x y) (c/make-Application y (transformHC x))) (c/make-TupleConstructor (length e)) e))
       (($ h/TupleConstructor a) (c/make-TupleConstructor a))
       (($ h/TupleType t) (foldl (lambda (x y) (t/make-Application y (transformHC x))) (t/make-Tuple (length t)) t))
       (($ h/TypeApplication t) (foldl (lambda (x y) (t/make-Application y (transformHC x))) (transformHC (car t)) (cdr t)))
@@ -40,4 +40,4 @@
   
   ; curry :: [string] CoreSyntax -> CoreSyntax
   (define (curry params body)
-    (if (null? params) body (curry (cdr params) (c/make-Function (car params) body)))))
+    (if (null? params) body (c/make-Function (car params) (curry (cdr params) body)))))
