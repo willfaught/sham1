@@ -1,21 +1,17 @@
-(module compiler mzscheme
+(module Compiler mzscheme
   (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
-           (lib "boundary.ss" "sham")
+           (lib "boundaries.ss" "sham")
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
            (lib "list.ss" "sham" "haskell")
            (lib "match.ss")
-           (lib "terms.ss" "sham" "haskell")
+           (lib "CoreSyntax.ss" "sham" "haskell")
            (lib "type-checker.ss" "sham" "haskell")
-           (lib "types.ss" "sham" "haskell")
+           (lib "Types.ss" "sham")
            (lib "parsers.ss" "sham" "haskell"))
   
   (provide compile-data-term compile-term)
-  
-  ; characters :: immutable-hash-table
-  (define characters
-    (make-immutable-hash-table `() 'equal))
   
   ; compile-application-term :: term (term) -> datum
   (define (compile-application-term f a)
