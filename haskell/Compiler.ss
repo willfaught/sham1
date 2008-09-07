@@ -11,7 +11,7 @@
            (prefix t/ (lib "Types.ss" "sham"))
            (lib "parsers.ss" "sham" "haskell"))
   
-  (provide compile-data-term compile-term)
+  (provide compile)
   
   ; compile-constructor-term :: string constructor-term -> (datum)
   (define (compile-constructor-term ct c)
@@ -73,22 +73,6 @@
                 (a (import-term-alias i)))
             (if (not (equal? a #f)) `(prefix ,(string->symbol a) ,f) f)))))
   
-  ; compile-let-term :: (declaration-term) term -> datum
-  (define (compile-let-term d e)
-    (define compile-declaration-term
-      (match-lambda (($ declaration-term p e)
-                     `(,(strings->symbol "haskell:" (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
-    `(letrec ,(map compile-declaration-term d) ,(compile-term e)))
-  
-  ; compile-ml-term :: ml-term -> datum
-  (define (compile-ml-term term)
-    (match-let ((($ ml-term t i) term))
-      `(let ((x (assoc ,i ml:types)))
-         (if (and (not (equal? x #f))
-                  (primitive:type-less-general? ,(type->datum (translate-type-constructor t)) (list-ref x 1)))
-             ,(ml->haskell t (string->symbol i) 1)
-             (error "Haskell and ML type mismatch")))))
-  
   ; compile-module-term :: module-term -> datum
   (define (compile-module-term m)
     ; compile-declaration-term :: declaration-term -> datum
@@ -128,17 +112,45 @@
       (($ c/Haskell t n) `(contract ,(contractH t) ,(convertHS t (compile term) 1) 'haskell 'scheme))
       (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compile e)))
       (($ c/Integer v) (string->number v))
-      (($ c/Let d b) (compile-let-term d b))
+      ((? c/Let? x) (compileLet x))
       (($ c/ListConstructor) 'null)
-      ((? c/ML? x) (compile-ml-term x))
+      ((? c/ML? x) (compileML x))
       ((? c/Module? x) (compile-module-term x))
       (($ c/Scheme t n) `(contract ,(contractS t) ,(convertSH t (string->symbol n) 1) 'scheme 'haskell))
-      (($ c/TupleConstructor a) (compile-tuplecon-term a))
+      (($ c/TupleConstructor a) (compileTupleConstructor a))
       (($ c/UnitConstructor) (vector-immutable))
       (($ c/Variable n) `(force ,(string->symbol (string-append "haskell:" n))))))
   
-  ; compile-tuplecon-term :: integer -> datum
-  (define (compile-tuplecon-term a)
+  ; compileLet :: c/Let -> datum
+  (define (compileLet syntax)
+    (define (compileDeclaration syntax)
+      (match syntax
+        (($ c/Declaration n b) `(,(string->symbol (string->append "haskell:" n)) (delay ,(compile b))))))
+    (match syntax
+      (($ c/Let d b) `(letrec ,(map compileDeclaration d) ,(compile b)))))
+  
+  ; compileML :: c/ML -> datum
+  (define (compileML term)
+    ; type->datum :: type -> datum
+    (define (type->datum type)
+      (match type
+        (($ character-type) `(make-character-type))
+        (($ float-type) `(make-float-type))
+        (($ function-type p r) `(make-function-type ,(type->datum p) ,(type->datum r)))
+        (($ integer-type) `(make-integer-type))
+        (($ list-type t) `(make-list-type ,(type->datum t)))
+        (($ tuple-type t) `(make-tuple-type (list ,@(map type->datum t))))
+        (($ type-constructor i) `(make-type-constructor ,i))
+        (($ type-variable i) `(make-type-variable ,i))))
+    (match-let ((($ ml-term t i) term))
+      `(let ((x (assoc ,i ml:types)))
+         (if (and (not (equal? x #f))
+                  (primitive:type-less-general? ,(type->datum (translate-type-constructor t)) (list-ref x 1)))
+             ,(ml->haskell t (string->symbol i) 1)
+             (error "Haskell and ML type mismatch")))))
+  
+  ; compileTupleConstructor :: integer -> datum
+  (define (compileTupleConstructor a)
     (define (enumerate n)
       (if (= n 0) null (cons n (enumerate (- n 1)))))
     (define (nest n)
@@ -147,24 +159,32 @@
           `(lambda (,(strings->symbol "x" (number->string n))) ,(nest (+ n 1)))))
     (nest 1))
   
-  ; contractH :: type -> contract
+  ; contractH :: Type -> contract
   (define (contractH type)
     (match type
+      (($ t/Application r d) )
+      (($ t/Constructor n) 'any/c)
+      (($ t/Variable n) 'any/c)
+      (($ t/Function) )
+      (($ t/List) )
+      (($ t/Tuple) )
+      (($ t/Unit) )
+      TODO
       (($ character-type) `any/c)
       (($ float-type) `any/c)
-      (($ function-type p r) `(-> ,(contractS p) ,(haskell-contract r)))
+      (($ function-type p r) `(-> ,(contractS p) ,(contractH r)))
       (($ integer-type) `any/c)
       (($ list-type _) `any/c)
       (($ tuple-type _) `any/c)
       (($ type-constructor _) `any/c)
       (($ type-variable _) `any/c)))
   
-  ; contractS :: type -> contract
+  ; contractS :: Type -> contract
   (define (contractS type)
     (match type
       (($ character-type) `(flat-contract char?))
       (($ float-type) `(flat-contract number?))
-      (($ function-type p r) `(-> ,(haskell-contract p) ,(contractS r)))
+      (($ function-type p r) `(-> ,(contractH p) ,(contractS r)))
       (($ integer-type) `(flat-contract integer?))
       (($ list-type type) `(and/c (listof ,(contractS type))
                                   (flat-contract proper-list?)
@@ -179,15 +199,4 @@
   
   ; strings->symbol :: string... -> symbol
   ;(define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
-  
-  ; type->datum :: type -> datum
-  (define (type->datum type)
-    (match type
-      (($ character-type) `(make-character-type))
-      (($ float-type) `(make-float-type))
-      (($ function-type p r) `(make-function-type ,(type->datum p) ,(type->datum r)))
-      (($ integer-type) `(make-integer-type))
-      (($ list-type t) `(make-list-type ,(type->datum t)))
-      (($ tuple-type t) `(make-tuple-type (list ,@(map type->datum t))))
-      (($ type-constructor i) `(make-type-constructor ,i))
-      (($ type-variable i) `(make-type-variable ,i)))))
+  )
