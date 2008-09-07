@@ -1,21 +1,17 @@
 (module Compiler mzscheme
   (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
-           (lib "boundaries.ss" "sham")
+           (lib "Boundaries.ss" "sham")
            (lib "contract.ss")
            (only (lib "list.ss") foldl foldr)
            (lib "list.ss" "sham" "haskell")
            (lib "match.ss")
-           (lib "CoreSyntax.ss" "sham" "haskell")
+           (prefix /c (lib "CoreSyntax.ss" "sham" "haskell"))
            (lib "type-checker.ss" "sham" "haskell")
-           (lib "Types.ss" "sham")
+           (prefix t/ (lib "Types.ss" "sham"))
            (lib "parsers.ss" "sham" "haskell"))
   
   (provide compile-data-term compile-term)
-  
-  ; compile-application-term :: term (term) -> datum
-  (define (compile-application-term f a)
-    (if (null? a) (compile-term f) `(,(compile-application-term f (cdr a)) (delay ,(compile-term (car a))))))
   
   ; compile-constructor-term :: string constructor-term -> (datum)
   (define (compile-constructor-term ct c)
@@ -121,24 +117,25 @@
          ,@(foldl append null (map compile-data-term da))
          ,@(map compile-declaration-term hd))))
   
-  ; compile-term :: term -> datum
-  (define (compile-term term)
-    (match term
-      (($ application-term f a) (compile-application-term f (reverse a)))
-      (($ character-term c) (car (hash-table-get characters c (lambda () (list (string-ref c 0))))))
-      (($ float-term f) (string->number f))
-      (($ function-term p b) (if (null? p) (compile-term b) `(lambda (,(strings->symbol "haskell:" (car p))) ,(compile-term (make-function-term (cdr p) b)))))
-      (($ haskell-term type term) `(contract ,(haskell-contract type) ,(haskell->scheme type (compile-term term) 1) 'haskell 'scheme))
-      (($ identifier-term i) `(force ,(strings->symbol "haskell:" i)))
-      (($ if-term g t e) `(if (equal? ,(compile-term g) (force haskell:True)) ,(compile-term t) ,(compile-term e)))
-      (($ integer-term i) (string->number i))
-      (($ let-term d e) (compile-let-term d e))
-      (($ list-term e) (if (null? e) null `(cons (delay ,(compile-term (car e))) (delay ,(compile-term (make-list-term (cdr e)))))))
-      ((? ml-term? x) (compile-ml-term x))
-      ((? module-term? m) (compile-module-term m))
-      (($ scheme-term type identifier) `(contract ,(scheme-contract type) ,(scheme->haskell type (string->symbol identifier) 1) 'scheme 'haskell))
-      (($ tuple-term e) (compile-term (make-application-term (make-tuplecon-term (length e)) e)))
-      (($ tuplecon-term a) (compile-tuplecon-term a))))
+  ; compile :: CoreSyntax -> datum
+  (define (compile syntax)
+    (match syntax
+      (($ c/Application r d) `(,(compile r) (delay ,(compile d))))
+      (($ c/Character v) (string-ref c 0))
+      ((? c/Data? x) (compile-data-term x))
+      (($ c/Float v) (string->number v))
+      (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell:" p))) ,(compile b)))
+      (($ c/Haskell t n) `(contract ,(contractH t) ,(convertHS t (compile term) 1) 'haskell 'scheme))
+      (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compile e)))
+      (($ c/Integer v) (string->number v))
+      (($ c/Let d b) (compile-let-term d b))
+      (($ c/ListConstructor) 'null)
+      ((? c/ML? x) (compile-ml-term x))
+      ((? c/Module? x) (compile-module-term x))
+      (($ c/Scheme t n) `(contract ,(contractS t) ,(convertSH t (string->symbol n) 1) 'scheme 'haskell))
+      (($ c/TupleConstructor a) (compile-tuplecon-term a))
+      (($ c/UnitConstructor) (vector-immutable))
+      (($ c/Variable n) `(force ,(string->symbol (string-append "haskell:" n))))))
   
   ; compile-tuplecon-term :: integer -> datum
   (define (compile-tuplecon-term a)
@@ -150,38 +147,38 @@
           `(lambda (,(strings->symbol "x" (number->string n))) ,(nest (+ n 1)))))
     (nest 1))
   
-  ; haskell-contract :: type -> contract
-  (define (haskell-contract type)
+  ; contractH :: type -> contract
+  (define (contractH type)
     (match type
       (($ character-type) `any/c)
       (($ float-type) `any/c)
-      (($ function-type p r) `(-> ,(scheme-contract p) ,(haskell-contract r)))
+      (($ function-type p r) `(-> ,(contractS p) ,(haskell-contract r)))
       (($ integer-type) `any/c)
       (($ list-type _) `any/c)
       (($ tuple-type _) `any/c)
       (($ type-constructor _) `any/c)
       (($ type-variable _) `any/c)))
   
-  ; scheme-contract :: type -> contract
-  (define (scheme-contract type)
+  ; contractS :: type -> contract
+  (define (contractS type)
     (match type
       (($ character-type) `(flat-contract char?))
       (($ float-type) `(flat-contract number?))
-      (($ function-type p r) `(-> ,(haskell-contract p) ,(scheme-contract r)))
+      (($ function-type p r) `(-> ,(haskell-contract p) ,(contractS r)))
       (($ integer-type) `(flat-contract integer?))
-      (($ list-type type) `(and/c (listof ,(scheme-contract type))
+      (($ list-type type) `(and/c (listof ,(contractS type))
                                   (flat-contract proper-list?)
                                   (flat-contract (lambda (x) (not (circular-list? x))))))
-      (($ tuple-type types) `(vector/c ,@(map scheme-contract types)))
+      (($ tuple-type types) `(vector/c ,@(map contractS types)))
       (($ type-constructor i) (match i
-                                ("Char" (scheme-contract (make-character-type)))
-                                ("Float" (scheme-contract (make-float-type)))
-                                ("Int" (scheme-contract (make-integer-type)))
+                                ("Char" (contractS (make-character-type)))
+                                ("Float" (contractS (make-float-type)))
+                                ("Int" (contractS (make-integer-type)))
                                 (_ `(flat-contract ,(strings->symbol "haskell-type:" i "?")))))
       (($ type-variable _) `any/c)))
   
   ; strings->symbol :: string... -> symbol
-  (define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
+  ;(define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
   
   ; type->datum :: type -> datum
   (define (type->datum type)
