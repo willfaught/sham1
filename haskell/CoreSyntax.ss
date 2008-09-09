@@ -23,8 +23,6 @@
   
   (define-struct (If CoreSyntax) (guard then else) #f)
   
-  (define-struct (Import CoreSyntax) (path) #f)
-  
   (define-struct (Integer CoreSyntax) (value) #f)
   
   (define-struct (Let CoreSyntax) (declarations body) #f)
@@ -35,7 +33,7 @@
   
   (define-struct (Module CoreSyntax) (name imports declarations) #f)
   
-  (define-struct (Scheme CoreSyntax) (type name) #f)
+  (define-struct (Scheme CoreSyntax) (type contract name) #f)
   
   (define-struct (TupleConstructor CoreSyntax) (arity) #f)
   
