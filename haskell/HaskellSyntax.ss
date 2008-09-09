@@ -21,7 +21,7 @@
   
   (define-struct (Function HaskellSyntax) (parameters body) #f)
   
-  (define-struct (FunctionType HaskellSyntax) (argument result) #f)
+  (define-struct (FunctionType HaskellSyntax) (parameter result) #f)
   
   (define-struct (If HaskellSyntax) (guard then else) #f)
   
