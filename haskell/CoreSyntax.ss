@@ -33,7 +33,7 @@
   
   (define-struct (Module CoreSyntax) (name imports declarations) #f)
   
-  (define-struct (Scheme CoreSyntax) (type contract name) #f)
+  (define-struct (Scheme CoreSyntax) (type name) #f)
   
   (define-struct (TupleConstructor CoreSyntax) (arity) #f)
   

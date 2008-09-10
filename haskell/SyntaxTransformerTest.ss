@@ -3,8 +3,9 @@
            (lib "match.ss")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2))
            (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
+           (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "Parsers.ss" "sham" "haskell")
-           (lib "SyntaxTransformer.ss" "sham" "haskell")
+           (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
            (prefix t/ (lib "Types.ss" "sham")))
   
   (provide runTests)
@@ -18,7 +19,7 @@
     (test-equal? name (transformHC (parseE expression)) syntax))
   
   ; tcep :: string string (c/CoreSyntax -> boolean) -> schemeunit-test-case
-  (define (tcep name expression predicate)
+  #;(define (tcep name expression predicate)
     (test-pred name predicate (transformHC (parseE expression))))
   
   ; tcme :: string string HaskellSyntax -> schemeunit-test-case
@@ -126,7 +127,7 @@
                                           (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "2")) (c/make-ListConstructor))))
                 (tcee "ml1"
                       ":ml Int \"x\""
-                      (c/make-ML (t/make-Constructor "Int") "x"))
+                      (c/make-ML (h/make-TypeConstructor "Int") "x"))
                 (tcme "mo1"
                       "{}"
                       (c/make-Module "none" null null))
@@ -144,9 +145,9 @@
                       "{ data A = B ; x = 1 }"
                       (c/make-Module "none" null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
                                                        (c/make-Declaration "x" (c/make-Integer "1")))))
-                (tcep "sc1"
-                      ":scheme A \"x\""
-                      (match-lambda (($ c/Scheme ($ t/Constructor "A") _ "x") #t) (_ #f)))
+                (tcee "sc1"
+                      ":scheme Int \"x\""
+                      (c/make-Scheme (h/make-TypeConstructor "Int") "x"))
                 (tcee "tc1"
                       "(,)"
                       (c/make-TupleConstructor 2))
