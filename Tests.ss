@@ -8,4 +8,12 @@
   (define (run-tests)
     (list (list "compiler" (compiler.run-tests))
           (list "type-checker" (type-checker.run-tests))
-          (list "parsers" (parsers.run-tests)))))
+          (list "parsers" (parsers.run-tests))))
+  
+  ; runTests :: [string]
+  (define (runTests)
+    (define (results x y)
+      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
+            ((test-error? x) (cons (test-result-test-case-name x) y))
+            (else y)))
+    (fold-test-results results null tests)))
