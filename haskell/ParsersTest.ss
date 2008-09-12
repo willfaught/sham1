@@ -3,7 +3,7 @@
            (lib "HaskellSyntax.ss" "sham" "haskell")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2)))
   
-  (provide runTests)
+  (provide testSuite)
   
   ; tcde :: string string HaskellSyntax -> schemeunit-test-case
   (define (tcde name expression syntax)
@@ -21,9 +21,9 @@
   (define (tcte name expression syntax)
     (test-equal? name (parseT expression) syntax))
   
-  ; tests :: schemeunit-test-suite
-  (define tests
-    (test-suite "parsers"
+  ; testSuite :: schemeunit-test-suite
+  (define testSuite
+    (test-suite "Parsers"
                 (tcee "ap1"
                       "x y"
                       (make-Application (make-Variable "x") (make-Variable "y")))
@@ -199,14 +199,6 @@
     (let ((port (open-input-string expression)))
       (port-count-lines! port)
       (tParser (lambda () (language-lexer port)))))
-  
-  ; runTests :: [string]
-  (define (runTests)
-    (define (results x y)
-      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
-            ((test-error? x) (cons (test-result-test-case-name x) y))
-            (else y)))
-    (fold-test-results results null tests))
   
   ; dParser :: parser
   (define dParser (declaration-parser "test"))
