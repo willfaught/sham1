@@ -8,7 +8,7 @@
            (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
            (prefix t/ (lib "Types.ss" "sham")))
   
-  (provide runTests)
+  (provide testSuite)
   
   ; tcde :: string string HaskellSyntax -> schemeunit-test-case
   (define (tcde name expression syntax)
@@ -18,10 +18,6 @@
   (define (tcee name expression syntax)
     (test-equal? name (transformHC (parseE expression)) syntax))
   
-  ; tcep :: string string (c/CoreSyntax -> boolean) -> schemeunit-test-case
-  #;(define (tcep name expression predicate)
-    (test-pred name predicate (transformHC (parseE expression))))
-  
   ; tcme :: string string HaskellSyntax -> schemeunit-test-case
   (define (tcme name expression syntax)
     (test-equal? name (transformHC (parseM expression)) syntax))
@@ -30,9 +26,9 @@
   (define (tcte name expression syntax)
     (test-equal? name (transformHC (parseT expression)) syntax))
   
-  ; tests :: schemeunit-test-suite
-  (define tests
-    (test-suite "HC syntax transformer"
+  ; testSuite :: schemeunit-test-suite
+  (define testSuite
+    (test-suite "SyntaxTransformer"
                 (tcee "ap1"
                       "x y"
                       (c/make-Application (c/make-Variable "x") (c/make-Variable "y")))
@@ -208,14 +204,6 @@
     (let ((port (open-input-string expression)))
       (port-count-lines! port)
       (tParser (lambda () (language-lexer port)))))
-  
-  ; runTests :: [string]
-  (define (runTests)
-    (define (results x y)
-      (cond ((test-failure? x) (cons (test-result-test-case-name x) y))
-            ((test-error? x) (cons (test-result-test-case-name x) y))
-            (else y)))
-    (fold-test-results results null tests))
   
   ; dParser :: parser
   (define dParser (declaration-parser "test"))
