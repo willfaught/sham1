@@ -7,11 +7,15 @@
   
   ; convertHM :: HaskellSyntax datum -> datum
   (define (convertHM type syntax)
+    (convertHM2 type syntax 1))
+  
+  ; convertHM2 :: HaskellSyntax datum integer -> datum
+  (define (convertHM2 type syntax depth)
     (match type
-      (($ FunctionType p r) (let ((n (newName))) `(lambda (,n) ,(convertHM r `(,syntax ,(convertMH p `(force ,n)))))))
-      (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHM t 'x)) (delay y))) null ,syntax))
-      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM t `(vector-ref x ,i)))))
-                                                                 (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
+      (($ FunctionType p r) `(lambda (,(name depth)) ,(convertHM2 r `(,syntax ,(convertMH2 p `(force ,(name depth)) (+ depth 1))) (+ depth 1))))
+      (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHM2 t 'x depth)) (delay y))) null ,syntax))
+      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM2 t `(vector-ref x ,i) depth))))
+                                                               (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
       (($ TypeConstructor "Bool") `(if ,syntax (force haskell:True) (force haskell:False)))
       (($ TypeConstructor "Char") (error 'convertHM "ML does not have characters"))
       (($ TypeConstructor "String") `(foldr (lambda (x y) (cons (delay x) (delay y))) null (string->list ,syntax)))
@@ -26,7 +30,7 @@
           (($ FunctionType p r) (let ((n (newName))) `(lambda (,n) ,(convertHS r `(,forced ,(convertSH p n))))))
           (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHM t 'x)) (delay y))) null ,forced))
           (($ TupleType t) `(lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM t `(vector-ref x ,i)))))
-                                                                   (zip ts (list-tabulate (length ts) (lambda (x) x)))))))
+                                                                 (zip ts (list-tabulate (length ts) (lambda (x) x)))))))
           (($ TypeConstructor "Bool") forced)
           (($ TypeConstructor "Char") forced)
           (($ TypeConstructor "Float") forced)
@@ -37,13 +41,17 @@
   
   ; convertMH :: HaskellSyntax datum -> datum
   (define (convertMH type syntax)
+    (convertMH2 type syntax 1))
+  
+  ; convertMH2 :: HaskellSyntax datum integer -> datum
+  (define (convertMH2 type syntax depth)
     (match type
-      (($ FunctionType p r) (let ((n (newName))) `(lambda (,n) ,(convertMH r `(,syntax (delay ,(convertHM p n)))))))
+      (($ FunctionType p r) `(lambda (,(name depth)) ,(convertMH2 r `(,syntax (delay ,(convertHM2 p (name depth) (+ depth 1)))) (+ depth 1))))
       (($ ListType t) syntax)
-      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM t `(vector-ref x ,i)))))
-                                                                 (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
+      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) (convertMH2 t `(vector-ref x ,i) (+ depth 1))))
+                                                               (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
       (($ TypeConstructor "Bool") `(if (haskell:True? ,syntax) #t #f))
-      (($ TypeConstructor "Char") (error 'convertMH "ML does not have characters"))
+      (($ TypeConstructor "Char") (error 'convertMH2 "ML does not have characters"))
       (($ TypeConstructor _) syntax)
       (($ TypeVariable _) syntax)
       (($ UnitType) syntax)))
@@ -62,10 +70,6 @@
           (($ type-constructor _) term)
           (($ type-variable _) `(make-lump ,term)))))
   
-  ; counter :: integer
-  (define counter 0)
-  
-  ; newName :: datum
-  (define (newName)
-    (set! counter (+ counter 1))
-    (string->symbol (string-append "x" (number->string counter)))))
+  ; name :: integer -> datum
+  (define (name depth)
+    (string->symbol (string-append "x" (number->string depth)))))

@@ -1,4 +1,4 @@
-(module Tests mzscheme
+(module Test mzscheme
   (require (planet "test.ss" ("schematics" "schemeunit.plt" 2))
            (planet "text-ui.ss" ("schematics" "schemeunit.plt" 2))
            (rename (lib "ConvertersTest.ss" "sham") convertersTS testSuite)
