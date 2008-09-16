@@ -3,7 +3,9 @@
            (only (lib "match.ss") match match-lambda)
            (lib "HaskellSyntax.ss" "sham" "haskell"))
   
-  (provide convertHM #;convertHS convertMH #;convertSH)
+  (provide convertHM convertHS convertMH convertSH)
+  
+  (define-struct Wrapper (name value) #f)
   
   ; convertHM :: HaskellSyntax datum -> datum
   (define (convertHM type syntax)
@@ -12,7 +14,7 @@
   ; convertHM2 :: HaskellSyntax datum integer -> datum
   (define (convertHM2 type syntax depth)
     (match type
-      (($ FunctionType p r) `(lambda (,(name depth)) ,(convertHM2 r `(,syntax ,(convertMH2 p `(force ,(name depth)) (+ depth 1))) (+ depth 1))))
+      (($ FunctionType p r) (let ((n (name depth))) `(lambda (,n) ,(convertHM2 r `(,syntax ,(convertMH2 p `(force ,n) (+ depth 1))) (+ depth 1)))))
       (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHM2 t 'x depth)) (delay y))) null ,syntax))
       (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM2 t `(vector-ref x ,i) depth))))
                                                                (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
@@ -24,20 +26,22 @@
       (($ UnitType) syntax)))
   
   ; convertHS :: HaskellSyntax datum -> datum
-  #;(define (convertHS type syntax)
-      (let ((forced `((lambda (x) (if (promise? x) (force x) x)) ,syntax)))
-        (match type
-          (($ FunctionType p r) (let ((n (newName))) `(lambda (,n) ,(convertHS r `(,forced ,(convertSH p n))))))
-          (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHM t 'x)) (delay y))) null ,forced))
-          (($ TupleType t) `(lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHM t `(vector-ref x ,i)))))
-                                                                 (zip ts (list-tabulate (length ts) (lambda (x) x)))))))
-          (($ TypeConstructor "Bool") forced)
-          (($ TypeConstructor "Char") forced)
-          (($ TypeConstructor "Float") forced)
-          (($ TypeConstructor "Int") forced)
-          (($ TypeConstructor "String") `(foldr (lambda (x y) (cons (delay x) (delay y))) null (string->list ,syntax)))
-          (($ TypeConstructor n) !!!TODO)
-          (($ type-variable _) `(let ((x ,f)) (if (lump? x) (force (lump-contents x)) x))))))
+  (define (convertHS type syntax)
+    (convertHS type syntax 1))
+  
+  ; convertHS2 :: HaskellSyntax datum integer -> datum
+  (define (convertHS2 type syntax depth)
+    (match type
+      (($ FunctionType p r) (let ((n (name depth))) `(lambda (,n) ,(convertHS2 r `(,syntax ,(convertSH2 p `(force ,n) (+ depth 1))) (+ depth 1)))))
+      (($ ListType t) `(foldr (lambda (x y) (cons (delay ,(convertHS2 t 'x)) (delay y))) null ,syntax))
+      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) `(delay ,(convertHS2 t `(vector-ref x ,i) depth))))
+                                                               (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
+      (($ TypeConstructor "Bool") `(if ,syntax (force haskell:True) (force haskell:False)))
+      (($ TypeConstructor "Char") syntax)
+      (($ TypeConstructor "String") `(foldr (lambda (x y) (cons (delay x) (delay y))) null (string->list ,syntax)))
+      (($ TypeConstructor _) syntax)
+      (($ TypeVariable n) `((lambda (x) (if (and (Wrapper? x) (equal? (Wrapper-name x) ,n)) (Wrapper-value x) (error (format "Scheme violated parametricity")))) ,syntax))
+      (($ UnitType) syntax)))
   
   ; convertMH :: HaskellSyntax datum -> datum
   (define (convertMH type syntax)
@@ -46,8 +50,8 @@
   ; convertMH2 :: HaskellSyntax datum integer -> datum
   (define (convertMH2 type syntax depth)
     (match type
-      (($ FunctionType p r) `(lambda (,(name depth)) ,(convertMH2 r `(,syntax (delay ,(convertHM2 p (name depth) (+ depth 1)))) (+ depth 1))))
-      (($ ListType t) syntax)
+      (($ FunctionType p r) (let ((n (name depth))) `(lambda (,n) ,(convertMH2 r `(,syntax (delay ,(convertHM2 p n (+ depth 1)))) (+ depth 1)))))
+      (($ ListType _) syntax)
       (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) (convertMH2 t `(vector-ref x ,i) (+ depth 1))))
                                                                (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
       (($ TypeConstructor "Bool") `(if (haskell:True? ,syntax) #t #f))
@@ -56,19 +60,21 @@
       (($ TypeVariable _) syntax)
       (($ UnitType) syntax)))
   
-  ; convertSH :: Type CoreSyntax datum -> datum
-  #;(define (convertSH type term depth)
-      (let ((id `(lambda (x) x)))
-        (match type
-          (($ character-type) term)
-          (($ float-type) term)
-          (($ function-type p r) (let ((i (identifier depth)))
-                                   `(lambda (,i) ,(convertSH r `(,term (delay ,(convertHS p i (+ depth 1)))) (+ depth 1)))))
-          (($ integer-type) term)
-          (($ list-type _) term)
-          (($ tuple-type _) term)
-          (($ type-constructor _) term)
-          (($ type-variable _) `(make-lump ,term)))))
+  ; convertSH :: HaskellSyntax datum -> datum
+  (define (convertSH type syntax)
+    (convertSH2 type syntax 1))
+  
+  ; convertSH2 :: HaskellSyntax datum integer -> datum
+  (define (convertSH2 type syntax depth)
+    (match type
+      (($ FunctionType p r) (let ((n (name depth))) `(lambda (,n) ,(convertSH2 r `(,syntax (delay ,(convertHS2 p n (+ depth 1)))) (+ depth 1)))))
+      (($ ListType _) syntax)
+      (($ TupleType ts) `((lambda (x) (vector-immutable ,@(map (match-lambda ((t i) (convertSH2 t `(vector-ref x ,i) (+ depth 1))))
+                                                               (zip ts (list-tabulate (length ts) (lambda (x) x)))))) ,syntax))
+      (($ TypeConstructor "Bool") `(if (haskell:True? ,syntax) #t #f))
+      (($ TypeConstructor _) syntax)
+      (($ TypeVariable n) `(make-Wrapper ,n ,syntax))
+      (($ UnitType) syntax)))
   
   ; name :: integer -> datum
   (define (name depth)
