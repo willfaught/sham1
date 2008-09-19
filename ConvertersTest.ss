@@ -56,7 +56,7 @@
                                       (if ((test (if (haskell:True? (force x1)) #t #f)) (if (haskell:True? (force x2)) #t #f))
                                           (force haskell:True)
                                           (force haskell:False)))))
-                            (eHM "fu5" "(a -> a) -> a" '(lambda (x1) (test (lambda (x2) ((force x1) (delay x2))))))
+                            (eHM "fu5" "(a -> a) -> a -> a" '(lambda (x1) (lambda (x2) ((test (lambda (x2) ((force x1) (delay x2)))) (force x2)))))
                             (eHM "fu6"
                                  "(Bool -> Bool) -> Bool"
                                  '(lambda (x1)
@@ -83,7 +83,7 @@
                                     (lambda (x2)
                                       (if (haskell:True? ((test (delay (if x1 (force haskell:True) (force haskell:False))))
                                                           (delay (if x2 (force haskell:True) (force haskell:False))))) #t #f))))
-                            (eMH "fu5" "(a -> a) -> a" '(lambda (x1) (test (delay (lambda (x2) (x1 (force x2)))))))
+                            (eMH "fu5" "(a -> a) -> a -> a" '(lambda (x1) (lambda (x2) ((test (delay (lambda (x2) (x1 (force x2))))) (delay x2)))))
                             (eMH "fu6"
                                  "(Bool -> Bool) -> Bool"
                                  '(lambda (x1)
@@ -124,11 +124,20 @@
                                        ((test (make-Wrapper "a" (force x1))) (make-Wrapper "b" (force x2)))))))
                             (eHS "fu4"
                                  "Bool -> Bool -> Bool"
-                                 '(lambda (x1) (lambda (x2) (if (haskell:True? ((test (if (haskell:True? (force x1)) #t #f))
-                                                                                (if x2 (force haskell:True) (force haskell:False)))) #t #f))))
+                                 '(lambda (x1)
+                                    (lambda (x2)
+                                      (if ((test (if (haskell:True? (force x1)) #t #f)) (if (haskell:True? (force x2)) #t #f))
+                                          (force haskell:True)
+                                          (force haskell:False)))))
                             (eHS "fu5"
-                                 "(a -> a) -> a"
-                                 '(lambda (x1) (test (lambda (x2) ((force x1) (delay x2))))))
+                                 "(a -> a) -> a -> a"
+                                 '(lambda (x1)
+                                    (lambda (x2)
+                                      ((lambda (x)
+                                         (if (and (Wrapper? x) (equal? (Wrapper-name x) "a"))
+                                             (Wrapper-value x)
+                                             (error "Scheme violated parametricity")))
+                                       ((test (lambda (x2) ((force x1) (delay x2)))) (make-Wrapper "a" x2))))))
                             (eHS "fu6"
                                  "(Bool -> Bool) -> Bool"
                                  '(lambda (x1)
@@ -141,7 +150,15 @@
                             (eHS "tu2" "(Bool, Bool)" '((lambda (x) (vector-immutable (if (vector-ref x 0) (force haskell:True) (force haskell:False))
                                                                                       (if (vector-ref x 1) (force haskell:True) (force haskell:False)))) test)))
                 (test-suite "SH"
-                            (eSH "co1" "Bool" '(if (haskell:True test) #t #f))
+                            (eSH "co1" "Bool" '(if (haskell:True? test) #t #f))
+                            
+                            (eSH "fuX"
+                                 "a -> a"
+                                 '(lambda (x1)
+                                    (make-Wrapper "a" (test (delay ((lambda (x)
+                                                                      (if (and (Wrapper? x) (equal? (Wrapper-name x) "a"))
+                                                                          (Wrapper-value x)
+                                                                          (error "Scheme violated parametricity"))) x1))))))
                             )))
   
   ; tParser :: parser

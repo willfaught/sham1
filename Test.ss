@@ -6,4 +6,4 @@
            (rename (lib "SyntaxTransformerTest.ss" "sham" "haskell") syntaxTransformerTS testSuite))
   
   (define (runTests)
-    (test/text-ui (test-suite "All" convertersTS parsersTS syntaxTransformerTS))))
+    (test/text-ui (test-suite "All" #;convertersTS parsersTS syntaxTransformerTS))))
