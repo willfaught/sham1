@@ -1,16 +1,16 @@
 (module Parsers mzscheme
   (require (only (lib "1.ss" "srfi") zip)
            (only (lib "13.ss" "srfi") string-concatenate)
-           (lib "HaskellSyntax.ss" "sham" "haskell")
            (lib "lex.ss" "parser-tools")
            (prefix : (lib "lex-sre.ss" "parser-tools"))
            (lib "list.ss")
            (lib "list.ss" "sham" "haskell")
            (lib "match.ss")
            (lib "readerr.ss" "syntax")
-           (lib "yacc.ss" "parser-tools"))
+           (lib "yacc.ss" "parser-tools")
+           (lib "HaskellSyntax.ss" "sham" "haskell"))
   
-  (provide declaration-parser expression-parser language-lexer module-parser type-parser)
+  (provide declarationParser expressionParser languageLexer moduleParser typeParser)
   
   (define-lex-abbrevs
     (a-whitespace (:: a-whitestuff (:* a-whitestuff)))
@@ -53,7 +53,7 @@
   
   (define-tokens regular (t-char t-conid t-consym t-float t-integer t-string t-varid t-varsym))
   
-  (define language-lexer
+  (define languageLexer
     (lexer-src-pos (#\\ (token-t-backslash))
                    ("`" (token-t-backtick))
                    ("case" (token-t-case))
@@ -91,7 +91,7 @@
                    (#\" (token-t-string (string-lexer input-port)))
                    ((:- (:: a-small (:* (:or a-small a-large a-digit "'"))) a-reservedid) (token-t-varid lexeme))
                    ((:- (:: a-symbol (:* (:or a-symbol ":"))) (:or a-reservedop a-dashes)) (token-t-varsym lexeme))
-                   (a-whitespace (return-without-pos (language-lexer input-port)))
+                   (a-whitespace (return-without-pos (languageLexer input-port)))
                    (a-opencom (return-without-pos ((comment-lexer 1) input-port)))
                    (a-closecom (raise-read-error (format "error: unexpected comment close (~a:~a)"
                                                          (position-line start-pos)
@@ -118,7 +118,7 @@
   
   (define (comment-lexer level)
     (lexer (a-opencom ((comment-lexer (+ level 1)) input-port))
-           (a-closecom (if (= level 1) (language-lexer input-port) ((comment-lexer (- level 1)) input-port)))
+           (a-closecom (if (= level 1) (languageLexer input-port) ((comment-lexer (- level 1)) input-port)))
            (a-ANY ((comment-lexer level) input-port))
            ((eof) (raise-read-error (format "error: unexpected end of file (~a:~a)"
                                             (position-line start-pos)
@@ -250,14 +250,14 @@
                      (nt-tycon ((t-conid) $1))
                      (nt-tyvar ((t-varid) (make-TypeVariable $1))))))
   
-  (define (declaration-parser source-name)
-    (list-ref (language-parsers source-name) 2))
+  (define (declarationParser name)
+    (list-ref (language-parsers name) 2))
   
-  (define (expression-parser source-name)
-    (list-ref (language-parsers source-name) 0))
+  (define (expressionParser name)
+    (list-ref (language-parsers name) 0))
   
-  (define (module-parser source-name)
-    (list-ref (language-parsers source-name) 1))
+  (define (moduleParser name)
+    (list-ref (language-parsers name) 1))
   
-  (define (type-parser source-name)
-    (list-ref (language-parsers source-name) 3)))
+  (define (typeParser name)
+    (list-ref (language-parsers name) 3)))
