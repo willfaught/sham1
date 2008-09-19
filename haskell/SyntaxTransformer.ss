@@ -1,9 +1,9 @@
 (module SyntaxTransformer mzscheme
-  (require (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
+  (require (lib "list.ss")
+           (lib "match.ss")
+           (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
-           (prefix t/ (lib "Types.ss" "sham"))
-           (lib "list.ss")
-           (lib "match.ss"))
+           (prefix t/ (lib "Types.ss" "sham")))
   
   (provide transformHC)
   
