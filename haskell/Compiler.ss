@@ -1,202 +1,135 @@
 (module Compiler mzscheme
-  (require (only (lib "1.ss" "srfi") list-tabulate partition unzip2 zip)
+  (require (only (lib "1.ss" "srfi") partition)
            (only (lib "71.ss" "srfi") values->list)
-           (lib "Boundaries.ss" "sham")
-           (lib "contract.ss")
-           (only (lib "list.ss") foldl foldr)
-           (lib "list.ss" "sham" "haskell")
-           (lib "match.ss")
-           (prefix /c (lib "CoreSyntax.ss" "sham" "haskell"))
-           (lib "type-checker.ss" "sham" "haskell")
-           (prefix t/ (lib "Types.ss" "sham"))
-           (lib "parsers.ss" "sham" "haskell"))
+           (only (lib "list.ss") foldl)
+           (only (lib "match.ss") match match-lambda)
+           (only (lib "Converters.ss" "sham") convertHM convertHS)
+           (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
+           (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
+           (only (lib "List.ss" "sham" "haskell") iterate)
+           (only (lib "TypeChecker.ss" "sham" "haskell") context)
+           (prefix t/ (lib "Types.ss" "sham")))
   
-  (provide compile)
+  (provide compileCS)
   
-  ; compile-constructor-term :: string constructor-term -> (datum)
-  (define (compile-constructor-term ct c)
-    ; constructor :: string integer -> datum
-    (define (constructor i n)
-      ; enumerate-identifiers :: integer -> (symbol)
-      (define (enumerate-identifiers n)
-        (if (equal? n 0) null (cons (strings->symbol "x" (number->string n)) (enumerate-identifiers (- n 1)))))
-      ; nest-functions :: datum integer -> datum
-      (define (nest-functions x n)
-        (if (equal? n 0) x `(lambda (,(strings->symbol "x" (number->string n))) ,(nest-functions x (- n 1)))))
-      (let* ((di (strings->symbol "haskell:" i))
-             (m (strings->symbol "make-haskell-constructor:" i))
-             (db `(delay ,(if (equal? n 0) `(,m) (nest-functions `(,m ,@(enumerate-identifiers n)) n)))))
-        `(define ,di ,db)))
-    ; constructor-type :: string (string) -> datum
-    (define (constructor-type ci fi)
-      (let ((di (strings->symbol "haskell-constructor:" ci))
-            (dt (strings->symbol "haskell-type:" ct))
-            (df (map (lambda (x) (string->symbol x)) fi)))
-        `(define-struct (,di ,dt) ,df #f)))
-    ; predicate :: string -> datum
-    (define (predicate i)
-      (let ((di (strings->symbol "haskell:is" i))
-            (db `(delay (lambda (x) (if (,(strings->symbol "haskell-constructor:" i "?") (force x))
-                                        (force haskell:True)
-                                        (force haskell:False))))))
-        `(define ,di ,db)))
-    (match-let* ((($ constructor-term ci cf) c)
-                 (fi (map (match-lambda (($ field-term i _) i)) cf)))
-      (append (list (constructor-type ci fi)
-                    (constructor ci (length cf))
-                    (predicate ci))
-              (map (lambda (x) (compile-field-term ci x)) cf))))
+  ; compileConstructor :: string string [string] -> datum
+  (define (compileConstructor dataName constructorName fieldNames)
+    (let ((t (stringsToSymbol "haskell-type:" dataName))
+          (c (stringsToSymbol "haskell-constructor:" constructorName))
+          (f (map (lambda (x) (string->symbol x)) fieldNames)))
+      `(define-struct (,c ,t) ,f #f)))
   
-  ; compile-data-term : data-term -> (datum)
-  (define (compile-data-term d)
-    ; data-type :: string -> datum
-    (define (data-type i)
-      (let ((ti (strings->symbol "haskell-type:" i)))
-        `(define-struct ,ti () #f)))
-    (match-let ((($ data-term di dc) d))
-      (append (list (data-type di))
-              (foldl append null (map (lambda (x) (compile-constructor-term di x)) dc)))))
-  
-  ; compile-field-term :: string field-term -> datum
-  (define (compile-field-term ci f)
-    (match-let* ((($ field-term fi _) f)
-                 (di (strings->symbol "haskell:" fi))
-                 (db `(delay (lambda (x) (force (,(strings->symbol "haskell-constructor:" ci "-" fi) (force x)))))))
-      `(define ,di ,db)))
-  
-  ; compile-import-term :: import-term -> datum
-  (define (compile-import-term i)
-    (let* ((p (import-term-path i)))
-      (if (not (file-exists? p))
-          (error 'compile-import-term "error: ~a is not a file" p)
-          (let ((f `(file ,p))
-                (a (import-term-alias i)))
-            (if (not (equal? a #f)) `(prefix ,(string->symbol a) ,f) f)))))
-  
-  ; compile-module-term :: module-term -> datum
-  (define (compile-module-term m)
-    ; compile-declaration-term :: declaration-term -> datum
-    (define compile-declaration-term
-      (match-lambda
-        (($ declaration-term p e)
-         `(define ,(string->symbol (car p)) (delay ,(if (null? (cdr p)) (compile-term e) (compile-term (make-function-term (cdr p) e))))))))
-    ; scheme-declaration :: (string type) -> declaration-term
-    (define scheme-declaration
-      (match-lambda ((i t) (make-declaration-term (list (string-append "scheme:" i)) (make-haskell-term t (make-identifier-term i))))))
-    (match-let* ((($ module-term mi mim md) m)
-                 ((da de) (values->list (partition data-term? md)))
-                 (mc (module-context null m))
-                 ((di _) (values->list (unzip2 mc)))
-                 #;(sd (map scheme-declaration mc))
-                 (hd (map (match-lambda (($ declaration-term (i . r) e) (make-declaration-term (cons (string-append "haskell:" i) r) e))) de)))
-      `(module ,(string->symbol mi) mzscheme
-         (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
-                  (lib "contract.ss")
-                  (only (lib "list.ss") foldl foldr)
-                  (lib "primitives.ss" "sham" "haskell")
-                  (lib "types.ss" "sham" "haskell")
-                  ,@(map compile-import-term mim))
-         (provide ,@(map (lambda (x) `(rename ,(string->symbol (string-append "haskell:" x)) ,(string->symbol x))) di))
-         (define-struct lump (contents))
-         ,@(foldl append null (map compile-data-term da))
-         ,@(map compile-declaration-term hd))))
-  
-  ; compile :: CoreSyntax -> datum
-  (define (compile syntax)
+  ; compileCS :: c/CoreSyntax -> datum
+  (define (compileCS syntax)
     (match syntax
-      (($ c/Application r d) `(,(compile r) (delay ,(compile d))))
+      (($ c/Application r d) `(,(compile r) (delay ,(compileCS d))))
       (($ c/Character v) (string-ref c 0))
-      ((? c/Data? x) (compile-data-term x))
+      (($ c/Data n c) (compileData n c))
       (($ c/Float v) (string->number v))
-      (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell:" p))) ,(compile b)))
+      (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell:" p))) ,(compileCS b)))
       (($ c/Haskell t n) `(contract ,(contractH t) ,(convertHS t (compile term) 1) 'haskell 'scheme))
-      (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compile e)))
+      (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compileCS e)))
       (($ c/Integer v) (string->number v))
       ((? c/Let? x) (compileLet x))
       (($ c/ListConstructor) 'null)
       ((? c/ML? x) (compileML x))
       ((? c/Module? x) (compile-module-term x))
-      (($ c/Scheme t n) `(contract ,(contractS t) ,(convertSH t (string->symbol n) 1) 'scheme 'haskell))
+      (($ c/Scheme t n) `(contract ,(contractHS t) ,(convertHS t (string->symbol n) 1) 'scheme 'haskell))
       (($ c/TupleConstructor a) (compileTupleConstructor a))
-      (($ c/UnitConstructor) (vector-immutable))
+      (($ c/UnitConstructor) `(vector-immutable))
       (($ c/Variable n) `(force ,(string->symbol (string-append "haskell:" n))))))
   
+  ; compileCurriedConstructor :: string integer -> datum
+  (define (compileCurriedConstructor name arity)
+    `(define ,(stringsToSymbol "haskell:" name)
+       (delay ,(nest `(,(stringsToSymbol "make-haskell-constructor:" name)
+                       ,@(map (lambda (x) (stringsToSymbol "x" x))
+                              (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))))
+  
+  ; compileData : string [c/Constructor] -> [datum]
+  (define (compileData name constructors)
+    (foldl append null (map (match-lambda (($ c/Constructor n1 f) (append (list (compileType name)
+                                                                                (compileConstructor name n1 (map (match-lambda (($ c/Field n2 _) n2)) f))
+                                                                                (compileCurriedConstructor n1 (length f))
+                                                                                (compilePredicate n1))
+                                                                          (map (match-lambda (($ c/Field n2 _) (compileField n1 n2))) f))))
+                            constructors)))
+  
+  ; compileField :: string string -> datum
+  (define (compileField constructorName fieldName)
+    `(define (stringsToSymbol "haskell:" fieldName)
+       (delay (lambda (x) (force (,(string->symbol (string-append "haskell-constructor:" constructorName "-" fieldName)) (force x)))))))
+  
   ; compileLet :: c/Let -> datum
-  (define (compileLet syntax)
-    (define (compileDeclaration syntax)
-      (match syntax
-        (($ c/Declaration n b) `(,(string->symbol (string->append "haskell:" n)) (delay ,(compile b))))))
-    (match syntax
-      (($ c/Let d b) `(letrec ,(map compileDeclaration d) ,(compile b)))))
+  (define compileLet
+    ; compileDeclaration :: c/Declaration -> datum
+    (define compileDeclaration
+      (match-lambda (($ c/Declaration n b) `(,(string->symbol (string->append "haskell:" n)) (delay ,(compileCS b))))))
+    (match-lambda (($ c/Let d b) `(letrec ,(map compileDeclaration d) ,(compileCS b)))))
   
   ; compileML :: c/ML -> datum
-  (define (compileML term)
-    ; type->datum :: type -> datum
-    (define (type->datum type)
-      (match type
-        (($ character-type) `(make-character-type))
-        (($ float-type) `(make-float-type))
-        (($ function-type p r) `(make-function-type ,(type->datum p) ,(type->datum r)))
-        (($ integer-type) `(make-integer-type))
-        (($ list-type t) `(make-list-type ,(type->datum t)))
-        (($ tuple-type t) `(make-tuple-type (list ,@(map type->datum t))))
-        (($ type-constructor i) `(make-type-constructor ,i))
-        (($ type-variable i) `(make-type-variable ,i))))
-    (match-let ((($ ml-term t i) term))
-      `(let ((x (assoc ,i ml:types)))
-         (if (and (not (equal? x #f))
-                  (primitive:type-less-general? ,(type->datum (translate-type-constructor t)) (list-ref x 1)))
-             ,(ml->haskell t (string->symbol i) 1)
-             (error "Haskell and ML type mismatch")))))
+  (define (compileML syntax)
+    (match-let ((($ c/ML t n) syntax))
+      'TODO))
+  
+  ; compileModule :: string [string] [c/Declaration] -> datum
+  (define (compileModule name imports declarations)
+    ; compileDeclaration :: c/Declaration -> datum
+    (define compileDeclaration
+      (match-lambda (($ c/Declaration l r) `(define ,(string->symbol l) (delay ,(compileCS r))))))
+    (match-let (((types bindings) (values->list (partition c/Data? declarations))))
+      `(module ,(string->symbol name) mzscheme
+         (require (only (lib "1.ss" "srfi") circular-list? proper-list?)
+                  (only (lib "contract.ss") -> flat-contract)
+                  (only (lib "list.ss") foldl foldr)
+                  (lib "Primitives.ss" "sham" "haskell")
+                  (lib "Types.ss" "sham")
+                  ,@(map (lambda (x) `(file ,x)) imports))
+         (provide ,@(map (match-lambda ((name _) name)) (context declarations)))
+         ,@(foldl append null (map compileCS types))
+         ,@(map compileDeclaration bindings))))
+  
+  ; compilePredicate :: string -> datum
+  (define (compilePredicate name)
+    (let ((n (stringsToSymbol "haskell:is" name))
+          (b `(delay (lambda (x)
+                       (if (,(stringsToSymbol "haskell-constructor:" name "?") (force x))
+                           (force haskell:True)
+                           (force haskell:False))))))
+      `(define ,n ,b)))
   
   ; compileTupleConstructor :: integer -> datum
-  (define (compileTupleConstructor a)
-    (define (enumerate n)
-      (if (= n 0) null (cons n (enumerate (- n 1)))))
-    (define (nest n)
-      (if (= n (+ a 1))
-          `(vector-immutable ,@(map (lambda (x) (strings->symbol "x" (number->string x))) (reverse (enumerate a))))
-          `(lambda (,(strings->symbol "x" (number->string n))) ,(nest (+ n 1)))))
-    (nest 1))
+  (define (compileTupleConstructor arity)
+    (nest `(vector-immutable ,@(map (lambda (x) (strings->symbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))
   
-  ; contractH :: Type -> contract
-  (define (contractH type)
-    (match type
-      (($ t/Application r d) )
-      (($ t/Constructor n) 'any/c)
-      (($ t/Variable n) 'any/c)
-      (($ t/Function) )
-      (($ t/List) )
-      (($ t/Tuple) )
-      (($ t/Unit) )
-      TODO
-      (($ character-type) `any/c)
-      (($ float-type) `any/c)
-      (($ function-type p r) `(-> ,(contractS p) ,(contractH r)))
-      (($ integer-type) `any/c)
-      (($ list-type _) `any/c)
-      (($ tuple-type _) `any/c)
-      (($ type-constructor _) `any/c)
-      (($ type-variable _) `any/c)))
+  ; compileType :: string -> datum
+  (define (compileType typeName)
+    `(define-struct ,(stringsToSymbol "haskell-type:" typeName) () #f))
   
-  ; contractS :: Type -> contract
-  (define (contractS type)
-    (match type
-      (($ character-type) `(flat-contract char?))
-      (($ float-type) `(flat-contract number?))
-      (($ function-type p r) `(-> ,(contractH p) ,(contractS r)))
-      (($ integer-type) `(flat-contract integer?))
-      (($ list-type type) `(and/c (listof ,(contractS type))
-                                  (flat-contract proper-list?)
-                                  (flat-contract (lambda (x) (not (circular-list? x))))))
-      (($ tuple-type types) `(vector/c ,@(map contractS types)))
-      (($ type-constructor i) (match i
-                                ("Char" (contractS (make-character-type)))
-                                ("Float" (contractS (make-float-type)))
-                                ("Int" (contractS (make-integer-type)))
-                                (_ `(flat-contract ,(strings->symbol "haskell-type:" i "?")))))
-      (($ type-variable _) `any/c)))
+  ; contractHS :: h/HaskellSyntax -> contract
+  (define (contractHS syntax)
+    (match syntax
+      (($ h/FunctionType p r) `(-> ,(contractSH p) ,(contractHS r)))
+      (($ h/ListType t) `(and/c (listof ,(contractHS t)) (flat-contract proper-list?) (flat-contract (lambda (x) (not (circular-list? x))))))
+      (($ h/TupleType t) `(vector-immutable/c ,@(map contractHS t)))
+      (($ h/TypeConstructor "Bool") `(flat-contract boolean?))
+      (($ h/TypeConstructor "Char") `(flat-contract char?))
+      (($ h/TypeConstructor "Float") `(flat-contract number?))
+      (($ h/TypeConstructor "Int") `(flat-contract integer?))
+      (($ h/TypeConstructor n) `(flat-contract ,(string->symbol (string-append "haskell-type:" n "?")))) ;TODO
+      ((? h/TypeVariable? _) 'any/c) ;TODO
+      (($ h/UnitType) `(vector-immutable/c))))
   
-  ; strings->symbol :: string... -> symbol
-  ;(define strings->symbol (lambda x (string->symbol (foldl (lambda (x y) (string-append y x)) "" x))))
-  )
+  ; contractSH :: h/HaskellSyntax -> contract
+  (define (contractSH syntax)
+    (match syntax
+      (($ h/FunctionType p r) `(-> ,(contractHS p) ,(contractSH r)))
+      ((? (lambda (x) (or h/ListType? h/TupleType? h/TypeConstructor? h/TypeVariable? h/UnitType?)) _) 'any/c)))
+  
+  ; nest :: datum integer integer -> datum
+  (define (nest syntax from to)
+    (if (equal? from to) syntax `(lambda (,(string->symbol (string-append "x" (number->string from)))) ,(nest syntax (+ from 1) to))))
+    
+  ; stringsToSymbol :: string string -> symbol
+    (define (stringsToSymbol s1 s2)
+    (string->symbol (string-append s1 s2))))
