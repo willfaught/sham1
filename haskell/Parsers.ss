@@ -4,7 +4,7 @@
            (lib "lex.ss" "parser-tools")
            (prefix : (lib "lex-sre.ss" "parser-tools"))
            (lib "list.ss")
-           (lib "list.ss" "sham" "haskell")
+           (lib "List.ss" "sham" "haskell")
            (lib "match.ss")
            (lib "readerr.ss" "syntax")
            (lib "yacc.ss" "parser-tools")
