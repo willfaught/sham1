@@ -6,6 +6,7 @@
            ;(lib "ml.ml" "sham" "haskell" "examples")
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser moduleParser typeParser)
            (lib "scheme.ss" "sham" "haskell" "examples")
+           (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
            (only (lib "TypeChecker.ss" "sham" "haskell") moduleContext syntaxType)
            (lib "Types.ss" "sham"))
   
@@ -13,19 +14,19 @@
   
   ; ee :: string string string -> test-case
   (define (ee name expression type)
-    (test-equal? name (syntaxType null (parseE expression)) (parseT type)))
+    (test-equal? name (syntaxType null (transformHC (parseE expression))) (transformHC (parseT type))))
   
   ; ex :: string string -> test-case
   (define (ex name expression)
-    (test-exn name (lambda (x) #t) (lambda () (syntaxType null (parseE expression)))))
+    (test-exn name (lambda (x) #t) (lambda () (syntaxType null (transformHC (parseE expression))))))
   
   ; mnx :: string string -> test-case
   (define (mnx name module)
-    (test-not-exn name (lambda () (moduleContext null (parseM module)))))
+    (test-not-exn name (lambda () (moduleContext null (transformHC (parseM module))))))
   
   ; mx :: string string -> test-case
   (define (mx name module)
-    (test-exn name (lambda (x) #t) (lambda () (moduleContext null (parseM module)))))
+    (test-exn name (lambda (x) #t) (lambda () (moduleContext null (transformHC (parseM module))))))
   
   ; parseD :: string -> HaskellSyntax
   (define parseD (declarationParser "test"))
