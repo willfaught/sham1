@@ -1,10 +1,11 @@
-(module list mzscheme
-  (require (only (lib "1.ss" "srfi") unzip2)
-           (lib "match.ss"))
+(module List mzscheme
+  (require (rename (lib "1.ss" "srfi") myunzip2 unzip2)
+           (only (lib "list.ss") foldl)
+           (only (lib "match.ss") match))
   
   (provide (all-defined))
   
-  ; drop :: [a] -> integer -> [a]
+  ; drop :: [a] integer -> [a]
   (define (drop x n)
     (if (not (list? x))
         (error 'drop "not a list"))
@@ -14,18 +15,24 @@
         x
         (drop (cdr x) (- n 1))))
   
-  ; foldr1 :: (a -> a -> a) -> [a] -> a
+  ; foldl1 :: (a -> a -> a) [a] -> a
+  (define (foldl1 f xs)
+    (match xs
+      ((x . xs) (foldl f x xs))
+      (() (error 'foldl1 "empty list"))))
+  
+  ; foldr1 :: (a -> a -> a) [a] -> a
   (define (foldr1 f xs)
     (match xs
       ((x) x)
       ((x . xs) (f x (foldr1 f xs)))
       (() (error 'foldr1 "empty list"))))
   
-  ; lunzip2 :: [(a, b)] -> ([a], [b])
-  (define (lunzip2 x)
-    (let-values (((x y) (unzip2 x))) (list x y)))
+  ; iterate :: (a -> a) a integer -> [a]
+  (define (iterate f x n)
+    (if (equal? n 0) null (cons x (iterate f (f x) (- n 1)))))
   
-  ; take :: [a] -> integer -> [a]
+  ; take :: [a] integer -> [a]
   (define (take x n)
     (if (not (list? x))
         (error 'take "not a list"))
@@ -35,8 +42,8 @@
         null
         (cons (car x) (take (cdr x) (- n 1)))))
   
-  ; zip-with :: (a -> b -> c) -> [a] -> [b] -> [c]
-  (define (zip-with f x y)
+  ; zipWith :: (a -> b -> c) [a] [b] -> [c]
+  (define (zipWith f x y)
     (if (equal? (length x) (length y))
-        (if (null? x) null (cons (f (car x) (car y)) (zip-with f (cdr x) (cdr y))))
-        (error 'zip-with "lists have different lengths"))))
+        (if (null? x) null (cons (f (car x) (car y)) (zipWith f (cdr x) (cdr y))))
+        (error 'zipWith "lists have different lengths"))))
