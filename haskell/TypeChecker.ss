@@ -54,8 +54,8 @@
   ; mapType :: (t/Type -> t/Type) t/Type -> t/Type
   (define (mapType mapper type)
     (match type
-      (($ t/Application r d) (mapper (t/make-Application (mapper r) (mapper d))))
-      (_ (mapper type))))
+      (($ t/Application r d) (mapper (t/make-Application (mapType mapper r) (mapType mapper d))))
+      (x (mapper x))))
   
   ; moduleContext :: [assumption] c/Module -> [assumption]
   (define (moduleContext context syntax)
