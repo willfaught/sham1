@@ -100,7 +100,7 @@
       ((? c/Character? _) (list (t/make-Constructor "Char") null))
       ((? c/Float? _) (list (t/make-Constructor "Float") null))
       (($ c/Function p b) (match-let* ((pt (newVariable))
-                                       ((bt bc) (reconstructType (append (list p pt) context) b)))
+                                       ((bt bc) (reconstructType (cons (list p pt) context) b)))
                             (list (t/make-Application (t/make-Application (t/make-Function) pt) bt) bc)))
       (($ c/If g t e) (match-let (((gt gc) (reconstructType context g))
                                   ((tt tc) (reconstructType context t))
@@ -123,7 +123,7 @@
                                                (foldl (lambda (x y) (t/make-Application y x)) (t/make-Tuple a) t) t) null)))
       (($ c/UnitConstructor) (t/make-Unit))
       (($ c/Variable n) (match (assoc n context)
-                          ((_ t) t)
+                          ((_ t) (list t null))
                           (_ (error 'reconstructType "~a is not in scope" n))))))
   
   ; rename :: [(t/Variable, t/Variable)] t/Type -> t/Type
