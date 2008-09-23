@@ -129,7 +129,7 @@
                                     (position-offset start-pos)
                                     (- (position-offset end-pos) (position-offset start-pos))))))
   
-  (define (language-parsers source-name)
+  (define (languageParsers source-name)
     (parser (src-pos)
             (tokens keywords regular)
             (start nt-exp nt-module nt-topdecl nt-type)
@@ -250,14 +250,26 @@
                      (nt-tycon ((t-conid) $1))
                      (nt-tyvar ((t-varid) (make-TypeVariable $1))))))
   
+  ; makeParser :: string integer -> (string -> HaskellSyntax)
+  (define (makeParser sourceName parserIndex)
+    (let ((parser (list-ref (languageParsers sourceName) parserIndex)))
+      (lambda (s)
+        (let ((p (open-input-string s)))
+          (port-count-lines! p)
+          (parser (lambda () (languageLexer p)))))))
+  
+  ; declarationParser :: string -> (string -> HaskellSyntax)
   (define (declarationParser name)
-    (list-ref (language-parsers name) 2))
+    (makeParser name 2))
   
+  ; expressionParser :: string -> (string -> HaskellSyntax)
   (define (expressionParser name)
-    (list-ref (language-parsers name) 0))
+    (makeParser name 0))
   
+  ; moduleParser :: string -> (string -> HaskellSyntax)
   (define (moduleParser name)
-    (list-ref (language-parsers name) 1))
+    (makeParser name 1))
   
+  ; typeParser :: string -> (string -> HaskellSyntax)
   (define (typeParser name)
-    (list-ref (language-parsers name) 3)))
+    (makeParser name 3)))
