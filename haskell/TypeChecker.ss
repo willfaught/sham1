@@ -1,7 +1,7 @@
 (module TypeChecker mzscheme
   (require (only (lib "1.ss" "srfi") alist-cons delete-duplicates filter lset-intersection make-list partition unzip2 zip)
            (only (lib "71.ss" "srfi") values->list)
-           (only (lib "list.ss") foldl foldr)
+           (only (lib "list.ss") findf foldl foldr)
            (only (lib "match.ss") match match-lambda match-let match-let*)
            (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (only (lib "List.ss" "sham" "haskell") iterate zipWith)
@@ -62,11 +62,11 @@
     (match-let* (((data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
                  (declNames (map (match-lambda (($ c/Declaration n _) n)) decl))
                  (declTyvars (map (lambda (x) (newVariable)) decl))
-                 (declContext (append (zip declNames declTyvars) (foldl append null (map dataContext data)) context))
+                 (declContext (append (zip declNames declTyvars) (foldl append null (map dataContext data)) context primitives))
                  ((declTypes declConstraints) (values->list (unzip2 (map (lambda (x) (reconstructType declContext x)) decl))))
                  (subst (unify (append (zipWith make-constraint declTyvars declTypes) (foldl append null declConstraints))))
-                 (fullDeclTypes (map (lambda (x) (substituteManyType subst x)) declTypes)))
-      (append (zip declNames fullDeclTypes) context)))
+                 (declTypesS (map (lambda (x) (substituteManyType subst x)) declTypes)))
+      (append (zip declNames declTypesS) context primitives)))
   
   ; newVariable :: t/Variable
   (define (newVariable)
@@ -100,7 +100,7 @@
       ((? c/Character? _) (list (t/make-Constructor "Char") null))
       ((? c/Float? _) (list (t/make-Constructor "Float") null))
       (($ c/Function p b) (match-let* ((pt (newVariable))
-                                       ((bt bc) (reconstructType (cons (list p pt) context) b)))
+                                       ((bt bc) (reconstructType (cons (make-assumption p pt) context) b)))
                             (list (t/make-Application (t/make-Application (t/make-Function) pt) bt) bc)))
       (($ c/If g t e) (match-let (((gt gc) (reconstructType context g))
                                   ((tt tc) (reconstructType context t))
@@ -109,12 +109,13 @@
       ((? c/Integer? _) (list (t/make-Constructor "Int") null))
       (($ c/Let d b) (match-let* ((names (map (match-lambda (($ c/Declaration l _) l)) d))
                                   (tyvars (map (lambda (x) (newVariable)) d))
-                                  ((types constraints) (values->list (unzip2 (map (match-lambda (($ c/Declaration _ r)
-                                                                                                 (reconstructType (append (zip names tyvars) context) r))) d))))
+                                  ((types constraints)
+                                   (values->list (unzip2 (map (match-lambda (($ c/Declaration _ r)
+                                                                             (reconstructType (append (zipWith make-assumption names tyvars) context) r))) d))))
                                   (subst (unify (append (zipWith make-constraint tyvars types) (foldl append null constraints))))
                                   (contextS (substituteContext subst context))
                                   (typesS (map (lambda (x) (substituteManyType subst x)) types)))
-                       (reconstructType (append (zip names typesS) contextS) b)))
+                       (reconstructType (append (zipWith make-assumption names typesS) contextS) b)))
       (($ c/ListConstructor) (list (t/make-Application (t/make-List) (newVariable)) null))
       (($ c/ML t _) (list (transformHC t) null))
       (($ c/Scheme t _) (list (transformHC t) null))
@@ -122,9 +123,9 @@
                                   (list (foldr (lambda (x y) (t/make-Application (t/make-Application (t/make-Function) x) y))
                                                (foldl (lambda (x y) (t/make-Application y x)) (t/make-Tuple a) t) t) null)))
       (($ c/UnitConstructor) (t/make-Unit))
-      (($ c/Variable n) (match (assoc n context)
-                          ((_ t) (list t null))
-                          (_ (error 'reconstructType "~a is not in scope" n))))))
+      (($ c/Variable n) (match (findf (lambda (x) (equal? (assumption-name x) n)) context)
+                          (#f (error 'reconstructType "~a is not in scope" n))
+                          (x (list (assumption-type x) null))))))
   
   ; rename :: [(t/Variable, t/Variable)] t/Type -> t/Type
   (define (rename mappings type)
@@ -149,7 +150,7 @@
   
   ; syntaxType :: [assumption] c/CoreSyntax -> t/Type
   (define (syntaxType context syntax)
-    (match-let (((t c) (reconstructType context syntax)))
+    (match-let (((t c) (reconstructType (append context primitives) syntax)))
       (normalize (substituteManyType (unify c) t))))
   
   ; typeVariables :: t/Type -> [t/Variable]
