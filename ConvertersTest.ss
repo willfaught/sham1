@@ -7,20 +7,23 @@
   (provide testSuite)
   
   ; eHM :: string string datum -> schemeunit-test-case
-  (define (eHM name type datum)
-    (test-equal? name (convertHM (parseT type) 'test) datum))
+  (define (eHM name type answer)
+    (test-equal? name (convertHM (parseT type) 'test) answer))
   
   ; eHS :: string string datum -> schemeunit-test-case
-  (define (eHS name type datum)
-    (test-equal? name (convertHS (parseT type) 'test) datum))
+  (define (eHS name type answer)
+    (test-equal? name (convertHS (parseT type) 'test) answer))
   
   ; eMH :: string string datum -> schemeunit-test-case
-  (define (eMH name type datum)
-    (test-equal? name (convertMH (parseT type) 'test) datum))
+  (define (eMH name type answer)
+    (test-equal? name (convertMH (parseT type) 'test) answer))
   
   ; eSH :: string string datum -> schemeunit-test-case
-  (define (eSH name type datum)
-    (test-equal? name (convertSH (parseT type) 'test) datum))
+  (define (eSH name type answer)
+    (test-equal? name (convertSH (parseT type) 'test) answer))
+  
+  ; parseT :: string -> HaskellSyntax
+  (define parseT (typeParser "test"))
   
   ; xHM :: string string -> schemeunit-test-case
   (define (xHM name type)
@@ -29,12 +32,6 @@
   ; xMH :: string string -> schemeunit-test-case
   (define (xMH name type)
     (test-exn name (lambda (x) #t) (lambda () (convertMH (parseT type) 'test))))
-  
-  ; parseT :: string -> HaskellSyntax
-  (define (parseT expression)
-    (let ((port (open-input-string expression)))
-      (port-count-lines! port)
-      (tParser (lambda () (language-lexer port)))))
   
   ; testSuite :: schemeunit-test-suite
   (define testSuite
@@ -159,7 +156,4 @@
                                                                       (if (and (Wrapper? x) (equal? (Wrapper-name x) "a"))
                                                                           (Wrapper-value x)
                                                                           (error "Scheme violated parametricity"))) x1))))))
-                            )))
-  
-  ; tParser :: parser
-  (define tParser (type-parser "test")))
+                            ))))
