@@ -124,7 +124,7 @@
       (($ c/TupleConstructor a) (let ((t (map (lambda (x) (newVariable)) (make-list a))))
                                   (list (foldr (lambda (x y) (t/make-Application (t/make-Application (t/make-Function) x) y))
                                                (foldl (lambda (x y) (t/make-Application y x)) (t/make-Tuple a) t) t) null)))
-      (($ c/UnitConstructor) (t/make-Unit))
+      (($ c/UnitConstructor) (list (t/make-Unit) null))
       (($ c/Variable n) (match (findf (lambda (x) (equal? (assumption-name x) n)) context)
                           (#f (error 'reconstructType "~a is not in scope" n))
                           (x (list (assumption-type x) null))))))
