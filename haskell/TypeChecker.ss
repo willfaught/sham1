@@ -23,7 +23,7 @@
   (define (constructorContext dataType syntax)
     (match-let ((($ c/Constructor n f) syntax))
       (append (list (make-assumption n (foldr (lambda (x y) (t/make-Application (t/make-Application (t/make-Function) x) y)) dataType
-                                              (map (match-lambda (($ c/Field _ t) (transformHC t))) f)))
+                                              (map (match-lambda (($ c/Field _ t) t)) f)))
                     (make-assumption (string-append "is" n)
                                      (t/make-Application (t/make-Application (t/make-Function) dataType)
                                                          (t/make-Constructor "Bool"))))
@@ -44,7 +44,7 @@
   ; fieldContext :: t/Constructor c/Field -> assumption
   (define (fieldContext dataType syntax)
     (match-let ((($ c/Field n t) syntax))
-      (make-assumption n (t/make-Application (t/make-Application (t/make-Function) dataType) (transformHC t)))))
+      (make-assumption n (t/make-Application (t/make-Application (t/make-Function) dataType) t))))
   
   ; instantiate :: t/Type -> t/Type
   (define (instantiate type)
@@ -62,7 +62,7 @@
     (match-let* (((data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
                  (declNames (map (match-lambda (($ c/Declaration n _) n)) decl))
                  (declTyvars (map (lambda (x) (newVariable)) decl))
-                 (declContext (append (zip declNames declTyvars) (foldl append null (map dataContext data)) context primitives))
+                 (declContext (append (zipWith make-assumption declNames declTyvars) (foldl append null (map dataContext data)) context primitives))
                  ((declTypes declConstraints) (values->list (unzip2 (map (lambda (x) (reconstructType declContext x)) decl))))
                  (subst (unify (append (zipWith make-constraint declTyvars declTypes) (foldl append null declConstraints))))
                  (declTypesS (map (lambda (x) (substituteManyType subst x)) declTypes)))
@@ -85,6 +85,7 @@
           (parseT (typeParser "primitives")))
       (append (list (make-assumption "fst" (transformHC (parseT "(a, b) -> a")))
                     (make-assumption "head" (transformHC (parseT "[a] -> a")))
+                    (make-assumption "null" (transformHC (parseT "[a] -> Bool")))
                     (make-assumption "snd" (transformHC (parseT "(a, b) -> b")))
                     (make-assumption "tail" (transformHC (parseT "[a] -> [a]")))
                     (make-assumption ":" (transformHC (parseT "a -> [a] -> [a]"))))
@@ -98,6 +99,7 @@
                                          (t (newVariable)))
                                (list t (cons (make-constraint rt (t/make-Application (t/make-Application (t/make-Function) dt) t)) (append rc dc)))))
       ((? c/Character? _) (list (t/make-Constructor "Char") null))
+      (($ c/Declaration _ r) (reconstructType context r))
       ((? c/Float? _) (list (t/make-Constructor "Float") null))
       (($ c/Function p b) (match-let* ((pt (newVariable))
                                        ((bt bc) (reconstructType (cons (make-assumption p pt) context) b)))
