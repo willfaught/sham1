@@ -1,11 +1,7 @@
-; TODO: fix ml
-
 (module TypeCheckerTest mzscheme
   (require (lib "match.ss")
            (planet "test.ss" ("schematics" "schemeunit.plt" 2))
-           ;(lib "ml.ml" "sham" "haskell" "examples")
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser moduleParser typeParser)
-           (lib "scheme.ss" "sham" "haskell" "examples")
            (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
            (only (lib "TypeChecker.ss" "sham" "haskell") moduleContext syntaxType)
            (lib "Types.ss" "sham"))
@@ -117,7 +113,8 @@
                 (ee "li3" "\"\"" "[t]")
                 (ee "li4" "\"foo\"" "[Char]")
                 (ex "li5" "[1, 'a']")
-                ;(ee "ml1" ":ml Int \"mlInt\"" "Int")
+                (ee "ml1" ":ml Int \"x\"" "Int")
+                (ee "ml2" ":ml a -> a \"x\"" "t -> t")
                 (mnx "mo1" "{}")
                 (mnx "mo2" "{ i = 1 }")
                 (mnx "mo3" "{ i = i }")
@@ -136,7 +133,8 @@
                 (mnx "mo16" "{ i = let { i x = x } in i ; j = i 1 }")
                 (mx "mo17" "{ i = [i] }")
                 (mx "mo18" "{ i = (i, i) }")
-                (ee "sc1" ":scheme Int \"schemeInteger\"" "Int")
+                (ee "sc1" ":scheme Int \"x\"" "Int")
+                (ee "sc2" ":scheme a -> a \"x\"" "t -> t")
                 (ee "tu1" "('a', 1)" "(Char, Int)")
                 (ee "tu2" "('b', 1, 1)" "(Char, Int, Int)")
                 (ee "tc1" "(,)" "t -> t1 -> (t, t1)")

@@ -52,9 +52,9 @@
   (define (generalize context type)
     (let ((tyvars (uniqueTypeVariables type))
           (types (map (match-lambda (($ Assumption _ t) t)) context)))
-      (make-Forall (map (match-lambda ((x _) x))
-                        (filter (lambda (x) (equal? (list-ref x 1) #f))
-                                (map (lambda (x) (list x (findf (lambda (y) (containsType y x)) types))) tyvars))) type)))
+      (if (null? tyvars) type (make-Forall (map (match-lambda ((x _) x))
+                                                (filter (lambda (x) (equal? (list-ref x 1) #f))
+                                                        (map (lambda (x) (list x (findf (lambda (y) (containsType y x)) types))) tyvars))) type))))
   
   ; instantiate :: t/Type -> t/Type
   (define instantiate
@@ -66,16 +66,18 @@
       (($ t/Application r d) (mapper (t/make-Application (mapType mapper r) (mapType mapper d))))
       (x (mapper x))))
   
-  ; moduleContext :: [Assumption] c/Module -> [Assumption]
+  ; moduleContext :: [(string, t/Type)] c/Module -> [(string, t/Type)]
   (define (moduleContext context syntax)
-    (match-let* (((data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
-                 (declNames (map (match-lambda (($ c/Declaration n _) n)) decl))
-                 (declTyvars (map (lambda (x) (newVariable)) decl))
-                 (declContext (append (zipWith make-Assumption declNames declTyvars) (foldl append null (map dataContext data)) context primitives))
-                 ((declTypes declConstraints) (values->list (unzip2 (map (lambda (x) (reconstructType declContext x)) decl))))
-                 (subst (unify (append (zipWith make-Constraint declTyvars declTypes) (foldl append null declConstraints))))
-                 (declTypesS (map (lambda (x) (substituteManyType subst x)) declTypes)))
-      (append (zip declNames declTypesS) context primitives)))
+    (match-let* ((assumCxt (map (match-lambda ((x y) (make-Assumption x y))) context))
+                 ((data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
+                 (names (map (match-lambda (($ c/Declaration n _) n)) decl))
+                 (tyvars (map (lambda (x) (newVariable)) decl))
+                 (dataCxt (foldl append null (map dataContext data)))
+                 (declCxt (append (zipWith make-Assumption names tyvars) dataCxt assumCxt primitives))
+                 ((types constraints) (values->list (unzip2 (map (lambda (x) (reconstructType declCxt x)) decl))))
+                 (subst (unify (append (zipWith make-Constraint tyvars types) (foldl append null constraints))))
+                 (typesS (map (lambda (x) (substituteManyType subst x)) types)))
+      (append (zip names typesS) (map (match-lambda (($ Assumption x y) (list x y))) (append dataCxt assumCxt primitives)))))
   
   ; newVariable :: t/Variable
   (define (newVariable)
@@ -128,8 +130,8 @@
                                   (typesS (map (lambda (x) (generalize contextS (substituteManyType subst x))) types)))
                        (reconstructType (append (zipWith make-Assumption names typesS) contextS) b)))
       (($ c/ListConstructor) (list (t/make-Application (t/make-List) (newVariable)) null))
-      (($ c/ML t _) (list (transformHC t) null))
-      (($ c/Scheme t _) (list (transformHC t) null))
+      (($ c/ML t _) (list (let ((t (generalize context (transformHC t)))) (if (Forall? t) (instantiate t) t)) null))
+      (($ c/Scheme t _) (list (let ((t (generalize context (transformHC t)))) (if (Forall? t) (instantiate t) t)) null))
       (($ c/TupleConstructor a) (let ((t (map (lambda (x) (newVariable)) (make-list a))))
                                   (list (foldr (lambda (x y) (t/make-Application (t/make-Application (t/make-Function) x) y))
                                                (foldl (lambda (x y) (t/make-Application y x)) (t/make-Tuple a) t) t) null)))
@@ -159,9 +161,9 @@
   (define (substituteManyType s t)
     (if (null? s) t (substituteManyType (cdr s) (substituteType (car s) t))))
   
-  ; syntaxType :: [Assumption] c/CoreSyntax -> t/Type
+  ; syntaxType :: [(string, t/Type)] c/CoreSyntax -> t/Type
   (define (syntaxType context syntax)
-    (match-let (((t c) (reconstructType (append context primitives) syntax)))
+    (match-let (((t c) (reconstructType (append (map (match-lambda ((x y) (make-Assumption x y))) context) primitives) syntax)))
       (normalize (substituteManyType (unify c) t))))
   
   ; typeVariables :: t/Type -> [t/Variable]
