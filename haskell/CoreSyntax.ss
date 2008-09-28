@@ -19,8 +19,6 @@
   
   (define-struct (Function CoreSyntax) (parameter body) #f)
   
-  (define-struct (Haskell CoreSyntax) (type name) #f)
-  
   (define-struct (If CoreSyntax) (guard then else) #f)
   
   (define-struct (Integer CoreSyntax) (value) #f)
