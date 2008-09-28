@@ -2,12 +2,12 @@
   (require (only (lib "1.ss" "srfi") partition)
            (only (lib "71.ss" "srfi") values->list)
            (only (lib "list.ss") foldl)
-           (only (lib "match.ss") match match-lambda)
+           (only (lib "match.ss") match match-lambda match-let)
            (only (lib "Converters.ss" "sham") convertHM convertHS)
            (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (only (lib "List.ss" "sham" "haskell") iterate)
-           (only (lib "TypeChecker.ss" "sham" "haskell") context)
+           (only (lib "TypeChecker.ss" "sham" "haskell") moduleContext)
            (prefix t/ (lib "Types.ss" "sham")))
   
   (provide compileCS)
@@ -23,17 +23,16 @@
   (define (compileCS syntax)
     (match syntax
       (($ c/Application r d) `(,(compile r) (delay ,(compileCS d))))
-      (($ c/Character v) (string-ref c 0))
+      (($ c/Character v) (string-ref v 0))
       (($ c/Data n c) (compileData n c))
       (($ c/Float v) (string->number v))
       (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell:" p))) ,(compileCS b)))
-      (($ c/Haskell t n) `(contract ,(contractH t) ,(convertHS t (compile term) 1) 'haskell 'scheme))
       (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compileCS e)))
       (($ c/Integer v) (string->number v))
-      ((? c/Let? x) (compileLet x))
+      (($ c/Let d b) (compileLet d b))
       (($ c/ListConstructor) 'null)
       ((? c/ML? x) (compileML x))
-      ((? c/Module? x) (compile-module-term x))
+      (($ c/Module n i d) (compileModule n i d))
       (($ c/Scheme t n) `(contract ,(contractHS t) ,(convertHS t (string->symbol n) 1) 'scheme 'haskell))
       (($ c/TupleConstructor a) (compileTupleConstructor a))
       (($ c/UnitConstructor) `(vector-immutable))
@@ -61,16 +60,14 @@
        (delay (lambda (x) (force (,(string->symbol (string-append "haskell-constructor:" constructorName "-" fieldName)) (force x)))))))
   
   ; compileLet :: c/Let -> datum
-  (define compileLet
+  (define (compileLet declarations body)
     ; compileDeclaration :: c/Declaration -> datum
     (define compileDeclaration
-      (match-lambda (($ c/Declaration n b) `(,(string->symbol (string->append "haskell:" n)) (delay ,(compileCS b))))))
-    (match-lambda (($ c/Let d b) `(letrec ,(map compileDeclaration d) ,(compileCS b)))))
+      (match-lambda (($ c/Declaration n b) `(,(string->symbol (string-append "haskell:" n)) (delay ,(compileCS b))))))
+    `(letrec ,(map compileDeclaration declarations) ,(compileCS body)))
   
   ; compileML :: c/ML -> datum
-  (define (compileML syntax)
-    (match-let ((($ c/ML t n) syntax))
-      'TODO))
+  (define (compileML type name) 'TODO)
   
   ; compileModule :: string [string] [c/Declaration] -> datum
   (define (compileModule name imports declarations)
@@ -85,7 +82,7 @@
                   (lib "Primitives.ss" "sham" "haskell")
                   (lib "Types.ss" "sham")
                   ,@(map (lambda (x) `(file ,x)) imports))
-         (provide ,@(map (match-lambda ((name _) name)) (context declarations)))
+         (provide ,@(map (match-lambda ((name _) name)) (moduleContext declarations)))
          ,@(foldl append null (map compileCS types))
          ,@(map compileDeclaration bindings))))
   
@@ -100,7 +97,7 @@
   
   ; compileTupleConstructor :: integer -> datum
   (define (compileTupleConstructor arity)
-    (nest `(vector-immutable ,@(map (lambda (x) (strings->symbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))
+    (nest `(vector-immutable ,@(map (lambda (x) (stringsToSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))
   
   ; compileType :: string -> datum
   (define (compileType typeName)
