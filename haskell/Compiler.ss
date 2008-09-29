@@ -14,19 +14,19 @@
   
   ; compileConstructor :: string string [string] -> datum
   (define (compileConstructor dataName constructorName fieldNames)
-    (let ((t (stringsToSymbol "haskell-type:" dataName))
-          (c (stringsToSymbol "haskell-constructor:" constructorName))
+    (let ((t (stringsToSymbol "haskell/type/" dataName))
+          (c (stringsToSymbol "haskell/constructor/" constructorName))
           (f (map (lambda (x) (string->symbol x)) fieldNames)))
       `(define-struct (,c ,t) ,f #f)))
   
   ; compileCS :: c/CoreSyntax -> datum
   (define (compileCS syntax)
     (match syntax
-      (($ c/Application r d) `(,(compile r) (delay ,(compileCS d))))
+      (($ c/Application r d) `(,(compileCS r) (delay ,(compileCS d))))
       (($ c/Character v) (string-ref v 0))
       (($ c/Data n c) (compileData n c))
       (($ c/Float v) (string->number v))
-      (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell:" p))) ,(compileCS b)))
+      (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell/" p))) ,(compileCS b)))
       (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compileCS e)))
       (($ c/Integer v) (string->number v))
       (($ c/Let d b) (compileLet d b))
@@ -36,12 +36,12 @@
       (($ c/Scheme t n) `(contract ,(contractHS t) ,(convertHS t (string->symbol n) 1) 'scheme 'haskell))
       (($ c/TupleConstructor a) (compileTupleConstructor a))
       (($ c/UnitConstructor) `(vector-immutable))
-      (($ c/Variable n) `(force ,(string->symbol (string-append "haskell:" n))))))
+      (($ c/Variable n) `(force ,(string->symbol (string-append "haskell/" n))))))
   
   ; compileCurriedConstructor :: string integer -> datum
   (define (compileCurriedConstructor name arity)
-    `(define ,(stringsToSymbol "haskell:" name)
-       (delay ,(nest `(,(stringsToSymbol "make-haskell-constructor:" name)
+    `(define ,(stringsToSymbol "haskell/" name)
+       (delay ,(nest `(,(stringsToSymbol "make-haskell/constructor/" name)
                        ,@(map (lambda (x) (stringsToSymbol "x" x))
                               (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))))
   
@@ -57,13 +57,13 @@
   ; compileField :: string string -> datum
   (define (compileField constructorName fieldName)
     `(define (stringsToSymbol "haskell:" fieldName)
-       (delay (lambda (x) (force (,(string->symbol (string-append "haskell-constructor:" constructorName "-" fieldName)) (force x)))))))
+       (delay (lambda (x) (force (,(string->symbol (string-append "haskell/constructor/" constructorName "-" fieldName)) (force x)))))))
   
   ; compileLet :: c/Let -> datum
   (define (compileLet declarations body)
     ; compileDeclaration :: c/Declaration -> datum
     (define compileDeclaration
-      (match-lambda (($ c/Declaration n b) `(,(string->symbol (string-append "haskell:" n)) (delay ,(compileCS b))))))
+      (match-lambda (($ c/Declaration n b) `(,(string->symbol (string-append "haskell/" n)) (delay ,(compileCS b))))))
     `(letrec ,(map compileDeclaration declarations) ,(compileCS body)))
   
   ; compileML :: c/ML -> datum
@@ -88,9 +88,9 @@
   
   ; compilePredicate :: string -> datum
   (define (compilePredicate name)
-    (let ((n (stringsToSymbol "haskell:is" name))
+    (let ((n (stringsToSymbol "haskell/is" name))
           (b `(delay (lambda (x)
-                       (if (,(stringsToSymbol "haskell-constructor:" name "?") (force x))
+                       (if (,(string->symbol (string-append "haskell/constructor/" name "?")) (force x))
                            (force haskell:True)
                            (force haskell:False))))))
       `(define ,n ,b)))
@@ -101,7 +101,7 @@
   
   ; compileType :: string -> datum
   (define (compileType typeName)
-    `(define-struct ,(stringsToSymbol "haskell-type:" typeName) () #f))
+    `(define-struct ,(stringsToSymbol "haskell/type/" typeName) () #f))
   
   ; contractHS :: h/HaskellSyntax -> contract
   (define (contractHS syntax)
@@ -113,7 +113,7 @@
       (($ h/TypeConstructor "Char") `(flat-contract char?))
       (($ h/TypeConstructor "Float") `(flat-contract number?))
       (($ h/TypeConstructor "Int") `(flat-contract integer?))
-      (($ h/TypeConstructor n) `(flat-contract ,(string->symbol (string-append "haskell-type:" n "?")))) ;TODO
+      (($ h/TypeConstructor n) `(flat-contract ,(string->symbol (string-append "haskell:" n "Type?")))) ;TODO
       ((? h/TypeVariable? _) 'any/c) ;TODO
       (($ h/UnitType) `(vector-immutable/c))))
   
@@ -125,7 +125,7 @@
   
   ; nest :: datum integer integer -> datum
   (define (nest syntax from to)
-    (if (equal? from to) syntax `(lambda (,(string->symbol (string-append "x" (number->string from)))) ,(nest syntax (+ from 1) to))))
+    (if (equal? from to) syntax `(lambda (,(stringsToSymbol "x" (number->string from))) ,(nest syntax (+ from 1) to))))
     
   ; stringsToSymbol :: string string -> symbol
     (define (stringsToSymbol s1 s2)
