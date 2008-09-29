@@ -27,7 +27,7 @@
       (($ c/Data n c) (compileData n c))
       (($ c/Float v) (string->number v))
       (($ c/Function p b) `(lambda (,(string->symbol (string-append "haskell/" p))) ,(compileCS b)))
-      (($ c/If g t e) `(if (equal? ,(compile g) (force haskell:True)) ,(compile t) ,(compileCS e)))
+      (($ c/If g t e) `(if (equal? ,(compileCS g) (force haskell/True)) ,(compileCS t) ,(compileCS e)))
       (($ c/Integer v) (string->number v))
       (($ c/Let d b) (compileLet d b))
       (($ c/ListConstructor) 'null)
@@ -56,7 +56,7 @@
   
   ; compileField :: string string -> datum
   (define (compileField constructorName fieldName)
-    `(define (stringsToSymbol "haskell:" fieldName)
+    `(define (stringsToSymbol "haskell/" fieldName)
        (delay (lambda (x) (force (,(string->symbol (string-append "haskell/constructor/" constructorName "-" fieldName)) (force x)))))))
   
   ; compileLet :: c/Let -> datum
@@ -91,8 +91,8 @@
     (let ((n (stringsToSymbol "haskell/is" name))
           (b `(delay (lambda (x)
                        (if (,(string->symbol (string-append "haskell/constructor/" name "?")) (force x))
-                           (force haskell:True)
-                           (force haskell:False))))))
+                           (force haskell/True)
+                           (force haskell/False))))))
       `(define ,n ,b)))
   
   ; compileTupleConstructor :: integer -> datum
@@ -113,7 +113,7 @@
       (($ h/TypeConstructor "Char") `(flat-contract char?))
       (($ h/TypeConstructor "Float") `(flat-contract number?))
       (($ h/TypeConstructor "Int") `(flat-contract integer?))
-      (($ h/TypeConstructor n) `(flat-contract ,(string->symbol (string-append "haskell:" n "Type?")))) ;TODO
+      (($ h/TypeConstructor n) `(flat-contract ,(string->symbol (string-append "haskell/type/" n "?")))) ;TODO
       ((? h/TypeVariable? _) 'any/c) ;TODO
       (($ h/UnitType) `(vector-immutable/c))))
   
