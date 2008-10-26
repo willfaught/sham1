@@ -90,18 +90,6 @@
       (rename (zip vars (map (lambda (x) (t/make-Variable (if (equal? x 0) "t" (string-append "t" (number->string x)))))
                              (iterate (lambda (x) (+ x 1)) 0 (length vars)))) type)))
   
-  ; primitives :: [Assumption]
-  (define primitives
-    (let ((parseD (declarationParser "primitives"))
-          (parseT (typeParser "primitives")))
-      (append (list (make-Assumption "fst" (transformHC (parseT "(a, b) -> a")))
-                    (make-Assumption "head" (transformHC (parseT "[a] -> a")))
-                    (make-Assumption "null" (transformHC (parseT "[a] -> Bool")))
-                    (make-Assumption "snd" (transformHC (parseT "(a, b) -> b")))
-                    (make-Assumption "tail" (transformHC (parseT "[a] -> [a]")))
-                    (make-Assumption ":" (transformHC (parseT "a -> [a] -> [a]"))))
-              (dataContext (transformHC (parseD "data Bool = True | False"))))))
-  
   ; reconstructType :: [Assumption] c/CoreSyntax -> (t/Type, [Constraint])
   (define (reconstructType context syntax)
     (match syntax
@@ -190,4 +178,17 @@
   
   ; uniqueTypeVariables :: t/Type -> [t/Variable]
   (define (uniqueTypeVariables type)
-    (delete-duplicates (typeVariables type))))
+    (delete-duplicates (typeVariables type)))
+  
+  ; primitives :: [Assumption]
+  (define primitives
+    (let ((parseD (declarationParser "primitives"))
+          (parseT (typeParser "primitives")))
+      (append (list (make-Assumption "error" (generalize null (transformHC (parseT "[Char] -> a"))))
+                    (make-Assumption "fst" (generalize null (transformHC (parseT "(a, b) -> a"))))
+                    (make-Assumption "head" (generalize null (transformHC (parseT "[a] -> a"))))
+                    (make-Assumption "null" (generalize null (transformHC (parseT "[a] -> Bool"))))
+                    (make-Assumption "snd" (generalize null (transformHC (parseT "(a, b) -> b"))))
+                    (make-Assumption "tail" (generalize null (transformHC (parseT "[a] -> [a]"))))
+                    (make-Assumption ":" (generalize null (transformHC (parseT "a -> [a] -> [a]")))))
+              (dataContext (transformHC (parseD "data Bool = True | False")))))))
