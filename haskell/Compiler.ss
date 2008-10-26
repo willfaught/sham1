@@ -30,20 +30,20 @@
       (($ c/If g t e) `(if (equal? ,(compileCS g) (force haskell/True)) ,(compileCS t) ,(compileCS e)))
       (($ c/Integer v) (string->number v))
       (($ c/Let d b) (compileLet d b))
-      (($ c/ListConstructor) 'null)
+      (($ c/ListConstructor) '(make-haskell/constructor/#Nil))
       ((? c/ML? x) (compileML x))
       (($ c/Module n i d) (compileModule n i d))
       (($ c/Scheme t n) `(contract ,(contractHS t) ,(convertHS t (string->symbol n) 1) 'scheme 'haskell))
       (($ c/TupleConstructor a) (compileTupleConstructor a))
-      (($ c/UnitConstructor) `(vector-immutable))
+      (($ c/UnitConstructor) `(make-haskell/constructor/#Unit))
       (($ c/Variable n) `(force ,(string->symbol (string-append "haskell/" n))))))
   
   ; compileCurriedConstructor :: string integer -> datum
   (define (compileCurriedConstructor name arity)
     `(define ,(stringsToSymbol "haskell/" name)
        (delay ,(nest `(,(stringsToSymbol "make-haskell/constructor/" name)
-                       ,@(map (lambda (x) (stringsToSymbol "x" x))
-                              (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))))
+                       ,@(map (lambda (x) (stringsToSymbol "x" (number->string x)))
+                              (iterate (lambda (x) (+ x 1)) 1 arity))) 1 (+ arity 1)))))
   
   ; compileData : string [c/Constructor] -> [datum]
   (define (compileData name constructors)
@@ -56,7 +56,7 @@
   
   ; compileField :: string string -> datum
   (define (compileField constructorName fieldName)
-    `(define (stringsToSymbol "haskell/" fieldName)
+    `(define ,(stringsToSymbol "haskell/" fieldName)
        (delay (lambda (x) (force (,(string->symbol (string-append "haskell/constructor/" constructorName "-" fieldName)) (force x)))))))
   
   ; compileLet :: c/Let -> datum
@@ -97,7 +97,7 @@
   
   ; compileTupleConstructor :: integer -> datum
   (define (compileTupleConstructor arity)
-    (nest `(vector-immutable ,@(map (lambda (x) (stringsToSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))) 1 arity))
+    (nest `(vector-immutable ,@(map (lambda (x) (stringsToSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))) 1 (+ arity 1)))
   
   ; compileType :: string -> datum
   (define (compileType typeName)
