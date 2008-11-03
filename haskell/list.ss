@@ -1,6 +1,5 @@
 (module List mzscheme
-  (require (rename (lib "1.ss" "srfi") myunzip2 unzip2)
-           (only (lib "list.ss") foldl)
+  (require (only (lib "list.ss") foldl)
            (only (lib "match.ss") match))
   
   (provide (all-defined))
