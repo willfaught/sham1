@@ -6,13 +6,11 @@
            (only (lib "match.ss") match match-lambda match-let match-let*)
            (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (only (lib "List.ss" "sham" "haskell") iterate zipWith)
-           (lib "Maybe.ss" "sham" "haskell")
-           (lib "Monad.ss" "sham" "haskell")
            (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser typeParser)
            (prefix t/ (lib "Types.ss" "sham")))
   
-  (provide/contract (syntaxType (-> c/CoreSyntax? Maybe?))
+  (provide/contract (syntaxType (-> c/CoreSyntax? t/Type?))
                     (wellTyped (-> c/Module? boolean?)))
   
   (define-struct Assumption (name type) #f)
@@ -68,7 +66,7 @@
         (($ t/Application r d) (mapper (t/make-Application (mapType mapper r) (mapType mapper d))))
         (x (mapper x)))))
   
-  (define/contract moduleContext (-> (listof Assumption?) c/Module? Maybe?)
+  (define/contract moduleContext (-> (listof Assumption?) c/Module? (listof Assumption?))
     (lambda (context syntax)
       (match-let* (((data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
                    (names (map (match-lambda (($ c/Declaration n _) n)) decl))
@@ -91,7 +89,7 @@
         (rename (zip vars (map (lambda (x) (t/make-Variable (if (equal? x 0) "t" (string-append "t" (number->string x)))))
                                (iterate (lambda (x) (+ x 1)) 0 (length vars)))) type))))
   
-  (define/contract reconstructType (-> (listof Assumption?) c/CoreSyntax? Maybe?)
+  (define/contract reconstructType (-> (listof Assumption?) c/CoreSyntax? (list/c t/Type? (listof Constraint?)))
     (lambda (context syntax)
       (match syntax
         (($ c/Application r d) (match-let (((rt rc) (reconstructType context r))
@@ -150,11 +148,10 @@
     (lambda (s t)
       (if (null? s) t (substituteManyType (cdr s) (substituteType (car s) t)))))
   
-  (define/contract syntaxType (-> c/CoreSyntax? Maybe?)
+  (define/contract syntaxType (-> c/CoreSyntax? t/Type?)
     (lambda (syntax)
-      (match (reconstructType primitives syntax)
-        (($ Just (t c)) (normalize (substituteManyType (unify c) t)))
-        (($ Nothing) (make-Nothing)))))
+      (match-let (((t c) (reconstructType primitives syntax)))
+        (normalize (substituteManyType (unify c) t)))))
   
   (define/contract typeVariables (-> t/Type? (listof t/Variable?))
     (match-lambda
@@ -182,9 +179,8 @@
   
   (define/contract wellTyped (-> c/Module? boolean?)
     (lambda (syntax)
-      (match (moduleContext primitives syntax)
-        (($ Just _) #t)
-        (($ Nothing) #f))))
+      (moduleContext primitives syntax)
+      #t))
   
   (define/contract primitives (listof Assumption?)
     (let ((parseD (declarationParser "primitives"))

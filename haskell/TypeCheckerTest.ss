@@ -9,17 +9,17 @@
   
   (provide testSuite)
   
-  (define/contract ewt (-> string? string? string? test-case?)
-    (lambda (name expression type)
-      (test-case name (check-equal? (syntaxType null (transformHC (parseE expression))) (transformHC (parseT type))))))
-  
   (define/contract eit (-> string? string? test-case?)
     (lambda (name expression)
-      (test-case name (check-true (Nothing? (syntaxType null (transformHC (parseE expression))))))))
+      (test-case name (check-exn exn? (lambda () (syntaxType (transformHC (parseE expression))))))))
+  
+  (define/contract ewt (-> string? string? string? test-case?)
+    (lambda (name expression type)
+      (test-case name (check-equal? (syntaxType (transformHC (parseE expression))) (transformHC (parseT type))))))
   
   (define/contract mit (-> string? string? test-case?)
     (lambda (name module)
-      (test-case name (check-false (wellTyped (transformHC (parseM module)))))))
+      (test-case name (check-exn exn? (lambda () (wellTyped (transformHC (parseM module))))))))
   
   (define/contract mwt (-> string? string? test-case?)
     (lambda (name module)
