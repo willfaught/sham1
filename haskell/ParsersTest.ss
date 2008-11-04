@@ -1,28 +1,44 @@
 (module ParsersTest mzscheme
-  (require (planet "test.ss" ("schematics" "schemeunit.plt" 2))
-           (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser moduleParser typeParser)
-           (lib "HaskellSyntax.ss" "sham" "haskell"))
+  (require (lib "contract.ss")
+           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+           (planet schematics/schemeunit:3/text-ui)
+           (lib "HaskellSyntax.ss" "sham" "haskell")
+           (lib "Maybe.ss" "sham" "haskell")
+           (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser importParser moduleParser typeParser))
   
   (provide testSuite)
   
-  ; de :: string string HaskellSyntax -> schemeunit-test-case
-  (define (de name declaration syntax)
-    (test-equal? name (parseD declaration) syntax))
+  (define/contract e (-> (-> string? HaskellSyntax?) (-> string? string? HaskellSyntax? schemeunit-test-case?))
+    (lambda (parse)
+      (lambda (name text syntax)
+        (test-equal? name (parse text) syntax))))
   
-  ; ee :: string string HaskellSyntax -> schemeunit-test-case
-  (define (ee name expression syntax)
-    (test-equal? name (parseE expression) syntax))
+  (define/contract parseD (-> string? HaskellSyntax?) (declarationParser "test"))
   
-  ; me :: string string HaskellSyntax -> schemeunit-test-case
-  (define (me name module syntax)
-    (test-equal? name (parseM module) syntax))
+  (define/contract parseE (-> string? HaskellSyntax?) (expressionParser "test"))
   
-  ; te :: string string HaskellSyntax -> schemeunit-test-case
-  (define (te name type syntax)
-    (test-equal? name (parseT type) syntax))
+  (define/contract parseI (-> string? HaskellSyntax?) (importParser "test"))
   
-  ; testSuite :: schemeunit-test-suite
-  (define testSuite
+  (define/contract parseM (-> string? HaskellSyntax?) (moduleParser "test"))
+  
+  (define/contract parseT (-> string? HaskellSyntax?) (typeParser "test"))
+  
+  (define/contract de (-> string? string? HaskellSyntax? schemeunit-test-case?)
+    (e parseD))
+  
+  (define/contract ee (-> string? string? HaskellSyntax? schemeunit-test-case?)
+    (e parseE))
+  
+  (define/contract ie (-> string? string? HaskellSyntax? schemeunit-test-case?)
+    (e parseI))
+  
+  (define/contract me (-> string? string? HaskellSyntax? schemeunit-test-case?)
+    (e parseM))
+  
+  (define/contract te (-> string? string? HaskellSyntax? schemeunit-test-case?)
+    (e parseT))
+  
+  (define/contract testSuite schemeunit-test-suite?
     (test-suite "Parsers"
                 (ee "ap1"
                     "x y"
@@ -92,6 +108,33 @@
                     (make-If (make-Variable "x")
                              (make-Integer "1")
                              (make-Integer "2")))
+                (ie "im1"
+                    "import \"test\" as Test"
+                    (make-Import #f "test" "Test" (make-Nothing)))
+                (ie "im2"
+                    "import qualified \"test\" as Test"
+                    (make-Import #t "test" "Test" (make-Nothing)))
+                (ie "im3"
+                    "import \"test\" as Test ()"
+                    (make-Import #f "test" "Test" (make-Nothing)))
+                (ie "im4"
+                    "import \"test\" as Test hiding ()"
+                    (make-Import #f "test" "Test" (make-Nothing)))
+                (ie "im5"
+                    "import \"test\" as Test (one)"
+                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "one" "one"))))))
+                (ie "im6"
+                    "import \"test\" as Test hiding (one)"
+                    (make-Import #f "test" "Test" (make-Just (list #t (list (list "one" "one"))))))
+                (ie "im7"
+                    "import \"test\" as Test (\"one\" as two)"
+                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "one" "two"))))))
+                (ie "im8"
+                    "import \"test\" as Test (one,)"
+                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "one" "one"))))))
+                (ie "im9"
+                    "import \"test\" as Test (one, two)"
+                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "two" "two") (list "one" "one"))))))
                 (ee "in1"
                     "1"
                     (make-Integer "1"))
@@ -126,17 +169,17 @@
                     (make-Module "M" (make-Body null null)))
                 (me "mo2"
                     "{}"
-                    (make-Module "none" (make-Body null null)))
+                    (make-Module "None" (make-Body null null)))
                 (me "mo3"
                     "{ x = 1 }"
-                    (make-Module "none" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
+                    (make-Module "None" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
                 (me "mo4"
                     "{ x = 1 ; data A = B }"
-                    (make-Module "none" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
+                    (make-Module "None" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
                                                               (make-Data "A" (list (make-Constructor "B" null)))))))
                 (me "mo5"
                     "{ data A = B ; x = 1 }"
-                    (make-Module "none" (make-Body null (list (make-Data "A" (list (make-Constructor "B" null)))
+                    (make-Module "None" (make-Body null (list (make-Data "A" (list (make-Constructor "B" null)))
                                                               (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
                 (ee "sc1"
                     ":scheme A \"x\""
@@ -174,16 +217,4 @@
                     (make-UnitType))
                 (ee "un1"
                     "()"
-                    (make-UnitConstructor))))
-  
-  ; parseD :: string -> HaskellSyntax
-  (define parseD (declarationParser "test"))
-  
-  ; parseE :: string -> HaskellSyntax
-  (define parseE (expressionParser "test"))
-  
-  ; parseM :: string -> HaskellSyntax
-  (define parseM (moduleParser "test"))
-  
-  ; parseT :: string -> HaskellSyntax
-  (define parseT (typeParser "test")))
+                    (make-UnitConstructor)))))
