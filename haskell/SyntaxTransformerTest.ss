@@ -1,7 +1,7 @@
 (module SyntaxTransformerTest mzscheme
   (require (lib "contract.ss")
            (lib "match.ss")
-           (planet "test.ss" ("schematics" "schemeunit.plt" 2))
+           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
            (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "Parsers.ss" "sham" "haskell")
@@ -138,20 +138,20 @@
                     (c/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
                     "{}"
-                    (c/make-Module "none" null null))
+                    (c/make-Module "None" null null))
                 (me "mo2"
                     "module M where {}"
                     (c/make-Module "M" null null))
                 (me "mo3"
                     "{ x = 1 }"
-                    (c/make-Module "none" null (list (c/make-Declaration "x" (c/make-Integer "1")))))
+                    (c/make-Module "None" null (list (c/make-Declaration "x" (c/make-Integer "1")))))
                 (me "mo4"
                     "{ x = 1 ; data A = B }"
-                    (c/make-Module "none" null (list (c/make-Declaration "x" (c/make-Integer "1"))
+                    (c/make-Module "None" null (list (c/make-Declaration "x" (c/make-Integer "1"))
                                                      (c/make-Data "A" (list (c/make-Constructor "B" null))))))
                 (me "mo5"
                     "{ data A = B ; x = 1 }"
-                    (c/make-Module "none" null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
+                    (c/make-Module "None" null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
                                                      (c/make-Declaration "x" (c/make-Integer "1")))))
                 (ee "sc1"
                     ":scheme Int \"x\""
