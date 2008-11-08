@@ -1,7 +1,6 @@
 (module ParsersTest mzscheme
   (require (lib "contract.ss")
            (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
-           (planet schematics/schemeunit:3/text-ui)
            (lib "HaskellSyntax.ss" "sham" "haskell")
            (lib "Maybe.ss" "sham" "haskell")
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser importParser moduleParser typeParser))
