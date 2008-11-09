@@ -38,7 +38,7 @@
     (e parseT))
   
   (define/contract testSuite schemeunit-test-suite?
-    (test-suite "Parsers"
+    (test-suite "Parsing"
                 (ee "ap1"
                     "x y"
                     (make-Application (make-Variable "x") (make-Variable "y")))
