@@ -25,6 +25,8 @@
   
   (define-struct (If HaskellSyntax) (guard then else) #f)
   
+  (define-struct (Import HaskellSyntax) (qualified path alias specs) #f)
+  
   (define-struct (Integer HaskellSyntax) (value) #f)
   
   (define-struct (Let HaskellSyntax) (declarations body) #f)
