@@ -1,29 +1,29 @@
-(module TypeCheckerTest mzscheme
+(module TypeCheckingTest mzscheme
   (require (lib "contract.ss")
            (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
-           (only (lib "HaskellSyntax.ss" "sham" "haskell") HaskellSyntax?)
-           (only (lib "Maybe.ss" "sham" "haskell") Nothing?)
-           (only (lib "Parsers.ss" "sham" "haskell") expressionParser moduleParser typeParser)
-           (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
-           (only (lib "TypeChecker.ss" "sham" "haskell") syntaxType wellTyped))
+           (lib "HaskellSyntax.ss" "sham" "haskell")
+           (lib "Maybe.ss" "sham" "haskell")
+           (lib "Parsing.ss" "sham" "haskell")
+           (lib "Transformation.ss" "sham" "haskell")
+           (lib "TypeChecking.ss" "sham" "haskell"))
   
-  (provide testSuite)
+  (provide/contract (testSuite schemeunit-test-suite?))
   
   (define/contract eit (-> string? string? test-case?)
     (lambda (name expression)
-      (test-case name (check-exn exn? (lambda () (syntaxType (transformHC (parseE expression))))))))
+      (test-case name (check-exn exn? (lambda () (syntaxType (transformSyntax (parseE expression))))))))
   
   (define/contract ewt (-> string? string? string? test-case?)
     (lambda (name expression type)
-      (test-case name (check-equal? (syntaxType (transformHC (parseE expression))) (transformHC (parseT type))))))
+      (test-case name (check-equal? (syntaxType (transformSyntax (parseE expression))) (transformType (parseT type))))))
   
   (define/contract mit (-> string? string? test-case?)
     (lambda (name module)
-      (test-case name (check-exn exn? (lambda () (wellTyped (transformHC (parseM module))))))))
+      (test-case name (check-exn exn? (lambda () (wellTyped (transformSyntax (parseM module))))))))
   
   (define/contract mwt (-> string? string? test-case?)
     (lambda (name module)
-      (test-case name (check-true (wellTyped (transformHC (parseM module)))))))
+      (test-case name (check-true (wellTyped (transformSyntax (parseM module)))))))
   
   (define/contract parseE (-> string? HaskellSyntax?) (expressionParser "test"))
   
