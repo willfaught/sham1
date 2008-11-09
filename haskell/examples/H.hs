@@ -6,6 +6,8 @@ boolean1 = True;
 
 boolean2 = False;
 
+character = 'a';
+
 function1 x = x;
 
 function2 x y = x;
