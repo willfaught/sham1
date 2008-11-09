@@ -9,6 +9,7 @@
   (define (readHS inputName inputPort)
     (port-count-lines! inputPort)
     (let ((cs (transformHC ((moduleParser inputName) (lambda () (languageLexer inputPort))))))
+      (display cs)
       (if (wellTyped cs)
           (compileCS cs)
-          (error "Program is ill-typed")))))
+          (error "Compiler: Program is ill-typed")))))

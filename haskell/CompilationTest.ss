@@ -1,7 +1,7 @@
 (module CompilerTest mzscheme
   (require (only (lib "1.ss" "srfi") #;circular-list? #;proper-list? zip)
            (only (lib "list.ss") foldl)
-           (planet "test.ss" ("schematics" "schemeunit.plt" 2))
+           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
            (lib "Compiler.ss" "sham" "haskell")
            #;(lib "ml.ml" "sham" "examples")
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser)
