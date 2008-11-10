@@ -165,21 +165,21 @@
                              "x"))
                 (me "mo1"
                     "module M where {}"
-                    (make-Module "M" (make-Body null null)))
+                    (make-Module "M" null null null))
                 (me "mo2"
                     "{}"
-                    (make-Module "None" (make-Body null null)))
+                    (make-Module "None" null null null))
                 (me "mo3"
                     "{ x = 1 }"
-                    (make-Module "None" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
+                    (make-Module "None" null null (list (make-Declaration (make-LHS "x" null) (make-Integer "1")))))
                 (me "mo4"
                     "{ x = 1 ; data A = B }"
-                    (make-Module "None" (make-Body null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
-                                                              (make-Data "A" (list (make-Constructor "B" null)))))))
+                    (make-Module "None" null null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
+                                                        (make-Data "A" (list (make-Constructor "B" null))))))
                 (me "mo5"
                     "{ data A = B ; x = 1 }"
-                    (make-Module "None" (make-Body null (list (make-Data "A" (list (make-Constructor "B" null)))
-                                                              (make-Declaration (make-LHS "x" null) (make-Integer "1"))))))
+                    (make-Module "None" null null (list (make-Data "A" (list (make-Constructor "B" null)))
+                                                        (make-Declaration (make-LHS "x" null) (make-Integer "1")))))
                 (ee "sc1"
                     ":scheme A \"x\""
                     (make-Scheme (make-TypeConstructor "A") "x"))
