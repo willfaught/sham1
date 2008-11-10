@@ -29,7 +29,7 @@
       (($ h/List e) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable ":") (transformSyntax x)) y)) (c/make-ListConstructor) e))
       (($ h/ListConstructor) (c/make-ListConstructor))
       (($ h/ML t n) (c/make-ML t n))
-      (($ h/Module n ($ h/Body _ d)) (c/make-Module n (map transformSyntax d)))
+      (($ h/Module n e i d) (c/make-Module n e i (map transformSyntax d)))
       (($ h/Scheme t n) (c/make-Scheme t n))
       (($ h/Tuple e) (foldl (lambda (x y) (c/make-Application y (transformSyntax x))) (c/make-TupleConstructor (length e)) e))
       (($ h/TupleConstructor a) (c/make-TupleConstructor a))

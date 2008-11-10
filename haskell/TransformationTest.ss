@@ -132,21 +132,21 @@
                     (c/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
                     "{}"
-                    (c/make-Module "None" null))
+                    (c/make-Module "None" null null null))
                 (me "mo2"
                     "module M where {}"
-                    (c/make-Module "M" null))
+                    (c/make-Module "M" null null null))
                 (me "mo3"
                     "{ x = 1 }"
-                    (c/make-Module "None" (list (c/make-Declaration "x" (c/make-Integer "1")))))
+                    (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1")))))
                 (me "mo4"
                     "{ x = 1 ; data A = B }"
-                    (c/make-Module "None" (list (c/make-Declaration "x" (c/make-Integer "1"))
-                                                (c/make-Data "A" (list (c/make-Constructor "B" null))))))
+                    (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1"))
+                                                          (c/make-Data "A" (list (c/make-Constructor "B" null))))))
                 (me "mo5"
                     "{ data A = B ; x = 1 }"
-                    (c/make-Module "None" (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
-                                                (c/make-Declaration "x" (c/make-Integer "1")))))
+                    (c/make-Module "None" null null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
+                                                          (c/make-Declaration "x" (c/make-Integer "1")))))
                 (ee "sc1"
                     ":scheme Int \"x\""
                     (c/make-Scheme (h/make-TypeConstructor "Int") "x"))
