@@ -13,6 +13,8 @@
   
   (define-struct (Declaration CoreSyntax) (lhs rhs) #f)
   
+  (define-struct (Export CoreSyntax) (name type) #f)
+  
   (define-struct (Field CoreSyntax) (name type) #f)
   
   (define-struct (Float CoreSyntax) (value) #f)
@@ -20,6 +22,8 @@
   (define-struct (Function CoreSyntax) (parameter body) #f)
   
   (define-struct (If CoreSyntax) (guard then else) #f)
+  
+  (define-struct (Import CoreSyntax) (name type) #f)
   
   (define-struct (Integer CoreSyntax) (value) #f)
   
