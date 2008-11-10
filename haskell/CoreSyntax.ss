@@ -29,7 +29,7 @@
   
   (define-struct (ML CoreSyntax) (type name) #f)
   
-  (define-struct (Module CoreSyntax) (name declarations) #f)
+  (define-struct (Module CoreSyntax) (name exports imports declarations) #f)
   
   (define-struct (Scheme CoreSyntax) (type name) #f)
   
