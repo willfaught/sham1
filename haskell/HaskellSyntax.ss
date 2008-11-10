@@ -5,8 +5,6 @@
   
   (define-struct (Application HaskellSyntax) (operator operand) #f)
   
-  (define-struct (Body HaskellSyntax) (imports declarations) #f)
-  
   (define-struct (Character HaskellSyntax) (value) #f)
 
   (define-struct (Constructor HaskellSyntax) (name fields) #f)
@@ -14,6 +12,8 @@
   (define-struct (Data HaskellSyntax) (name constructors) #f)
   
   (define-struct (Declaration HaskellSyntax) (lhs rhs) #f)
+  
+  (define-struct (Export HaskellSyntax) (name type) #f)
   
   (define-struct (Field HaskellSyntax) (names type) #f)
   
@@ -41,7 +41,7 @@
   
   (define-struct (ML HaskellSyntax) (type name) #f)
   
-  (define-struct (Module HaskellSyntax) (name body) #f)
+  (define-struct (Module HaskellSyntax) (name exports imports declarations) #f)
   
   (define-struct (Scheme HaskellSyntax) (type name) #f)
   
