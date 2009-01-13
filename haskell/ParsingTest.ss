@@ -117,14 +117,17 @@
                     "import \"test\" as Test ()"
                     (make-Import #f "test" "Test" (make-Nothing)))
                 (ie "im4"
-                    "import \"test\" as Test hiding ()"
-                    (make-Import #f "test" "Test" (make-Nothing)))
-                (ie "im5"
                     "import \"test\" as Test (\"one\" as two)"
                     (make-Import #f "test" "Test" (make-Just (list #f (list (list "one" "two"))))))
-                (ie "im6"
+                (ie "im5"
                     "import \"test\" as Test (\"one\" as two, \"three\" as four)"
                     (make-Import #f "test" "Test" (make-Just (list #f (list (list "three" "four") (list "one" "two"))))))
+                (ie "im6"
+                    "import \"test\" as Test hiding ()"
+                    (make-Import #f "test" "Test" (make-Nothing)))
+                (ie "im7"
+                    "import \"test\" as Test hiding (\"one\" as two)"
+                    (make-Import #f "test" "Test" (make-Just (list #t (list (list "one" "two"))))))
                 (ee "in1"
                     "1"
                     (make-Integer "1"))
