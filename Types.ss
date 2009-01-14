@@ -1,18 +1,24 @@
-(module Types mzscheme
-  (provide (all-defined))
+(module Types scheme
+  (define-struct Type () #:transparent)
+  (provide/contract (struct Type ()))
   
-  (define-struct Type () #f)
+  (define-struct (Application Type) (operator operand) #:transparent)
+  (provide/contract (struct Application ((operator Type?) (operand Type?))))
   
-  (define-struct (Application Type) (operator operand) #f)
+  (define-struct (Constructor Type) (name) #:transparent)
+  (provide/contract (struct Constructor ((name string?))))
   
-  (define-struct (Constructor Type) (name) #f)
+  (define-struct (Function Type) () #:transparent)
+  (provide/contract (struct Function ()))
   
-  (define-struct (Function Type) () #f)
+  (define-struct (List Type) () #:transparent)
+  (provide/contract (struct List ()))
   
-  (define-struct (List Type) () #f)
+  (define-struct (Tuple Type) (arity) #:transparent)
+  (provide/contract (struct Tuple ((arity integer?))))
   
-  (define-struct (Tuple Type) (arity) #f)
+  (define-struct (Unit Type) () #:transparent)
+  (provide/contract (struct Unit ()))
   
-  (define-struct (Variable Type) (name) #f)
-  
-  (define-struct (Unit Type) () #f))
+  (define-struct (Variable Type) (name) #:transparent)
+  (provide/contract (struct Variable ((name string?)))))
