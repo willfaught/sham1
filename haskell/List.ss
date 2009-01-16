@@ -1,32 +1,37 @@
-(module List mzscheme
-  (require (lib "contract.ss")
-           (lib "list.ss")
-           (lib "match.ss"))
+(module List scheme
+  (require (lib "Maybe.ss" "sham" "haskell"))
   
-  (provide/contract (foldl1 (-> (-> any/c any/c any/c) (listof any/c) any/c))
-                    (foldr1 (-> (-> any/c any/c any/c) (listof any/c) any/c))
-                    (iterate (-> (-> any/c any/c) any/c integer? (listof any/c)))
-                    (zipWith (-> (-> any/c any/c any/c) (listof any/c) (listof any/c) (listof any/c))))
+  (provide (all-defined-out))
   
-  (define/contract foldl1 (-> (-> any/c any/c any/c) (listof any/c) any/c)
-    (lambda (f xs)
-      (match xs
-        ((x . xs) (foldl f x xs))
-        (() (error 'foldl1 "empty list")))))
+  (define (foldl1 f xs)
+    (match xs
+      ((cons x xs) (foldl f x xs))
+      (null (error 'foldl1 "empty list"))))
   
-  (define/contract foldr1 (-> (-> any/c any/c any/c) (listof any/c) any/c)
-    (lambda (f xs)
-      (match xs
-        ((x) x)
-        ((x . xs) (f x (foldr1 f xs)))
-        (() (error 'foldr1 "empty list")))))
+  (define (foldr1 f xs)
+    (match xs
+      ((list x) x)
+      ((cons x xs) (f x (foldr1 f xs)))
+      (null (error 'foldr1 "empty list"))))
   
-  (define/contract iterate (-> (-> any/c any/c) any/c integer? (listof any/c))
-    (lambda (f x n)
-      (if (equal? n 0) null (cons x (iterate f (f x) (- n 1))))))
+  (define (iterate f x n)
+    (if (equal? n 0) null (cons x (iterate f (f x) (- n 1)))))
   
-  (define/contract zipWith (-> (-> any/c any/c any/c) (listof any/c) (listof any/c) (listof any/c))
-    (lambda (f x y)
-      (if (equal? (length x) (length y))
-          (if (null? x) null (cons (f (car x) (car y)) (zipWith f (cdr x) (cdr y))))
-          (error 'zipWith "lists have different lengths")))))
+  (define (lookup name pairs)
+    (match pairs
+      ((cons (list pairName pairValue) xs) (if (equal? name pairName) (make-Just pairValue) (lookup name xs)))
+      (null (make-Nothing))))
+  
+  (define (zip xs ys)
+    (match (list xs ys)
+      ((list (cons x xs) (cons y ys)) (cons (list x y) (zip xs ys)))
+      ((list null null) null)
+      ((list xs (list)) (error 'zip "first list is longer"))
+      ((list (list) ys) (error 'zip "second list is longer"))))
+  
+  (define (zipWith f xs ys)
+    (match (list xs ys)
+      ((list (cons x xs) (cons y ys)) (cons (f x y) (zipWith f xs ys)))
+      ((list null null) null)
+      ((list xs (list)) (error 'zipWith "first list is longer"))
+      ((list (list) ys) (error 'zipWith "second list is longer")))))
