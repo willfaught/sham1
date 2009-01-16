@@ -1,44 +1,44 @@
-(module CoreSyntax mzscheme
-  (provide (all-defined))
+(module CoreSyntax scheme
+  (provide (all-defined-out))
   
-  (define-struct CoreSyntax () #f)
+  (define-struct CoreSyntax () #:transparent)
   
-  (define-struct (Application CoreSyntax) (operator operand) #f)
+  (define-struct (Application CoreSyntax) (operator operand) #:transparent)
   
-  (define-struct (Character CoreSyntax) (value) #f)
+  (define-struct (Character CoreSyntax) (value) #:transparent)
   
-  (define-struct (Constructor CoreSyntax) (name fields) #f)
+  (define-struct (Constructor CoreSyntax) (name fields) #:transparent)
   
-  (define-struct (Data CoreSyntax) (name constructors) #f)
+  (define-struct (Data CoreSyntax) (name constructors) #:transparent)
   
-  (define-struct (Declaration CoreSyntax) (lhs rhs) #f)
+  (define-struct (Declaration CoreSyntax) (lhs rhs) #:transparent)
   
-  (define-struct (Export CoreSyntax) (name type) #f)
+  (define-struct (Export CoreSyntax) (name type) #:transparent)
   
-  (define-struct (Field CoreSyntax) (name type) #f)
+  (define-struct (Field CoreSyntax) (name type) #:transparent)
   
-  (define-struct (Float CoreSyntax) (value) #f)
+  (define-struct (Float CoreSyntax) (value) #:transparent)
   
-  (define-struct (Function CoreSyntax) (parameter body) #f)
+  (define-struct (Function CoreSyntax) (parameter body) #:transparent)
   
-  (define-struct (If CoreSyntax) (guard then else) #f)
+  (define-struct (If CoreSyntax) (guard then else) #:transparent)
   
-  (define-struct (Import CoreSyntax) (name type) #f)
+  (define-struct (Import CoreSyntax) (qualified path alias specs) #:transparent)
   
-  (define-struct (Integer CoreSyntax) (value) #f)
+  (define-struct (Integer CoreSyntax) (value) #:transparent)
   
-  (define-struct (Let CoreSyntax) (declarations body) #f)
+  (define-struct (Let CoreSyntax) (declarations body) #:transparent)
     
-  (define-struct (ListConstructor CoreSyntax) () #f)
+  (define-struct (ListConstructor CoreSyntax) () #:transparent)
   
-  (define-struct (ML CoreSyntax) (type name) #f)
+  (define-struct (ML CoreSyntax) (type name) #:transparent)
   
-  (define-struct (Module CoreSyntax) (name exports imports declarations) #f)
+  (define-struct (Module CoreSyntax) (name exports imports declarations) #:transparent)
   
-  (define-struct (Scheme CoreSyntax) (type name) #f)
+  (define-struct (Scheme CoreSyntax) (type name) #:transparent)
   
-  (define-struct (TupleConstructor CoreSyntax) (arity) #f)
+  (define-struct (TupleConstructor CoreSyntax) (arity) #:transparent)
   
-  (define-struct (UnitConstructor CoreSyntax) () #f)
+  (define-struct (UnitConstructor CoreSyntax) () #:transparent)
   
-  (define-struct (Variable CoreSyntax) (name) #f))
+  (define-struct (Variable CoreSyntax) (name) #:transparent))
