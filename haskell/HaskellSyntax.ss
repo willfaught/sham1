@@ -1,64 +1,66 @@
-(module HaskellSyntax mzscheme
-  (provide (all-defined))
+(module HaskellSyntax scheme
+  (provide (all-defined-out))
   
-  (define-struct HaskellSyntax () #f)
+  (define-struct HaskellSyntax () #:transparent)
   
-  (define-struct (Application HaskellSyntax) (operator operand) #f)
+  (define-struct (Application HaskellSyntax) (operator operand) #:transparent)
   
-  (define-struct (Character HaskellSyntax) (value) #f)
-
-  (define-struct (Constructor HaskellSyntax) (name fields) #f)
+  (define-struct (Character HaskellSyntax) (value) #:transparent)
   
-  (define-struct (Data HaskellSyntax) (name constructors) #f)
+  (define-struct (Constructor HaskellSyntax) (name fields) #:transparent)
   
-  (define-struct (Declaration HaskellSyntax) (lhs rhs) #f)
+  (define-struct (Data HaskellSyntax) (name constructors) #:transparent)
   
-  (define-struct (Export HaskellSyntax) (name type) #f)
+  (define-struct (Declaration HaskellSyntax) (lhs rhs) #:transparent)
   
-  (define-struct (Field HaskellSyntax) (names type) #f)
+  (define-struct (Field HaskellSyntax) (names type) #:transparent)
   
-  (define-struct (Float HaskellSyntax) (value) #f)
+  (define-struct (Float HaskellSyntax) (value) #:transparent)
   
-  (define-struct (Function HaskellSyntax) (parameters body) #f)
+  (define-struct (Function HaskellSyntax) (parameters body) #:transparent)
   
-  (define-struct (FunctionType HaskellSyntax) (parameter result) #f)
+  (define-struct (FunctionType HaskellSyntax) (parameter result) #:transparent)
   
-  (define-struct (If HaskellSyntax) (guard then else) #f)
+  (define-struct (If HaskellSyntax) (guard then else) #:transparent)
   
-  (define-struct (Import HaskellSyntax) (qualified path alias specs) #f)
+  (define-struct (Impdecl HaskellSyntax) (path spec) #:transparent)
   
-  (define-struct (Integer HaskellSyntax) (value) #f)
+  (define-struct (Import HaskellSyntax) (name alias type) #:transparent)
   
-  (define-struct (Let HaskellSyntax) (declarations body) #f)
+  (define-struct (Impspec HaskellSyntax) (hiding imports) #:transparent)
   
-  (define-struct (LHS HaskellSyntax) (name parameters) #f)
+  (define-struct (Integer HaskellSyntax) (value) #:transparent)
   
-  (define-struct (List HaskellSyntax) (elements) #f)
+  (define-struct (Let HaskellSyntax) (declarations body) #:transparent)
   
-  (define-struct (ListConstructor HaskellSyntax) () #f)
+  (define-struct (LHS HaskellSyntax) (name parameters) #:transparent)
   
-  (define-struct (ListType HaskellSyntax) (type) #f)
+  (define-struct (List HaskellSyntax) (elements) #:transparent)
   
-  (define-struct (ML HaskellSyntax) (type name) #f)
+  (define-struct (ListConstructor HaskellSyntax) () #:transparent)
   
-  (define-struct (Module HaskellSyntax) (name exports imports declarations) #f)
+  (define-struct (ListType HaskellSyntax) (type) #:transparent)
   
-  (define-struct (Scheme HaskellSyntax) (type name) #f)
+  (define-struct (ML HaskellSyntax) (type name) #:transparent)
   
-  (define-struct (Tuple HaskellSyntax) (elements) #f)
+  (define-struct (Module HaskellSyntax) (name exports imports declarations) #:transparent)
   
-  (define-struct (TupleConstructor HaskellSyntax) (arity) #f)
+  (define-struct (Scheme HaskellSyntax) (type name) #:transparent)
   
-  (define-struct (TupleType HaskellSyntax) (types) #f)
+  (define-struct (Tuple HaskellSyntax) (elements) #:transparent)
   
-  (define-struct (TypeApplication HaskellSyntax) (types) #f)
+  (define-struct (TupleConstructor HaskellSyntax) (arity) #:transparent)
   
-  (define-struct (TypeConstructor HaskellSyntax) (name) #f)
+  (define-struct (TupleType HaskellSyntax) (types) #:transparent)
   
-  (define-struct (TypeVariable HaskellSyntax) (name) #f)
+  (define-struct (TypeApplication HaskellSyntax) (types) #:transparent)
   
-  (define-struct (UnitConstructor HaskellSyntax) () #f)
+  (define-struct (TypeConstructor HaskellSyntax) (name) #:transparent)
   
-  (define-struct (UnitType HaskellSyntax) () #f)
+  (define-struct (TypeVariable HaskellSyntax) (name) #:transparent)
   
-  (define-struct (Variable HaskellSyntax) (name) #f))
+  (define-struct (UnitConstructor HaskellSyntax) () #:transparent)
+  
+  (define-struct (UnitType HaskellSyntax) () #:transparent)
+  
+  (define-struct (Variable HaskellSyntax) (name) #:transparent))
