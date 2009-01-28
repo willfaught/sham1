@@ -1,213 +1,199 @@
 (module ParsingTest mzscheme
-  (require (lib "contract.ss")
-           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
-           (lib "HaskellSyntax.ss" "sham" "haskell")
+  (require (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+           (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "Maybe.ss" "sham" "haskell")
-           (lib "Parsing.ss" "sham" "haskell"))
+           (lib "Parsing.ss" "sham" "haskell")
+           (prefix t/ (lib "Types.ss" "sham")))
   
-  (provide/contract (testSuite schemeunit-test-suite?))
+  (provide testSuite)
   
-  (define/contract e (-> (-> string? HaskellSyntax?) (-> string? string? HaskellSyntax? schemeunit-test-case?))
-    (lambda (parse)
-      (lambda (name text syntax)
-        (test-equal? name (parse text) syntax))))
+  (define (e parse)
+    (lambda (name text syntax)
+      (test-equal? name (parse text) syntax)))
   
-  (define/contract parseD (-> string? HaskellSyntax?) (declarationParser "test"))
+  (define testParsers (parsers "ParsingTest"))
   
-  (define/contract parseE (-> string? HaskellSyntax?) (expressionParser "test"))
+  (define parseD (parser 'declaration testParsers))
   
-  (define/contract parseI (-> string? HaskellSyntax?) (importParser "test"))
+  (define parseE (parser 'expression testParsers))
   
-  (define/contract parseM (-> string? HaskellSyntax?) (moduleParser "test"))
+  (define parseI (parser 'import testParsers))
   
-  (define/contract parseT (-> string? HaskellSyntax?) (typeParser "test"))
+  (define parseM (parser 'module testParsers))
   
-  (define/contract de (-> string? string? HaskellSyntax? schemeunit-test-case?)
-    (e parseD))
+  (define parseT (parser 'type testParsers))
   
-  (define/contract ee (-> string? string? HaskellSyntax? schemeunit-test-case?)
-    (e parseE))
+  (define de (e parseD))
   
-  (define/contract ie (-> string? string? HaskellSyntax? schemeunit-test-case?)
-    (e parseI))
+  (define ee (e parseE))
   
-  (define/contract me (-> string? string? HaskellSyntax? schemeunit-test-case?)
-    (e parseM))
+  (define ie (e parseI))
   
-  (define/contract te (-> string? string? HaskellSyntax? schemeunit-test-case?)
-    (e parseT))
+  (define me (e parseM))
   
-  (define/contract testSuite schemeunit-test-suite?
+  (define te (e parseT))
+  
+  (define testSuite
     (test-suite "Parsing"
                 (ee "ap1"
                     "x y"
-                    (make-Application (make-Variable "x") (make-Variable "y")))
+                    (h/make-Application (h/make-Variable "x") (h/make-Variable "y")))
                 (ee "ap2"
                     "x y z"
-                    (make-Application (make-Application (make-Variable "x")
-                                                        (make-Variable "y"))
-                                      (make-Variable "z")))
+                    (h/make-Application (h/make-Application (h/make-Variable "x")
+                                                            (h/make-Variable "y"))
+                                        (h/make-Variable "z")))
                 (ee "ch1"
                     "'a'"
-                    (make-Character "a"))
+                    (h/make-Character "a"))
                 (de "da1"
                     "data A = B"
-                    (make-Data "A" (list (make-Constructor "B" null))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" null))))
                 (de "da2"
                     "data A = B {}"
-                    (make-Data "A" (list (make-Constructor "B" null))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" null))))
                 (de "da3"
                     "data A = B | C"
-                    (make-Data "A" (list (make-Constructor "B" null)
-                                         (make-Constructor "C" null))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" null)
+                                           (h/make-Constructor "C" null))))
                 (de "da4"
                     "data A = B { c :: A }"
-                    (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A")))))))
                 (de "da5"
                     "data A = B { c :: A, d :: A }"
-                    (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A"))
-                                                                     (make-Field "d" (make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A"))
+                                                                         (h/make-Field "d" (h/make-TypeConstructor "A")))))))
                 (de "da6"
                     "data A = B { c, d :: A }"
-                    (make-Data "A" (list (make-Constructor "B" (list (make-Field "c" (make-TypeConstructor "A"))
-                                                                     (make-Field "d" (make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A"))
+                                                                         (h/make-Field "d" (h/make-TypeConstructor "A")))))))
                 (de "de1"
                     "x = 1"
-                    (make-Declaration (make-LHS "x" null) (make-Integer "1")))
+                    (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))
                 (de "de2"
                     "x y = 1"
-                    (make-Declaration (make-LHS "x" (list "y")) (make-Integer "1")))
+                    (h/make-Declaration (h/make-LHS "x" (list "y")) (h/make-Integer "1")))
                 (ee "fl1"
                     "1.2"
-                    (make-Float "1.2"))
+                    (h/make-Float "1.2"))
                 (ee "fu1"
                     "\\x -> 1"
-                    (make-Function (list "x")
-                                   (make-Integer "1")))
+                    (h/make-Function (list "x")
+                                     (h/make-Integer "1")))
                 (ee "fu2"
                     "\\x -> \\y -> 1"
-                    (make-Function (list "x")
-                                   (make-Function (list "y")
-                                                  (make-Integer "1"))))
+                    (h/make-Function (list "x")
+                                     (h/make-Function (list "y")
+                                                      (h/make-Integer "1"))))
                 (ee "fu3"
                     "\\x y -> 1"
-                    (make-Function (list "x" "y")
-                                   (make-Integer "1")))
+                    (h/make-Function (list "x" "y")
+                                     (h/make-Integer "1")))
                 (ee "id1"
                     "x"
-                    (make-Variable "x"))
+                    (h/make-Variable "x"))
                 (ee "id2"
                     "(x)"
-                    (make-Variable "x"))
+                    (h/make-Variable "x"))
                 (ee "id3"
                     "(:)"
-                    (make-Variable ":"))
+                    (h/make-Variable ":"))
                 (ee "if1"
                     "if x then 1 else 2"
-                    (make-If (make-Variable "x")
-                             (make-Integer "1")
-                             (make-Integer "2")))
+                    (h/make-If (h/make-Variable "x")
+                               (h/make-Integer "1")
+                               (h/make-Integer "2")))
                 (ie "im1"
-                    "import \"test\" as Test"
-                    (make-Import #f "test" "Test" (make-Nothing)))
+                    "import \"test\" (\"one\" as two :: A)"
+                    (h/make-Impdecl "test" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ie "im2"
-                    "import qualified \"test\" as Test"
-                    (make-Import #t "test" "Test" (make-Nothing)))
-                (ie "im3"
-                    "import \"test\" as Test ()"
-                    (make-Import #f "test" "Test" (make-Nothing)))
-                (ie "im4"
-                    "import \"test\" as Test (\"one\" as two)"
-                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "one" "two"))))))
-                (ie "im5"
-                    "import \"test\" as Test (\"one\" as two, \"three\" as four)"
-                    (make-Import #f "test" "Test" (make-Just (list #f (list (list "three" "four") (list "one" "two"))))))
-                (ie "im6"
-                    "import \"test\" as Test hiding ()"
-                    (make-Import #f "test" "Test" (make-Nothing)))
-                (ie "im7"
-                    "import \"test\" as Test hiding (\"one\" as two)"
-                    (make-Import #f "test" "Test" (make-Just (list #t (list (list "one" "two"))))))
+                    "import \"test\" (\"one\" as two :: A, \"three\" as four :: B)"
+                    (h/make-Impdecl "test" (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
+                                                 (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ee "in1"
                     "1"
-                    (make-Integer "1"))
+                    (h/make-Integer "1"))
                 (ee "le1"
                     "let {} in 1"
-                    (make-Let null (make-Integer "1")))
+                    (h/make-Let null (h/make-Integer "1")))
                 (ee "le2"
                     "let { x = 1 } in x"
-                    (make-Let (list (make-Declaration (make-LHS "x" null) (make-Integer "1")))
-                              (make-Variable "x")))
+                    (h/make-Let (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))
+                                (h/make-Variable "x")))
                 (ee "le3"
                     "let { x = 1 ; y = 1} in x"
-                    (make-Let (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
-                                    (make-Declaration (make-LHS "y" null) (make-Integer "1")))
-                              (make-Variable "x")))
+                    (h/make-Let (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
+                                      (h/make-Declaration (h/make-LHS "y" null) (h/make-Integer "1")))
+                                (h/make-Variable "x")))
                 (ee "li1"
                     "[]"
-                    (make-ListConstructor))
+                    (h/make-ListConstructor))
                 (ee "li2"
                     "[1]"
-                    (make-List (list (make-Integer "1"))))
+                    (h/make-List (list (h/make-Integer "1"))))
                 (ee "li3"
                     "[1, 2]"
-                    (make-List (list (make-Integer "1")
-                                     (make-Integer "2"))))
+                    (h/make-List (list (h/make-Integer "1") (h/make-Integer "2"))))
                 (ee "ml1"
                     ":ml Int \"x\""
-                    (make-ML (make-TypeConstructor "Int")
-                             "x"))
+                    (h/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
-                    "module M where {}"
-                    (make-Module "M" null null null))
-                (me "mo2"
                     "{}"
-                    (make-Module "None" null null null))
+                    (h/make-Module "None" null null null))
+                (me "mo2"
+                    "module M where {}"
+                    (h/make-Module "M" null null null))
                 (me "mo3"
-                    "{ x = 1 }"
-                    (make-Module "None" null null (list (make-Declaration (make-LHS "x" null) (make-Integer "1")))))
+                    "module M (a) where {}"
+                    (h/make-Module "M" (list "a") null null))
                 (me "mo4"
-                    "{ x = 1 ; data A = B }"
-                    (make-Module "None" null null (list (make-Declaration (make-LHS "x" null) (make-Integer "1"))
-                                                        (make-Data "A" (list (make-Constructor "B" null))))))
+                    "module M (a, A, (+), (:)) where {}"
+                    (h/make-Module "M" (list ":" "+" "A" "a") null null))
                 (me "mo5"
+                    "{ x = 1 }"
+                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
+                (me "mo6"
+                    "{ x = 1 ; data A = B }"
+                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
+                                                          (h/make-Data "A" (list (h/make-Constructor "B" null))))))
+                (me "mo7"
                     "{ data A = B ; x = 1 }"
-                    (make-Module "None" null null (list (make-Data "A" (list (make-Constructor "B" null)))
-                                                        (make-Declaration (make-LHS "x" null) (make-Integer "1")))))
+                    (h/make-Module "None" null null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
+                                                          (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (ee "sc1"
                     ":scheme A \"x\""
-                    (make-Scheme (make-TypeConstructor "A") "x"))
+                    (h/make-Scheme (h/make-TypeConstructor "A") "x"))
                 (ee "tu1"
                     "(1, 2)"
-                    (make-Tuple (list (make-Integer "1") (make-Integer "2"))))
+                    (h/make-Tuple (list (h/make-Integer "1") (h/make-Integer "2"))))
                 (ee "tu1"
                     "(1, 2, 3)"
-                    (make-Tuple (list (make-Integer "1") (make-Integer "2") (make-Integer "3"))))
+                    (h/make-Tuple (list (h/make-Integer "1") (h/make-Integer "2") (h/make-Integer "3"))))
                 (ee "tc1"
                     "(,)"
-                    (make-TupleConstructor 2))
+                    (h/make-TupleConstructor 2))
                 (ee "tc2"
                     "(,,)"
-                    (make-TupleConstructor 3))
+                    (h/make-TupleConstructor 3))
                 (te "ty1"
                     "A"
-                    (make-TypeConstructor "A"))
+                    (h/make-TypeConstructor "A"))
                 (te "ty2"
                     "A -> B"
-                    (make-FunctionType (make-TypeConstructor "A") (make-TypeConstructor "B")))
+                    (h/make-FunctionType (h/make-TypeConstructor "A") (h/make-TypeConstructor "B")))
                 (te "ty3"
                     "[A]"
-                    (make-ListType (make-TypeConstructor "A")))
+                    (h/make-ListType (h/make-TypeConstructor "A")))
                 (te "ty4"
                     "(A, B)"
-                    (make-TupleType (list (make-TypeConstructor "A")
-                                          (make-TypeConstructor "B"))))
+                    (h/make-TupleType (list (h/make-TypeConstructor "A")
+                                            (h/make-TypeConstructor "B"))))
                 (te "ty5"
                     "a"
-                    (make-TypeVariable "a"))
+                    (h/make-TypeVariable "a"))
                 (te "ty6"
                     "()"
-                    (make-UnitType))
+                    (h/make-UnitType))
                 (ee "un1"
                     "()"
-                    (make-UnitConstructor)))))
+                    (h/make-UnitConstructor)))))
