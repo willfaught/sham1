@@ -23,11 +23,9 @@
   
   (define-struct (If HaskellSyntax) (guard then else) #:transparent)
   
-  (define-struct (Impdecl HaskellSyntax) (path spec) #:transparent)
+  (define-struct (Impdecl HaskellSyntax) (path imports) #:transparent)
   
   (define-struct (Import HaskellSyntax) (name alias type) #:transparent)
-  
-  (define-struct (Impspec HaskellSyntax) (hiding imports) #:transparent)
   
   (define-struct (Integer HaskellSyntax) (value) #:transparent)
   
