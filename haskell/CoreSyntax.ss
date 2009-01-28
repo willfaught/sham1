@@ -13,7 +13,7 @@
   
   (define-struct (Declaration CoreSyntax) (lhs rhs) #:transparent)
   
-  (define-struct (Export CoreSyntax) (name type) #:transparent)
+  (define-struct (Export CoreSyntax) (name) #:transparent)
   
   (define-struct (Field CoreSyntax) (name type) #:transparent)
   
@@ -21,9 +21,9 @@
   
   (define-struct (Function CoreSyntax) (parameter body) #:transparent)
   
-  (define-struct (If CoreSyntax) (guard then else) #:transparent)
+  (define-struct (If CoreSyntax) (test then else) #:transparent)
   
-  (define-struct (Import CoreSyntax) (qualified path alias specs) #:transparent)
+  (define-struct (Import CoreSyntax) (path name alias type) #:transparent)
   
   (define-struct (Integer CoreSyntax) (value) #:transparent)
   
@@ -31,11 +31,7 @@
     
   (define-struct (ListConstructor CoreSyntax) () #:transparent)
   
-  (define-struct (ML CoreSyntax) (type name) #:transparent)
-  
   (define-struct (Module CoreSyntax) (name exports imports declarations) #:transparent)
-  
-  (define-struct (Scheme CoreSyntax) (type name) #:transparent)
   
   (define-struct (TupleConstructor CoreSyntax) (arity) #:transparent)
   
