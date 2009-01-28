@@ -1,39 +1,41 @@
-(module TransformationTest mzscheme
-  (require (lib "contract.ss")
-           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
-           (prefix c/ (lib "CoreSyntax.ss" "sham" "haskell"))
-           (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
+(module TransformationTest scheme
+  (require (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+           (prefix-in c/ (lib "CoreSyntax.ss" "sham" "haskell"))
+           (prefix-in h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "Parsing.ss" "sham" "haskell")
            (lib "Transformation.ss" "sham" "haskell")
-           (prefix t/ (lib "Types.ss" "sham")))
+           (prefix-in t/ (lib "Types.ss" "sham")))
   
-  (provide/contract (testSuite schemeunit-test-suite?))
+  (provide testSuite)
   
-  (define/contract de (-> string? string? c/CoreSyntax? schemeunit-test-case?)
-    (lambda (name declaration syntax)
-      (test-equal? name (transformSyntax (parseD declaration)) syntax)))
+  (define (de name declaration syntax)
+    (test-equal? name (transformSyntax (parseD declaration)) syntax))
   
-  (define/contract ee (-> string? string? c/CoreSyntax? schemeunit-test-case?)
-    (lambda (name declaration syntax)
-      (test-equal? name (transformSyntax (parseE declaration)) syntax)))
+  (define (ee name expression syntax)
+    (test-equal? name (transformSyntax (parseE expression)) syntax))
   
-  (define/contract me (-> string? string? c/CoreSyntax? schemeunit-test-case?)
-    (lambda (name declaration syntax)
-      (test-equal? name (transformSyntax (parseM declaration)) syntax)))
+  (define (ie name import syntax)
+    (test-equal? name (transformSyntax (parseI import)) syntax))
   
-  (define/contract parseD (-> string? h/HaskellSyntax?) (declarationParser "test"))
+  (define (me name module syntax)
+    (test-equal? name (transformSyntax (parseM module)) syntax))
   
-  (define/contract parseE (-> string? h/HaskellSyntax?) (expressionParser "test"))
+  (define testParsers (parsers "TransformationTest"))
   
-  (define/contract parseM (-> string? h/HaskellSyntax?) (moduleParser "test"))
+  (define parseD (parser 'declaration testParsers))
   
-  (define/contract parseT (-> string? h/HaskellSyntax?) (typeParser "test"))
+  (define parseE (parser 'expression testParsers))
   
-  (define/contract te (-> string? string? t/Type? schemeunit-test-case?)
-    (lambda (name type syntax)
-      (test-equal? name (transformType (parseT type)) syntax)))
+  (define parseI (parser 'import testParsers))
   
-  (define/contract testSuite schemeunit-test-suite?
+  (define parseM (parser 'module testParsers))
+  
+  (define parseT (parser 'type testParsers))
+  
+  (define (te name type syntax)
+    (test-equal? name (transformType (parseT type)) syntax))
+  
+  (define testSuite
     (test-suite "Transformation"
                 (ee "ap1"
                     "x y"
@@ -103,6 +105,13 @@
                 (ee "if1"
                     "if x then y else z"
                     (c/make-If (c/make-Variable "x") (c/make-Variable "y") (c/make-Variable "z")))
+                (ie "im1"
+                    "import \"file\" (\"a\" as b :: C)"
+                    (list (c/make-Import "file" "a" "b" (h/make-TypeConstructor "C"))))
+                (ie "im2"
+                    "import \"file\" (\"a\" as b :: C, \"d\" as e :: F)"
+                    (list (c/make-Import "file" "d" "e" (h/make-TypeConstructor "F"))
+                          (c/make-Import "file" "a" "b" (h/make-TypeConstructor "C"))))
                 (ee "in1"
                     "1"
                     (c/make-Integer "1"))
@@ -127,9 +136,6 @@
                     "[1, 2]"
                     (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "1"))
                                         (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "2")) (c/make-ListConstructor))))
-                (ee "ml1"
-                    ":ml Int \"x\""
-                    (c/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
                     "{}"
                     (c/make-Module "None" null null null))
@@ -137,19 +143,37 @@
                     "module M where {}"
                     (c/make-Module "M" null null null))
                 (me "mo3"
+                    "module M (a) where {}"
+                    (c/make-Module "M" (list (c/make-Export "a")) null null))
+                (me "mo4"
+                    "module M (a, B, (:), (++), (:+)) where {}"
+                    (c/make-Module "M" (list (c/make-Export ":+")
+                                             (c/make-Export "++")
+                                             (c/make-Export ":")
+                                             (c/make-Export "B")
+                                             (c/make-Export "a")) null null))
+                (me "mo5"
+                    "module M where { import \"file\" (\"a\" as b :: C) }"
+                    (c/make-Module "M" null (list (c/make-Import "file" "a" "b" (h/make-TypeConstructor "C"))) null))
+                (me "mo6"
+                    "module M where { import \"file\" (\"a\" as b :: C, \"d\" as e :: F) }"
+                    (c/make-Module "M" null (list (c/make-Import "file" "d" "e" (h/make-TypeConstructor "F"))
+                                                  (c/make-Import "file" "a" "b" (h/make-TypeConstructor "C"))) null))
+                (me "mo7"
+                    "module M where { import \"file\" (\"a\" as b :: C) ; import \"file\" (\"d\" as e :: F) }"
+                    (c/make-Module "M" null (list (c/make-Import "file" "a" "b" (h/make-TypeConstructor "C"))
+                                                  (c/make-Import "file" "d" "e" (h/make-TypeConstructor "F"))) null))
+                (me "mo8"
                     "{ x = 1 }"
                     (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1")))))
-                (me "mo4"
+                (me "mo9"
                     "{ x = 1 ; data A = B }"
                     (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1"))
                                                           (c/make-Data "A" (list (c/make-Constructor "B" null))))))
-                (me "mo5"
+                (me "mo10"
                     "{ data A = B ; x = 1 }"
                     (c/make-Module "None" null null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
                                                           (c/make-Declaration "x" (c/make-Integer "1")))))
-                (ee "sc1"
-                    ":scheme Int \"x\""
-                    (c/make-Scheme (h/make-TypeConstructor "Int") "x"))
                 (ee "tc1"
                     "(,)"
                     (c/make-TupleConstructor 2))
