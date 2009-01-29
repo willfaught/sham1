@@ -1,37 +1,34 @@
-(module TypeCheckingTest mzscheme
-  (require (lib "contract.ss")
-           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+(module TypeCheckingTest scheme
+  (require (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
            (lib "HaskellSyntax.ss" "sham" "haskell")
            (lib "Maybe.ss" "sham" "haskell")
            (lib "Parsing.ss" "sham" "haskell")
            (lib "Transformation.ss" "sham" "haskell")
            (lib "TypeChecking.ss" "sham" "haskell"))
   
-  (provide/contract (testSuite schemeunit-test-suite?))
+  (provide testSuite)
   
-  (define/contract eit (-> string? string? test-case?)
-    (lambda (name expression)
-      (test-case name (check-exn exn? (lambda () (syntaxType (transformSyntax (parseE expression))))))))
+  (define (eit name expression)
+    (test-case name (check-exn exn? (lambda () (syntaxType (transformSyntax (parseE expression)))))))
   
-  (define/contract ewt (-> string? string? string? test-case?)
-    (lambda (name expression type)
-      (test-case name (check-equal? (syntaxType (transformSyntax (parseE expression))) (transformType (parseT type))))))
+  (define (ewt name expression type)
+    (test-case name (check-equal? (syntaxType (transformSyntax (parseE expression))) (transformType (parseT type)))))
   
-  (define/contract mit (-> string? string? test-case?)
-    (lambda (name module)
-      (test-case name (check-exn exn? (lambda () (wellTyped (transformSyntax (parseM module))))))))
+  (define (mit name module)
+    (test-case name (check-exn exn? (lambda () (wellTyped (transformSyntax (parseM module)))))))
   
-  (define/contract mwt (-> string? string? test-case?)
-    (lambda (name module)
-      (test-case name (check-true (wellTyped (transformSyntax (parseM module)))))))
+  (define (mwt name module)
+    (test-case name (check-true (wellTyped (transformSyntax (parseM module))))))
   
-  (define/contract parseE (-> string? HaskellSyntax?) (expressionParser "test"))
+  (define testParsers (parsers "TypeCheckingTest"))
   
-  (define/contract parseM (-> string? HaskellSyntax?) (moduleParser "test"))
+  (define parseE (parser 'expression testParsers))
   
-  (define/contract parseT (-> string? HaskellSyntax?) (typeParser "test"))
+  (define parseM (parser 'module testParsers))
   
-  (define/contract testSuite schemeunit-test-suite?
+  (define parseT (parser 'type testParsers))
+  
+  (define testSuite
     (test-suite "TypeChecking"
                 (ewt "ap1" "(\\x -> 1) 1" "Int")
                 (ewt "ap2" "(\\x -> x) 1" "Int")
@@ -108,8 +105,6 @@
                 (ewt "li3" "\"\"" "[t]")
                 (ewt "li4" "\"foo\"" "[Char]")
                 (eit "li5" "[1, 'a']")
-                (ewt "ml1" ":ml Int \"x\"" "Int")
-                (ewt "ml2" ":ml a -> a \"x\"" "t -> t")
                 (mwt "mo1" "{}")
                 (mwt "mo2" "{ i = 1 }")
                 (mwt "mo3" "{ i = i }")
@@ -128,8 +123,6 @@
                 (mwt "mo16" "{ i = let { i x = x } in i ; j = i 1 }")
                 (mit "mo17" "{ i = [i] }")
                 (mit "mo18" "{ i = (i, i) }")
-                (ewt "sc1" ":scheme Int \"x\"" "Int")
-                (ewt "sc2" ":scheme a -> a \"x\"" "t -> t")
                 (ewt "tu1" "('a', 1)" "(Char, Int)")
                 (ewt "tu2" "('b', 1, 1)" "(Char, Int, Int)")
                 (ewt "tc1" "(,)" "t -> t1 -> (t, t1)")
