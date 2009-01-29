@@ -23,7 +23,7 @@
   
   (define-struct (If HaskellSyntax) (guard then else) #:transparent)
   
-  (define-struct (Impdecl HaskellSyntax) (path imports) #:transparent)
+  (define-struct (Impdecl HaskellSyntax) (language path imports) #:transparent)
   
   (define-struct (Import HaskellSyntax) (name alias type) #:transparent)
   
