@@ -130,7 +130,7 @@
     (foldr (lambda (x y) (string-append (Character-value x) y)) "" chars))
   
   (define (varidError expected actual)
-    (error (format "Parser: Expected '~a' and found '~a'" expected actual)))
+    (error (format "Parser: Expected ~a and found '~a'" expected actual)))
   
   (define (languageParsers source-name)
     (parser (src-pos)
@@ -138,7 +138,7 @@
             (start nt-exp nt-impdecl nt-module nt-topdecl nt-type)
             (end eof)
             (error (lambda (token-ok token-name token-value start-pos end-pos)
-                     (raise-read-error (format "error: malformed ~a (~a ~a:~a): ~a"
+                     (raise-read-error (format "error: found unexpected ~a (~a ~a:~a): ~a"
                                                token-name
                                                source-name
                                                (position-line start-pos)
@@ -164,10 +164,11 @@
                               ((t-lcbracket nt-topdecls t-rcbracket) (list null $2)))
                      (nt-impdecls ((nt-impdecls t-semicolon nt-impdecl) (cons $3 $1))
                                   ((nt-impdecl) (list $1)))
-                     (nt-impdecl ((t-import t-string t-lrbracket nt-imports t-rrbracket) (make-Impdecl (charsToString $2) $4)))
+                     (nt-impdecl ((t-import t-varid t-string t-lrbracket nt-imports t-rrbracket)
+                                  (if (not (or (equal? $2 "ml") (equal? $2 "scheme"))) (varidError "'ml' or 'scheme'" $2) (make-Impdecl $2 (charsToString $3) $5))))
                      (nt-imports ((nt-imports t-comma nt-import) (cons $3 $1))
                                  ((nt-import) (list $1)))
-                     (nt-import ((t-string t-varid nt-cname t-coloncolon nt-type) (if (not (equal? $2 "as")) (varidError "as" $2) (make-Import (charsToString $1) $3 $5))))
+                     (nt-import ((t-string t-varid nt-cname t-coloncolon nt-type) (if (not (equal? $2 "as")) (varidError "'as'" $2) (make-Import (charsToString $1) $3 $5))))
                      (nt-cname ((nt-var) $1)
                                ((nt-con) $1))
                      (nt-topdecls (() null)
