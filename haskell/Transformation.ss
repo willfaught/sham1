@@ -19,7 +19,7 @@
       ((struct h/Float (v)) (c/make-Float v))
       ((struct h/Function (p b)) (curryFunction p (transformSyntax b)))
       ((struct h/If (g t e)) (c/make-If (transformSyntax g) (transformSyntax t) (transformSyntax e)))
-      ((struct h/Impdecl (p i)) (map (match-lambda ((struct h/Import (n a t)) (c/make-Import p n a t))) i))
+      ((struct h/Impdecl (l p i)) (map (match-lambda ((struct h/Import (n a t)) (c/make-Import l p n a t))) i))
       ((struct h/Integer (v)) (c/make-Integer v))
       ((struct h/Let (d b)) (c/make-Let (map transformSyntax d) (transformSyntax b)))
       ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable ":") (transformSyntax x)) y)) (c/make-ListConstructor) e))
