@@ -1,37 +1,29 @@
-(module CompilerTest mzscheme
+(module CompilationTest scheme
   (require (only (lib "1.ss" "srfi") #;circular-list? #;proper-list? zip)
-           (only (lib "list.ss") foldl)
            (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
            (lib "Compiler.ss" "sham" "haskell")
            #;(lib "ml.ml" "sham" "examples")
            (only (lib "Parsers.ss" "sham" "haskell") declarationParser expressionParser)
            (lib "Primitives.ss" "sham" "haskell")
-           (only (lib "SyntaxTransformer.ss" "sham" "haskell") transformHC)
-           (planet "text-ui.ss" ("schematics" "schemeunit.plt" 2)))
+           (lib "Transformation.ss" "sham" "haskell"))
   
   (provide testSuite)
   
-  ; dp :: string string datum -> schemeunit-test-case
   (define (dp name data predicate)
     (test-true name (eval `(begin ,@(compileCS (transformHC (parseD data))) (,predicate)))))
   
-  ; evalE :: string -> datum
   (define (evalE expression)
     (eval (compileCS (transformHC (parseE expression)))))
   
-  ; ee :: string string 'a -> schemeunit-test-case
   (define (ee name expression value)
     (test-check name equal (evalE expression) value))
   
-  ; efx :: string string ('a -> 'b) -> schemeunit-test-case
   (define (efx name expression f)
     (test-exn name (lambda (x) #t) (lambda () (f (evalE expression)))))
   
-  ; ep :: string string ('a -> boolean) -> schemeunit-test-case
   (define (ep name expression predicate)
     (test-pred name predicate (evalE expression)))
   
-  ; equal :: 'a 'a -> boolean
   (define (equal x y)
     (cond ((and (promise? x) (promise? y)) (equal (force x) (force y)))
           ((and (haskell/constructor/#Cons? x) (haskell/constructor/#Cons? y))
@@ -43,17 +35,15 @@
            (foldl (lambda (x y) (and y (equal (list-ref x 0) (list-ref x 1)))) #t (zip (vector->list x) (vector->list y))))
           (else (equal? x y))))
   
-  ; ex :: string string -> schemeunit-test-case
   (define (ex name expression)
     (test-exn name (lambda (x) #t) (lambda () (evalE expression))))
   
-  ; parseD :: string -> HaskellSyntax
-  (define parseD (declarationParser "test"))
+  (define testParsers (parsers "CompilationTest"))
   
-  ; parseE :: string -> HaskellSyntax
-  (define parseE (expressionParser "test"))
+  (define parseD (parser 'declaration testParsers))
   
-  ; testSuite :: schemeunit-test-suite
+  (define parseE (parser 'expression testParsers))
+  
   (define testSuite
     (test-suite "Compiler"
                 (ee "ap1" "(\\x -> x) 1" 1)
