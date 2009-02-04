@@ -7,7 +7,7 @@
            (lib "Parsing.ss" "sham" "haskell")
            (prefix-in t/ (lib "Types.ss" "sham")))
   
-  (provide syntaxType wellTyped)
+  (provide moduleTypes syntaxType wellTyped)
   
   (define-struct Assumption (name type) #:transparent)
   
@@ -57,7 +57,7 @@
       ((struct t/Application (r d)) (mapper (t/make-Application (mapType mapper r) (mapType mapper d))))
       (x (mapper x))))
   
-  (define (moduleContext context syntax)
+  (define (moduleTypes context syntax)
     (match-let* (((list data decl) (values->list (partition c/Data? (c/Module-declarations syntax))))
                  (names (map (match-lambda ((struct c/Declaration (n _)) n)) decl))
                  (tyvars (map (lambda (x) (newVariable)) decl))
@@ -155,7 +155,7 @@
   (define (uniqueTypeVariables type)
     (delete-duplicates (typeVariables type)))
   
-  (define (wellTyped syntax) (moduleContext primitives syntax) #t)
+  (define (wellTyped syntax) (moduleTypes primitives syntax) #t)
   
   (define primitives
     (let* ((typeParsers (parsers "TypeChecking"))
