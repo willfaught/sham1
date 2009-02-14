@@ -27,7 +27,7 @@
     (lambda (x) (error (string-append "*** Exception: " "TODO"))))
   
   (define haskell/fst
-    (delay (lambda (t) (force (vector-ref (force t) 0)))))
+    (delay (lambda (t) (force (list-ref (force t) 0)))))
   
   (define haskell/head
     (delay (lambda (x) (force (haskell/constructor/#Cons-head (force x))))))
@@ -48,7 +48,7 @@
                            (force haskell/False)))))
   
   (define haskell/snd
-    (delay (lambda (t) (force (vector-ref (force t) 1)))))
+    (delay (lambda (t) (force (list-ref (force t) 1)))))
   
   (define haskell/tail
     (delay (lambda (x) (force (haskell/constructor/#Cons-tail (force x))))))
