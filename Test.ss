@@ -9,6 +9,6 @@
            (rename-in (lib "TypeCheckingTest.ss" "sham" "haskell") (testSuite typeChecking)))
   
   (define (runTests)
-    (run-tests (test-suite "All" compilation #;conversion parsing #;syntaxChecking transformation typeChecking)))
+    (run-tests (test-suite "All" #;compilation #;conversion parsing #;syntaxChecking transformation typeChecking)))
   
   (runTests))

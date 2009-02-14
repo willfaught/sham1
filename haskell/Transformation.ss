@@ -24,7 +24,7 @@
       ((struct h/Let (d b)) (c/make-Let (map transformSyntax d) (transformSyntax b)))
       ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable ":") (transformSyntax x)) y)) (c/make-ListConstructor) e))
       ((struct h/ListConstructor ()) (c/make-ListConstructor))
-      ((struct h/Module (n e i d)) (c/make-Module n (map c/make-Export e) (foldl append null (map transformSyntax i)) (map transformSyntax d)))
+      ((struct h/Module (n i d)) (c/make-Module n (foldl append null (map transformSyntax i)) (map transformSyntax d)))
       ((struct h/Tuple (e)) (foldl (lambda (x y) (c/make-Application y (transformSyntax x))) (c/make-TupleConstructor (length e)) e))
       ((struct h/TupleConstructor (a)) (c/make-TupleConstructor a))
       ((struct h/UnitConstructor ()) (c/make-UnitConstructor))

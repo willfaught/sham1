@@ -145,41 +145,31 @@
                                         (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "2")) (c/make-ListConstructor))))
                 (me "mo1"
                     "{}"
-                    (c/make-Module "None" null null null))
+                    (c/make-Module "None" null null))
                 (me "mo2"
                     "module M where {}"
-                    (c/make-Module "M" null null null))
+                    (c/make-Module "M" null null))
                 (me "mo3"
-                    "module M (a) where {}"
-                    (c/make-Module "M" (list (c/make-Export "a")) null null))
-                (me "mo4"
-                    "module M (a, B, (:), (++), (:+)) where {}"
-                    (c/make-Module "M" (list (c/make-Export ":+")
-                                             (c/make-Export "++")
-                                             (c/make-Export ":")
-                                             (c/make-Export "B")
-                                             (c/make-Export "a")) null null))
-                (me "mo5"
                     "module M where { import ml \"file\" (\"a\" as b :: C) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" "file" "a" "b" (h/make-TypeConstructor "C"))) null))
-                (me "mo6"
+                    (c/make-Module "M" (list (c/make-Import "ml" "file" "a" "b" (h/make-TypeConstructor "C"))) null))
+                (me "mo4"
                     "module M where { import ml \"file\" (\"a\" as b :: C, \"d\" as e :: F) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" "file" "d" "e" (h/make-TypeConstructor "F"))
+                    (c/make-Module "M" (list (c/make-Import "ml" "file" "d" "e" (h/make-TypeConstructor "F"))
                                                   (c/make-Import "ml" "file" "a" "b" (h/make-TypeConstructor "C"))) null))
-                (me "mo7"
+                (me "mo5"
                     "module M where { import ml \"file\" (\"a\" as b :: C) ; import scheme \"file\" (\"d\" as e :: F) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" "file" "a" "b" (h/make-TypeConstructor "C"))
+                    (c/make-Module "M" (list (c/make-Import "ml" "file" "a" "b" (h/make-TypeConstructor "C"))
                                                   (c/make-Import "scheme" "file" "d" "e" (h/make-TypeConstructor "F"))) null))
-                (me "mo8"
+                (me "mo6"
                     "{ x = 1 }"
-                    (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1")))))
-                (me "mo9"
+                    (c/make-Module "None" null (list (c/make-Declaration "x" (c/make-Integer "1")))))
+                (me "mo7"
                     "{ x = 1 ; data A = B }"
-                    (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1"))
+                    (c/make-Module "None" null (list (c/make-Declaration "x" (c/make-Integer "1"))
                                                           (c/make-Data "A" (list (c/make-Constructor "B" null))))))
-                (me "mo10"
+                (me "mo8"
                     "{ data A = B ; x = 1 }"
-                    (c/make-Module "None" null null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
+                    (c/make-Module "None" null (list (c/make-Data "A" (list (c/make-Constructor "B" null)))
                                                           (c/make-Declaration "x" (c/make-Integer "1")))))
                 (ee "tc1"
                     "(,)"

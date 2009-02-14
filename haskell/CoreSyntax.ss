@@ -13,8 +13,6 @@
   
   (define-struct (Declaration CoreSyntax) (lhs rhs) #:transparent)
   
-  (define-struct (Export CoreSyntax) (name) #:transparent)
-  
   (define-struct (Field CoreSyntax) (name type) #:transparent)
   
   (define-struct (Float CoreSyntax) (value) #:transparent)
@@ -31,7 +29,7 @@
     
   (define-struct (ListConstructor CoreSyntax) () #:transparent)
   
-  (define-struct (Module CoreSyntax) (name exports imports declarations) #:transparent)
+  (define-struct (Module CoreSyntax) (name imports declarations) #:transparent)
   
   (define-struct (TupleConstructor CoreSyntax) (arity) #:transparent)
   
