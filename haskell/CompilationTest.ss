@@ -1,6 +1,6 @@
 (module CompilationTest scheme
   (require (only-in (lib "1.ss" "srfi") #;circular-list? #;proper-list? zip)
-           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+           (planet schematics/schemeunit:3:3)
            (lib "Compilation.ss" "sham" "haskell")
            (lib "Parsing.ss" "sham" "haskell")
            (lib "Primitives.ss" "sham" "haskell")
@@ -39,7 +39,7 @@
   (define parseE (parser 'expression testParsers))
   
   (define testSuite
-    (test-suite "Compiler"
+    (test-suite "CompilationTest"
                 (ee "ap1" "(\\x -> x) 1" 1)
                 (ee "ap2" "(\\x y -> x) 1 2" 1)
                 (ex "ap3" "1 2")
@@ -76,7 +76,7 @@
                 (ep "fu3" "\\x y -> x" (lambda (x) (equal? ((x (delay 1)) (delay 2)) 1)))
                 (efx "fu4" "\\x y -> x" (lambda (x) (((x (delay 1)) (delay 2)) (delay 3))))
                 (ex "id1" "x")
-                (ep "id2" "fst" (lambda (x) (equal? (x (delay (vector-immutable (delay 1) (delay 2)))) 1)))
+                (ep "id2" "fst" (lambda (x) (equal? (x (delay (list (delay 1) (delay 2)))) 1)))
                 (ep "id3" "head" (lambda (x) (equal? (x (delay (make-haskell/constructor/#Cons (delay 1) (delay (make-haskell/constructor/#Nil))))) 1)))
                 (ep "id4" "isFalse" (lambda (x) (equal (x (delay (force haskell/False))) (force haskell/True))))
                 (ep "id5" "isFalse" (lambda (x) (equal (x (delay (force haskell/True))) (force haskell/False))))
@@ -84,7 +84,7 @@
                 (ep "id7" "isTrue" (lambda (x) (equal (x (delay (force haskell/True))) (force haskell/True))))
                 (ep "id8" "null" (lambda (x) (equal? (x (delay (make-haskell/constructor/#Nil))) (force haskell/True))))
                 (ep "id9" "null" (lambda (x) (equal? (x (delay (cons (delay 1) (delay null)))) (force haskell/False))))
-                (ep "id10" "snd" (lambda (x) (equal? (x (delay (vector-immutable (delay 1) (delay 2)))) 2)))
+                (ep "id10" "snd" (lambda (x) (equal? (x (delay (list (delay 1) (delay 2)))) 2)))
                 (ep "id11"
                     "tail"
                     (lambda (x) (equal (x (delay (make-haskell/constructor/#Cons (delay 1) (delay (make-haskell/constructor/#Nil))))) (make-haskell/constructor/#Nil))))

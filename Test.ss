@@ -1,5 +1,5 @@
 (module Test scheme
-  (require (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
+  (require (planet schematics/schemeunit:3:3)
            (planet schematics/schemeunit:3/text-ui)
            (rename-in (lib "CompilationTest.ss" "sham" "haskell") (testSuite compilation))
            #;(rename-in (lib "ConversionTest.ss" "sham") (testSuite conversion))
@@ -9,6 +9,6 @@
            (rename-in (lib "TypeCheckingTest.ss" "sham" "haskell") (testSuite typeChecking)))
   
   (define (runTests)
-    (run-tests (test-suite "All" #;compilation #;conversion parsing #;syntaxChecking transformation typeChecking)))
+    (run-tests (test-suite "All" compilation #;conversion parsing #;syntaxChecking transformation typeChecking)))
   
   (runTests))
