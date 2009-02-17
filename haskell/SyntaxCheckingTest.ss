@@ -1,8 +1,7 @@
-(module SyntaxCheckingTest mzscheme
-  (require (lib "contract.ss")
-           (planet "main.ss" ("schematics" "schemeunit.plt" 3 3)))
+(module SyntaxCheckingTest scheme
+  (require (planet schematics/schemeunit:3:3))
   
-  (provide/contract (testSuite schemeunit-test-suite?))
+  (provide testSuite)
   
-  (define/contract testSuite schemeunit-test-suite?
-    (test-suite "SyntaxChecking")))
+  (define testSuite
+    (test-suite "SyntaxCheckingTest")))
