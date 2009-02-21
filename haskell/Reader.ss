@@ -1,15 +1,19 @@
-(module Reader mzscheme
-  (require (lib "Compiler.ss" "sham" "haskell")
-           (lib "SyntaxTransformer.ss" "sham" "haskell")
-           (lib "Parsers.ss" "sham" "haskell"))
+(module Reader scheme
+  (require (lib "Compilation.ss" "sham" "haskell")
+           (lib "List.ss" "sham" "haskell")
+           (lib "Maybe.ss" "sham" "haskell")
+           (lib "Parsing.ss" "sham" "haskell")
+           (lib "Transformation.ss" "sham" "haskell")
+           (lib "TypeChecking.ss" "sham" "haskell"))
   
-  (provide (rename readHS read-syntax))
+  (provide (rename-out (readHaskellSyntax read-syntax)))
   
-  ; readHS :: string input-port -> datum
-  (define (readHS inputName inputPort)
+  (define (readHaskellSyntax inputName inputPort)
     (port-count-lines! inputPort)
-    (let ((cs (transformHC ((moduleParser inputName) (lambda () (languageLexer inputPort))))))
-      (display cs)
-      (if (wellTyped cs)
-          (compileCS cs)
-          (error "Compiler: Program is ill-typed")))))
+    (let* ((parser (Just-value (lookup 'module (parsers inputName))))
+           (haskellSyntax (parser (lambda () (languageLexer inputPort))))
+           (coreSyntax (transformSyntax haskellSyntax))
+           (types (moduleTypes null coreSyntax))
+           (emit (compileModule coreSyntax)))
+      (pretty-print emit)
+      emit)))
