@@ -7,7 +7,7 @@
            (lib "List.ss" "sham" "haskell")
            (lib "Maybe.ss" "sham" "haskell"))
   
-  (provide (rename-out (getParsers parsers) (getParser parser)))
+  (provide languageLexer (rename-out (getParsers parsers) (getParser parser)))
   
   (define-lex-abbrevs
     (a-whitespace (:: a-whitestuff (:* a-whitestuff)))
