@@ -105,17 +105,20 @@
                                (h/make-Integer "2")))
                 (ie "im1"
                     "import ml \"test\" (\"one\" as two :: A)"
-                    (h/make-Impdecl "ml" "test" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    (h/make-Impdecl "ml" (list "test") (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ie "im2"
-                    "import ml \"test\" (\"one\" as two :: A, \"three\" as four :: B)"
-                    (h/make-Impdecl "ml" "test" (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
-                                                      (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import ml \"test1\" \"test2\" (\"one\" as two :: A)"
+                    (h/make-Impdecl "ml" (list "test1" "test2") (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ie "im3"
-                    "import scheme \"test\" (\"one\" as two :: A)"
-                    (h/make-Impdecl "scheme" "test" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import ml \"test\" (\"one\" as two :: A, \"three\" as four :: B)"
+                    (h/make-Impdecl "ml" (list "test") (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
+                                                      (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ie "im4"
+                    "import scheme \"test\" (\"one\" as two :: A)"
+                    (h/make-Impdecl "scheme" (list "test") (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                (ie "im5"
                     "import scheme \"test\" (\"one\" as two :: A, \"three\" as four :: B)"
-                    (h/make-Impdecl "scheme" "test" (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
+                    (h/make-Impdecl "scheme" (list "test") (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
                                                           (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
                 (ee "in1"
                     "1"
@@ -146,31 +149,38 @@
                     (h/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
                     "{}"
-                    (h/make-Module "None" null null))
+                    (h/make-Module "None" null null null))
                 (me "mo2"
                     "module M where {}"
-                    (h/make-Module "M" null null))
+                    (h/make-Module "M" null null null))
+                (me "mo3"
+                    "module M (a) where {}"
+                    (h/make-Module "M" (list "a") null null))
+                (me "mo4"
+                    "module M (a, A, (+), (:)) where {}"
+                    (h/make-Module "M" (list ":" "+" "A" "a") null null))
                 (me "mo5"
                     "{ import ml \"file\" (\"a\" as b :: C) }"
-                    (h/make-Module "None" (list (h/make-Impdecl "ml" "file" (list (h/make-Import "a" "b" (h/make-TypeConstructor "C"))))) null))
+                    (h/make-Module "None" null (list (h/make-Impdecl "ml" (list "file") (list (h/make-Import "a" "b" (h/make-TypeConstructor "C"))))) null))
                 (me "mo6"
                     "{ data A = B }"
-                    (h/make-Module "None" null (list (h/make-Data "A" (list (h/make-Constructor "B" null))))))
+                    (h/make-Module "None" null null (list (h/make-Data "A" (list (h/make-Constructor "B" null))))))
                 (me "mo7"
                     "{ x = 1 }"
-                    (h/make-Module "None" null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
+                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo8"
                     "{ x = 1 ; data A = B }"
-                    (h/make-Module "None" null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
+                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
                                                           (h/make-Data "A" (list (h/make-Constructor "B" null))))))
                 (me "mo9"
                     "{ data A = B ; x = 1 }"
-                    (h/make-Module "None" null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
+                    (h/make-Module "None" null null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
                                                           (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo10"
                     "{ import ml \"file\" (\"a\" as b :: C) ; data A = B ; x = 1 }"
                     (h/make-Module "None"
-                                   (list (h/make-Impdecl "ml" "file" (list (h/make-Import "a" "b" (h/make-TypeConstructor "C")))))
+                                   null
+                                   (list (h/make-Impdecl "ml" (list "file") (list (h/make-Import "a" "b" (h/make-TypeConstructor "C")))))
                                    (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
                                          (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (ee "sc1"

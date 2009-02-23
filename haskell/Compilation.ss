@@ -50,11 +50,10 @@
   
   (define compileModule
     (match-lambda
-      ((struct c/Module (n i d))
+      ((struct c/Module (n e i d))
        (match-let ((types (filter c/Data? d))
                    (decls (filter c/Declaration? d)))
          `(module ,(toSymbol n) scheme
-            (require (lib "Primitives.ss" "sham" "haskell"))
             ,@(map importRequire i)
             ,@(map (match-lambda ((list x y) (export x y)))
                    (append (foldl append null (map typeExports types)) (map declarationExport decls)))
@@ -71,9 +70,9 @@
       ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/True)) ,(compileSyntax t) ,(compileSyntax e)))
       ((struct c/Integer (v)) `,(string->number v))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
-      ((struct c/ListConstructor ()) '(make-haskell/constructor/#Nil))
+      ((struct c/ListConstructor ()) '(force haskell/Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))
-      ((struct c/UnitConstructor ()) '(make-haskell/constructor/#Unit))
+      ((struct c/UnitConstructor ()) '(force haskell/Unit#))
       ((struct c/Variable (n)) `(force ,(toSymbol "haskell/" n)))))
   
   (define declarationExport
@@ -89,13 +88,14 @@
        (let ((name (toSymbol "import/" n)))
          `(define ,(toSymbol "haskell/" a)
             ,(match l
+               ("haskell" (boundaryHH t name))
                ("ml" (boundaryHM t name))
                ("scheme" (boundaryHS t name))))))))
   
   (define importRequire
     (match-lambda
       ((struct c/Import (_ p n a _))
-       `(require (rename-in (file ,p) (,n ,(toSymbol "import/" n)))))))
+       `(require (rename-in (lib ,(last p) "sham" "src" ,@(drop-right p 1)) (,(toSymbol n) ,(toSymbol "import/" n)))))))
   
   (define letDeclaration
     (match-lambda
@@ -114,7 +114,7 @@
   
   (define (tupleConstructor arity)
     (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))))
-      `(lambda ,vars (list ,vars))))
+      `(curry (lambda ,vars (list ,@vars)))))
   
   (define typeExports
     (match-lambda

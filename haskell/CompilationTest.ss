@@ -3,22 +3,31 @@
            (planet schematics/schemeunit:3:3)
            (lib "Compilation.ss" "sham" "haskell")
            (lib "Parsing.ss" "sham" "haskell")
-           (lib "Primitives.ss" "sham" "haskell")
+           (lib "Prelude.hs" "sham" "src" "Haskell")
            (lib "Transformation.ss" "sham" "haskell"))
   
   (provide testSuite)
   
   (define (ee name expression value)
-    (test-check name equal (evalE expression) value))
+    (ep name expression (lambda (x) (equal? x value))))
   
   (define (efx name expression f)
-    (test-exn name (lambda (x) #t) (lambda () (f (evalE expression)))))
+    (test-case name (check-exn (lambda (x) #t) (lambda () (f (evalE expression))))))
   
-  (define (ep name expression predicate)
-    (test-pred name predicate (evalE expression)))
+  (define (ep name syntax predicate)
+    (test-case name (check-true (predicate (evalE syntax)))))
+  
+  (define (ex name expression)
+    (efx name expression (lambda (x) x)))
+  
+  (define (iee name import value)
+    (iep name import (lambda (x) (equal? x value))))
+  
+  (define (iep name import predicate)
+    (test-case name (check-true (predicate import))))
   
   (define (evalE expression)
-    (eval (compileSyntax (transformSyntax (parseE expression)))))
+    (eval (datum->syntax #f (compileSyntax (transformSyntax (parseE expression))) #f)))
   
   (define (equal x y)
     (cond ((and (promise? x) (promise? y)) (equal (force x) (force y)))
@@ -30,9 +39,6 @@
           ((and (vector? x) (vector? y) (equal? (vector-length x) (vector-length y)))
            (foldl (lambda (x y) (and y (equal (list-ref x 0) (list-ref x 1)))) #t (zip (vector->list x) (vector->list y))))
           (else (equal? x y))))
-  
-  (define (ex name expression)
-    (test-exn name (lambda (x) #t) (lambda () (evalE expression))))
   
   (define testParsers (parsers "CompilationTest"))
   

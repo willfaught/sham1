@@ -14,7 +14,7 @@ ap5 = (\x y -> y) 1 2;
 
 ch1 = 'a';
 
-fl1 = '1.2';
+fl1 = 1.2;
 
 fu1 = \x -> x;
 
@@ -52,7 +52,7 @@ le1 = let { i = 1 } in 2;
 
 le2 = let { i = 1 } in i;
 
-le3 = let { i = 1 ; j = 2 } in 3
+le3 = let { i = 1 ; j = 2 } in 3;
 
 le4 = let { i = 1 ; j = i } in j;
 

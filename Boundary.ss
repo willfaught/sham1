@@ -2,27 +2,30 @@
   (require (only-in (lib "1.ss" "srfi") list-tabulate zip)
            (lib "HaskellSyntax.ss" "sham" "haskell"))
   
-  (provide boundaryHM boundaryHS boundaryMH #;boundaryMS boundarySH #;boundarySM)
+  (provide boundaryHH boundaryHM boundaryHS boundaryMH #;boundaryMS boundarySH #;boundarySM)
   
   (define-struct (LabelType HaskellSyntax) (name) #:transparent)
   
   (define-struct Wrapper (name value) #:transparent)
   
   (define (boundaryHM type syntax)
-    #`(contract ,(contractHM type) ,(convertHM type syntax 1) 'ml 'haskell))
+    #`(contract #,(contractHM type) #,(convertHM type syntax 1) 'ml 'haskell))
+  
+  (define (boundaryHH type syntax)
+    syntax)
   
   (define (boundaryHS type syntax)
     (convertHS (label type) syntax 1))
   
   (define (boundaryMH type syntax)
-    #`(contract ,(contractMH type) ,(convertMH type syntax 1) 'haskell 'ml))
+    #`(contract #,(contractMH type) #,(convertMH type syntax 1) 'haskell 'ml))
   
   (define (boundarySH type syntax)
     (convertSH type syntax 1))
   
   (define contractHM
     (match-lambda
-      ((struct FunctionType (p r)) #`(-> ,(contractMH p) ,(contractHM r)))
+      ((struct FunctionType (p r)) #`(-> #,(contractMH p) #,(contractHM r)))
       ((struct ListType (t)) #`(and/c (listof ,(contractHM t)) proper-list? (lambda (x) (not (circular-list? x)))))
       ((struct TupleType (t)) #`(vector-immutable/c ,@(map contractHM t)))
       ((struct TypeConstructor (n)) #`,(string->symbol (string-append "import/" n "?")))

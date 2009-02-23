@@ -41,7 +41,7 @@
   
   (define-struct (ML HaskellSyntax) (type name) #:transparent)
   
-  (define-struct (Module HaskellSyntax) (name imports declarations) #:transparent)
+  (define-struct (Module HaskellSyntax) (name exports impdecls declarations) #:transparent)
   
   (define-struct (Scheme HaskellSyntax) (type name) #:transparent)
   
