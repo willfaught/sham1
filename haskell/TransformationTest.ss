@@ -106,22 +106,22 @@
                     "if x then y else z"
                     (c/make-If (c/make-Variable "x") (c/make-Variable "y") (c/make-Variable "z")))
                 (ie "im1"
-                    "import ml \"file\" (\"a\" as b :: C)"
-                    (list (c/make-Import "ml" (list "file") "a" "b" (h/make-TypeConstructor "C"))))
+                    "import ml \"file\" as File (\"a\" as b :: C)"
+                    (list (c/make-Import "ml" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
                 (ie "im2"
-                    "import ml \"file1\" \"file2\" (\"a\" as b :: C)"
-                    (list (c/make-Import "ml" (list "file1" "file2") "a" "b" (h/make-TypeConstructor "C"))))
+                    "import ml \"file1\" \"file2\" as File1 (\"a\" as b :: C)"
+                    (list (c/make-Import "ml" (list "file1" "file2") "File1" "a" "b" (h/make-TypeConstructor "C"))))
                 (ie "im3"
-                    "import ml \"file\" (\"a\" as b :: C, \"d\" as e :: F)"
-                    (list (c/make-Import "ml" (list "file") "d" "e" (h/make-TypeConstructor "F"))
-                          (c/make-Import "ml" (list "file") "a" "b" (h/make-TypeConstructor "C"))))
+                    "import ml \"file\" as File (\"a\" as b :: C, \"d\" as e :: F)"
+                    (list (c/make-Import "ml" (list "file") "File" "d" "e" (h/make-TypeConstructor "F"))
+                          (c/make-Import "ml" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
                 (ie "im4"
-                    "import scheme \"file\" (\"a\" as b :: C)"
-                    (list (c/make-Import "scheme" (list "file") "a" "b" (h/make-TypeConstructor "C"))))
+                    "import scheme \"file\" as File (\"a\" as b :: C)"
+                    (list (c/make-Import "scheme" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
                 (ie "im5"
-                    "import scheme \"file\" (\"a\" as b :: C, \"d\" as e :: F)"
-                    (list (c/make-Import "scheme" (list "file") "d" "e" (h/make-TypeConstructor "F"))
-                          (c/make-Import "scheme" (list "file") "a" "b" (h/make-TypeConstructor "C"))))
+                    "import scheme \"file\" as File (\"a\" as b :: C, \"d\" as e :: F)"
+                    (list (c/make-Import "scheme" (list "file") "File" "d" "e" (h/make-TypeConstructor "F"))
+                          (c/make-Import "scheme" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
                 (ee "in1"
                     "1"
                     (c/make-Integer "1"))

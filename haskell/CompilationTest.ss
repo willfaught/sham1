@@ -31,7 +31,7 @@
   
   (define (equal x y)
     (cond ((and (promise? x) (promise? y)) (equal (force x) (force y)))
-          ((and (haskell/constructor/#Cons? x) (haskell/constructor/#Cons? y))
+          ((and (Cons#? x) (haskell/constructor/#Cons? y))
            (and (equal (force (haskell/constructor/#Cons-head x))
                        (force (haskell/constructor/#Cons-head y)))
                 (equal (force (haskell/constructor/#Cons-tail x))

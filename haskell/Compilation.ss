@@ -84,9 +84,9 @@
   
   (define importDefinition
     (match-lambda
-      ((struct c/Import (l _ n a t))
-       (let ((name (toSymbol "import/" n)))
-         `(define ,(toSymbol "haskell/" a)
+      ((struct c/Import (l _ ma n da t))
+       (let ((name (toSymbol ma "/" da)))
+         `(define ,(toSymbol "haskell/" da)
             ,(match l
                ("haskell" (boundaryHH t name))
                ("ml" (boundaryHM t name))
@@ -94,8 +94,8 @@
   
   (define importRequire
     (match-lambda
-      ((struct c/Import (_ p n a _))
-       `(require (rename-in (lib ,(last p) "sham" "src" ,@(drop-right p 1)) (,(toSymbol n) ,(toSymbol "import/" n)))))))
+      ((struct c/Import (_ p ma n da _))
+       `(require (rename-in (lib ,(last p) "sham" "src" ,@(drop-right p 1)) (,(toSymbol n) ,(toSymbol ma "/" da)))))))
   
   (define letDeclaration
     (match-lambda

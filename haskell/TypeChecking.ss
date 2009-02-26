@@ -62,7 +62,7 @@
                     (names (map (match-lambda ((struct c/Declaration (n _)) n)) decl))
                     (tyvars (map (lambda (x) (newVariable)) decl))
                     (dataCxt (map (match-lambda ((list n t) (make-Assumption n t))) (foldl append null (map dataTypes data))))
-                    (importTypes (map (match-lambda ((struct c/Import (_ _ n _ t)) (make-Assumption n (generalize null t)))) i))
+                    (importTypes (map (match-lambda ((struct c/Import (_ _ _ n _ t)) (make-Assumption n (generalize null t)))) i))
                     (declCxt (append (zipWith make-Assumption names tyvars) dataCxt importTypes))
                     ((list types constraints) (values->list (unzip2 (map (lambda (x) (reconstructType declCxt x)) decl))))
                     (subst (unify (append (zipWith make-Constraint tyvars types) (foldl append null constraints))))
