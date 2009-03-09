@@ -13,7 +13,6 @@
     (let* ((parser (Just-value (lookup 'module (parsers inputName))))
            (haskellSyntax (parser (lambda () (languageLexer inputPort))))
            (coreSyntax (transformSyntax haskellSyntax))
-           (types (moduleTypes coreSyntax))
-           (emit (compileModule coreSyntax)))
+           (emit (compileModule coreSyntax (moduleTypes coreSyntax))))
       (pretty-print emit)
       emit)))

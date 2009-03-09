@@ -3,6 +3,7 @@
            (prefix-in c/ (lib "CoreSyntax.ss" "sham" "haskell"))
            (prefix-in h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "List.ss" "sham" "haskell")
+           (lib "Maybe.ss" "sham" "haskell")
            (prefix-in t/ (lib "Types.ss" "sham"))
            (lib "TypeChecking.ss" "sham" "haskell"))
   
@@ -48,17 +49,16 @@
     `(define ,(toSymbol "haskell/" fieldName)
        (delay (lambda (x) (force (,(toSymbol "haskell/constructor/" constructorName "-" fieldName) (force x)))))))
   
-  (define compileModule
-    (match-lambda
+  (define (compileModule syntax types)
+    (match syntax
       ((struct c/Module (n e i d))
-       (match-let ((types (filter c/Data? d))
-                   (decls (filter c/Declaration? d)))
+       (let ((datas (filter c/Data? d))
+             (decls (filter c/Declaration? d)))
          `(module ,(toSymbol n) scheme
             ,@(map importRequire i)
-            ,@(map (match-lambda ((list x y) (export x y)))
-                   (append (foldl append null (map typeExports types)) (map declarationExport decls)))
             ,@(map importDefinition i)
-            ,@(foldl append null (map data types))
+            ,@(map export e)
+            ,@(foldl append null (map data datas))
             ,@(map moduleDeclaration decls))))))
   
   (define compileSyntax
@@ -79,23 +79,27 @@
     (match-lambda
       ((struct c/Declaration (l _)) (list (string-append "haskell/" l) l))))
   
-  (define (export internalName externalName)
-    `(provide (rename-out (,(toSymbol internalName) ,(toSymbol externalName)))))
+  (define export
+    (match-lambda
+      ((struct c/Export (n)) `(provide (rename-out (,(toSymbol "haskell/" n) ,(toSymbol n)))))))
   
   (define importDefinition
     (match-lambda
-      ((struct c/Import (l _ ma n da t))
-       (let ((name (toSymbol ma "/" da)))
-         `(define ,(toSymbol "haskell/" da)
+      ((struct c/Import (l m n t))
+       (let* ((qualifiedName (string-append m "." n))
+              (importQualifiedName (toSymbol "import/" qualifiedName)))
+         `(define ,(toSymbol "haskell/" qualifiedName)
             ,(match l
-               ("haskell" (boundaryHH t name))
-               ("ml" (boundaryHM t name))
-               ("scheme" (boundaryHS t name))))))))
+               ("haskell" (boundaryHH t importQualifiedName))
+               ("ml" (boundaryHM t importQualifiedName))
+               ("scheme" (boundaryHS t importQualifiedName))))))))
   
   (define importRequire
     (match-lambda
-      ((struct c/Import (_ p ma n da _))
-       `(require (rename-in (lib ,(last p) "sham" "src" ,@(drop-right p 1)) (,(toSymbol n) ,(toSymbol ma "/" da)))))))
+      ((struct c/Import (l m n _))
+       (let ((modules (regexp-split #rx"\\." m)))
+         `(require (rename-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
+                              (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
   
   (define letDeclaration
     (match-lambda
@@ -115,16 +119,6 @@
   (define (tupleConstructor arity)
     (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))))
       `(curry (lambda ,vars (list ,@vars)))))
-  
-  (define typeExports
-    (match-lambda
-      ((struct c/Data (n c))
-       (cons (list (string-append "haskell/type/" n "?")
-                   (string-append n "?"))
-             (map (match-lambda ((struct c/Constructor (n f))
-                                 (cons (list (string-append "haskell/" n) n)
-                                       (map (match-lambda ((struct c/Field (n _))
-                                                           (list (string-append "haskell/" n) n))) f)))) c)))))
   
   (define (typePredicateExport typeName)
     `(provide (rename-out (,(toSymbol "haskell/type/" typeName "?") ,(toSymbol typeName "?"))))))

@@ -1,6 +1,7 @@
 (module Boundary scheme
   (require (only-in (lib "1.ss" "srfi") list-tabulate zip)
-           (lib "HaskellSyntax.ss" "sham" "haskell"))
+           (lib "HaskellSyntax.ss" "sham" "haskell")
+           (prefix-in t/ (lib "Types.ss" "sham")))
   
   (provide boundaryHH boundaryHM boundaryHS boundaryMH #;boundaryMS boundarySH #;boundarySM)
   
@@ -23,8 +24,8 @@
   (define (boundarySH type syntax)
     (convertSH type syntax 1))
   
-  (define contractHM
-    (match-lambda
+  (define contractHM any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> #,(contractMH p) #,(contractHM r)))
       ((struct ListType (t)) #`(and/c (listof ,(contractHM t)) proper-list? (lambda (x) (not (circular-list? x)))))
       ((struct TupleType (t)) #`(vector-immutable/c ,@(map contractHM t)))
@@ -32,8 +33,8 @@
       ((struct TypeVariable (_)) #'any/c)
       ((struct UnitType ()) #'vector-immutable/c)))
   
-  (define contractHS
-    (match-lambda
+  (define contractHS any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> ,(contractSH p) ,(contractHS r)))
       ((struct ListType (t)) #`(and/c (listof ,(contractHS t)) proper-list? (lambda (x) (not (circular-list? x)))))
       ((struct TupleType (t)) #`(vector-immutable/c ,@(map contractHS t)))
@@ -45,8 +46,8 @@
       ((? TypeVariable? _) #'any/c) ; TODO
       ((struct UnitType ()) #'(vector-immutable/c))))
   
-  (define contractMH
-    (match-lambda
+  (define contractMH any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> ,(contractHM p) ,(contractMH r)))
       ((struct ListType (t)) #'import/#List?)
       ((struct TupleType (t)) #`(list/c ,@(map contractMH t)))
@@ -54,8 +55,8 @@
       ((struct TypeVariable (_)) #'any/c)
       ((struct UnitType ()) #'import/#Unit?)))
   
-  (define contractMS
-    (match-lambda
+  (define contractMS any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> ,(contractSH p) ,(contractHS r)))
       ((struct ListType (t)) #`(and/c (listof ,(contractHS t)) proper-list? (lambda (x) (not (circular-list? x)))))
       ((struct TupleType (t)) #`(vector-immutable/c ,@(map contractHS t)))
@@ -67,18 +68,18 @@
       ((? TypeVariable? _) #'any/c) ; TODO
       ((struct UnitType ()) #'(vector-immutable/c))))
   
-  (define contractSH
-    (match-lambda
+  (define contractSH any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> ,(contractHS p) ,(contractSH r)))
       ((? (lambda (x) (or ListType? TupleType? TypeConstructor? TypeVariable? UnitType?)) _) #'any/c)))
   
-  (define contractSM
-    (match-lambda
+  (define contractSM any/c
+    #;(match-lambda
       ((struct FunctionType (p r)) #`(-> ,(contractHS p) ,(contractSH r)))
       ((? (lambda (x) (or ListType? TupleType? TypeConstructor? TypeVariable? UnitType?)) _) #'any/c)))
   
-  (define (convertHM type syntax depth)
-    (match type
+  (define (convertHM type syntax depth) syntax
+    #;(match type
       ((struct FunctionType (p r)) (let ((n (name depth))) #`(lambda (,n) ,(convertHM r #`(,syntax ,(convertMH p #`(force ,n) (+ depth 1))) (+ depth 1)))))
       ((struct ListType (t)) #`(foldr (lambda (x y) (cons (delay ,(convertHM t #'x depth)) (delay y))) null ,syntax))
       ((struct TupleType (ts)) #`((lambda (x) (list ,@(map (match-lambda ((t i) #`(delay ,(convertHM t #`(list-ref x ,i) depth))))
@@ -90,8 +91,8 @@
       ((struct TypeVariable (_)) syntax)
       ((struct UnitType ()) syntax)))
   
-  (define (convertHS type syntax depth)
-    (match type
+  (define (convertHS type syntax depth) syntax
+    #;(match type
       ((struct FunctionType (p r)) (let ((n (name depth))) `(lambda (,n) ,(convertHS r `(,syntax ,(convertSH p `(force ,n) (+ depth 1))) (+ depth 1)))))
       ((struct LabelType (n)) `((lambda (x) (if (and (Wrapper? x) (equal? (Wrapper-name x) ,n)) (Wrapper-value x) (error "Scheme violated parametricity"))) ,syntax))
       ((struct ListType (t)) `(foldr (lambda (x y) (cons (delay ,(convertHS t 'x)) (delay y))) null ,syntax))
@@ -103,8 +104,8 @@
       ((struct TypeVariable (n)) syntax)
       ((struct UnitType ()) syntax)))
   
-  (define (convertMH type syntax depth)
-    (match type
+  (define (convertMH type syntax depth) syntax
+    #;(match type
       ((struct FunctionType (p r)) (let ((n (name depth))) `(lambda (,n) ,(convertMH r `(,syntax (delay ,(convertHM p n (+ depth 1)))) (+ depth 1)))))
       ((struct ListType (_)) syntax)
       ((struct TupleType (ts)) `((lambda (x) (vector-immutable ,@(map (match-lambda ((list t i) (convertMH t `(vector-ref x ,i) (+ depth 1))))
@@ -115,8 +116,8 @@
       ((struct TypeVariable (_)) syntax)
       ((struct UnitType ()) syntax)))
   
-  (define (convertSH type syntax depth)
-    (match type
+  (define (convertSH type syntax depth) syntax
+    #;(match type
       ((struct FunctionType (p r)) (let ((n (name depth))) `(lambda (,n) ,(convertSH r `(,syntax (delay ,(convertHS p n (+ depth 1)))) (+ depth 1)))))
       ((struct LabelType (n)) `(make-Wrapper ,n ,syntax))
       ((struct ListType (_)) syntax)
@@ -127,8 +128,8 @@
       ((struct TypeVariable (n)) syntax)
       ((struct UnitType ()) syntax)))
   
-  (define (label type)
-    (match type
+  (define (label type) type
+    #;(match type
       ((struct FunctionType (p r)) (make-FunctionType (label p) (label r)))
       ((struct ListType (t)) (make-ListType (label t)))
       ((struct TupleType (t)) (make-TupleType (map label t)))

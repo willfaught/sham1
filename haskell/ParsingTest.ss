@@ -1,9 +1,9 @@
-(module ParsingTest mzscheme
-  (require (planet "main.ss" ("schematics" "schemeunit.plt" 3 3))
-           (prefix h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
+(module ParsingTest scheme
+  (require (planet schematics/schemeunit:3:3)
+           (prefix-in h/ (lib "HaskellSyntax.ss" "sham" "haskell"))
            (lib "Maybe.ss" "sham" "haskell")
            (lib "Parsing.ss" "sham" "haskell")
-           (prefix t/ (lib "Types.ss" "sham")))
+           (prefix-in t/ (lib "Types.ss" "sham")))
   
   (provide testSuite)
   
@@ -58,15 +58,15 @@
                                            (h/make-Constructor "C" null))))
                 (de "da4"
                     "data A = B { c :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A")))))))
                 (de "da5"
                     "data A = B { c :: A, d :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A"))
-                                                                         (h/make-Field "d" (h/make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
+                                                                         (h/make-Field "d" (t/make-Constructor "A")))))))
                 (de "da6"
                     "data A = B { c, d :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (h/make-TypeConstructor "A"))
-                                                                         (h/make-Field "d" (h/make-TypeConstructor "A")))))))
+                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
+                                                                         (h/make-Field "d" (t/make-Constructor "A")))))))
                 (de "de1"
                     "x = 1"
                     (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))
@@ -104,22 +104,21 @@
                                (h/make-Integer "1")
                                (h/make-Integer "2")))
                 (ie "im1"
-                    "import ml \"test\" as Test (\"one\" as two :: A)"
-                    (h/make-Impdecl "ml" (list "test") "Test" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import haskell Test (one :: A)"
+                    (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A")))))
                 (ie "im2"
-                    "import ml \"test1\" \"test2\" as Test1 (\"one\" as two :: A)"
-                    (h/make-Impdecl "ml" (list "test1" "test2") "Test1" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import ml Test (one :: A)"
+                    (h/make-Impdecl "ml" "Test" (list (h/make-Import "one" (t/make-Constructor "A")))))
                 (ie "im3"
-                    "import ml \"test\" as Test (\"one\" as two :: A, \"three\" as four :: B)"
-                    (h/make-Impdecl "ml" (list "test") "Test" (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
-                                                                    (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import scheme Test (one :: A)"
+                    (h/make-Impdecl "scheme" "Test" (list (h/make-Import "one" (t/make-Constructor "A")))))
                 (ie "im4"
-                    "import scheme \"test\" as Test (\"one\" as two :: A)"
-                    (h/make-Impdecl "scheme" (list "test") "Test" (list (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import ml Test1.Test2 (one :: A)"
+                    (h/make-Impdecl "ml" "Test1.Test2" (list (h/make-Import "one" (t/make-Constructor "A")))))
                 (ie "im5"
-                    "import scheme \"test\" as Test (\"one\" as two :: A, \"three\" as four :: B)"
-                    (h/make-Impdecl "scheme" (list "test") "Test" (list (h/make-Import "three" "four" (h/make-TypeConstructor "B"))
-                                                                        (h/make-Import "one" "two" (h/make-TypeConstructor "A")))))
+                    "import haskell Test (one :: A, two :: B)"
+                    (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A"))
+                                                           (h/make-Import "two" (t/make-Constructor "B")))))
                 (ee "in1"
                     "1"
                     (h/make-Integer "1"))
@@ -144,48 +143,42 @@
                 (ee "li3"
                     "[1, 2]"
                     (h/make-List (list (h/make-Integer "1") (h/make-Integer "2"))))
-                (ee "ml1"
-                    ":ml Int \"x\""
-                    (h/make-ML (h/make-TypeConstructor "Int") "x"))
                 (me "mo1"
-                    "{}"
-                    (h/make-Module "None" null null null))
-                (me "mo2"
                     "module M where {}"
-                    (h/make-Module "M" null null null))
+                    (h/make-Module "M" (make-Nothing) null null))
+                (me "mo2"
+                    "module M () where {}"
+                    (h/make-Module "M" (make-Just null) null null))
                 (me "mo3"
                     "module M (a) where {}"
-                    (h/make-Module "M" (list "a") null null))
+                    (h/make-Module "M" (make-Just (list "a")) null null))
                 (me "mo4"
-                    "module M (a, A, (+), (:)) where {}"
-                    (h/make-Module "M" (list ":" "+" "A" "a") null null))
+                    "module M (a, (+), A, (:+), (:)) where {}"
+                    (h/make-Module "M" (make-Just (list "a" "+" "A" ":+" ":")) null null))
                 (me "mo5"
-                    "{ import ml \"file\" as File (\"a\" as b :: C) }"
-                    (h/make-Module "None" null (list (h/make-Impdecl "ml" (list "file") "File" (list (h/make-Import "a" "b" (h/make-TypeConstructor "C"))))) null))
+                    "module M where { import haskell Test (one :: A) }"
+                    (h/make-Module "M" (make-Nothing) (list (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A"))))) null))
                 (me "mo6"
-                    "{ data A = B }"
-                    (h/make-Module "None" null null (list (h/make-Data "A" (list (h/make-Constructor "B" null))))))
+                    "module M where { data A = B }"
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" (list (h/make-Constructor "B" null))))))
                 (me "mo7"
-                    "{ x = 1 }"
-                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
+                    "module M where { x = 1 }"
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo8"
-                    "{ x = 1 ; data A = B }"
-                    (h/make-Module "None" null null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
+                    "module M where { x = 1 ; data A = B }"
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
                                                           (h/make-Data "A" (list (h/make-Constructor "B" null))))))
                 (me "mo9"
-                    "{ data A = B ; x = 1 }"
-                    (h/make-Module "None" null null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
+                    "module M where { data A = B ; x = 1 }"
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
                                                           (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo10"
-                    "{ import ml \"file\" as File (\"a\" as b :: C) ; data A = B ; x = 1 }"
-                    (h/make-Module "None"
-                                   null
-                                   (list (h/make-Impdecl "ml" (list "file") "File" (list (h/make-Import "a" "b" (h/make-TypeConstructor "C")))))
+                    "module M where { import haskell Test (one :: A) ; data A = B ; x = 1 }"
+                    (h/make-Module "M"
+                                   (make-Nothing)
+                                   (list (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A")))))
                                    (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
                                          (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
-                (ee "sc1"
-                    ":scheme A \"x\""
-                    (h/make-Scheme (h/make-TypeConstructor "A") "x"))
                 (ee "tu1"
                     "(1, 2)"
                     (h/make-Tuple (list (h/make-Integer "1") (h/make-Integer "2"))))
@@ -200,23 +193,22 @@
                     (h/make-TupleConstructor 3))
                 (te "ty1"
                     "A"
-                    (h/make-TypeConstructor "A"))
+                    (t/make-Constructor "A"))
                 (te "ty2"
                     "A -> B"
-                    (h/make-FunctionType (h/make-TypeConstructor "A") (h/make-TypeConstructor "B")))
+                    (t/make-Application (t/make-Application (t/make-Function) (t/make-Constructor "A")) (t/make-Constructor "B")))
                 (te "ty3"
                     "[A]"
-                    (h/make-ListType (h/make-TypeConstructor "A")))
+                    (t/make-Application (t/make-List) (t/make-Constructor "A")))
                 (te "ty4"
                     "(A, B)"
-                    (h/make-TupleType (list (h/make-TypeConstructor "A")
-                                            (h/make-TypeConstructor "B"))))
+                    (t/make-Application (t/make-Application (t/make-Tuple 2) (t/make-Constructor "A")) (t/make-Constructor "B")))
                 (te "ty5"
                     "a"
-                    (h/make-TypeVariable "a"))
+                    (t/make-Variable "a"))
                 (te "ty6"
                     "()"
-                    (h/make-UnitType))
+                    (t/make-Unit))
                 (ee "un1"
                     "()"
                     (h/make-UnitConstructor)))))

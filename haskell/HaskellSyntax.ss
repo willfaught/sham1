@@ -19,13 +19,11 @@
   
   (define-struct (Function HaskellSyntax) (parameters body) #:transparent)
   
-  (define-struct (FunctionType HaskellSyntax) (parameter result) #:transparent)
-  
   (define-struct (If HaskellSyntax) (guard then else) #:transparent)
   
-  (define-struct (Impdecl HaskellSyntax) (language path alias imports) #:transparent)
+  (define-struct (Impdecl HaskellSyntax) (language module imports) #:transparent)
   
-  (define-struct (Import HaskellSyntax) (name alias type) #:transparent)
+  (define-struct (Import HaskellSyntax) (name type) #:transparent)
   
   (define-struct (Integer HaskellSyntax) (value) #:transparent)
   
@@ -37,28 +35,12 @@
   
   (define-struct (ListConstructor HaskellSyntax) () #:transparent)
   
-  (define-struct (ListType HaskellSyntax) (type) #:transparent)
-  
-  (define-struct (ML HaskellSyntax) (type name) #:transparent)
-  
   (define-struct (Module HaskellSyntax) (name exports impdecls declarations) #:transparent)
-  
-  (define-struct (Scheme HaskellSyntax) (type name) #:transparent)
   
   (define-struct (Tuple HaskellSyntax) (elements) #:transparent)
   
   (define-struct (TupleConstructor HaskellSyntax) (arity) #:transparent)
   
-  (define-struct (TupleType HaskellSyntax) (types) #:transparent)
-  
-  (define-struct (TypeApplication HaskellSyntax) (types) #:transparent)
-  
-  (define-struct (TypeConstructor HaskellSyntax) (name) #:transparent)
-  
-  (define-struct (TypeVariable HaskellSyntax) (name) #:transparent)
-  
   (define-struct (UnitConstructor HaskellSyntax) () #:transparent)
-  
-  (define-struct (UnitType HaskellSyntax) () #:transparent)
   
   (define-struct (Variable HaskellSyntax) (name) #:transparent))

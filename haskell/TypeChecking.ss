@@ -62,12 +62,12 @@
                     (names (map (match-lambda ((struct c/Declaration (n _)) n)) decl))
                     (tyvars (map (lambda (x) (newVariable)) decl))
                     (dataCxt (map (match-lambda ((list n t) (make-Assumption n t))) (foldl append null (map dataTypes data))))
-                    (importTypes (map (match-lambda ((struct c/Import (_ _ _ n _ t)) (make-Assumption n (generalize null t)))) i))
+                    (importTypes (map (match-lambda ((struct c/Import (_ m n t)) (make-Assumption (string-append m "." n) (generalize null t)))) i))
                     (declCxt (append (zipWith make-Assumption names tyvars) dataCxt importTypes))
                     ((list types constraints) (values->list (unzip2 (map (lambda (x) (reconstructType declCxt x)) decl))))
                     (subst (unify (append (zipWith make-Constraint tyvars types) (foldl append null constraints))))
                     (typesS (map (lambda (x) (substituteManyType subst x)) types)))
-         (append (zipWith make-Assumption names typesS) dataCxt)))))
+         (append importTypes dataCxt (zipWith make-Assumption names typesS))))))
   
   (define (newVariable)
     (set! variableCount (+ variableCount 1))
@@ -110,7 +110,7 @@
                                                       (foldl (lambda (x y) (t/make-Application y x)) (t/make-Tuple a) t) t) null)))
       ((struct c/UnitConstructor ()) (list (t/make-Unit) null))
       ((struct c/Variable (n)) (match (findf (lambda (x) (equal? (Assumption-name x) n)) context)
-                                 (#f (error 'reconstructType "~a is not in scope" n))
+                                 (#f (error (format "TypeChecking: Found a free variable '~a'" n)))
                                  (x (list (let ((t (Assumption-type x))) (if (Forall? t) (instantiate t) t)) null))))))
   
   (define (rename mappings type)

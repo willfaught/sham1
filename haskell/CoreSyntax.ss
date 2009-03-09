@@ -23,7 +23,7 @@
   
   (define-struct (If CoreSyntax) (test then else) #:transparent)
   
-  (define-struct (Import CoreSyntax) (language path moduleAlias name declarationAlias type) #:transparent)
+  (define-struct (Import CoreSyntax) (language module name type) #:transparent)
   
   (define-struct (Integer CoreSyntax) (value) #:transparent)
   

@@ -33,7 +33,7 @@
   (define parseT (parser 'type testParsers))
   
   (define (te name type syntax)
-    (test-equal? name (transformType (parseT type)) syntax))
+    (test-equal? name (parseT type) syntax))
   
   (define testSuite
     (test-suite "Transformation"
@@ -106,22 +106,15 @@
                     "if x then y else z"
                     (c/make-If (c/make-Variable "x") (c/make-Variable "y") (c/make-Variable "z")))
                 (ie "im1"
-                    "import ml \"file\" as File (\"a\" as b :: C)"
-                    (list (c/make-Import "ml" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
+                    "import haskell Test (one :: A)"
+                    (list (c/make-Import "haskell" "Test" "one" (t/make-Constructor "A"))))
                 (ie "im2"
-                    "import ml \"file1\" \"file2\" as File1 (\"a\" as b :: C)"
-                    (list (c/make-Import "ml" (list "file1" "file2") "File1" "a" "b" (h/make-TypeConstructor "C"))))
+                    "import haskell Test1.Test2 (one :: A)"
+                    (list (c/make-Import "haskell" "Test1.Test2" "one" (t/make-Constructor "A"))))
                 (ie "im3"
-                    "import ml \"file\" as File (\"a\" as b :: C, \"d\" as e :: F)"
-                    (list (c/make-Import "ml" (list "file") "File" "d" "e" (h/make-TypeConstructor "F"))
-                          (c/make-Import "ml" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
-                (ie "im4"
-                    "import scheme \"file\" as File (\"a\" as b :: C)"
-                    (list (c/make-Import "scheme" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
-                (ie "im5"
-                    "import scheme \"file\" as File (\"a\" as b :: C, \"d\" as e :: F)"
-                    (list (c/make-Import "scheme" (list "file") "File" "d" "e" (h/make-TypeConstructor "F"))
-                          (c/make-Import "scheme" (list "file") "File" "a" "b" (h/make-TypeConstructor "C"))))
+                    "import haskell Test (one :: A, two :: B)"
+                    (list (c/make-Import "haskell" "Test" "one" (t/make-Constructor "A"))
+                          (c/make-Import "haskell" "Test" "two" (t/make-Constructor "B"))))
                 (ee "in1"
                     "1"
                     (c/make-Integer "1"))
@@ -164,15 +157,15 @@
                                              (c/make-Export "a")) null null))
                 (me "mo5"
                     "module M where { import ml \"file\" (\"a\" as b :: C) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "a" "b" (h/make-TypeConstructor "C"))) null))
+                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "a" "b" (t/make-Constructor "C"))) null))
                 (me "mo6"
                     "module M where { import ml \"file\" (\"a\" as b :: C, \"d\" as e :: F) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "d" "e" (h/make-TypeConstructor "F"))
-                                                  (c/make-Import "ml" (list "file") "a" "b" (h/make-TypeConstructor "C"))) null))
+                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "d" "e" (t/make-Constructor "F"))
+                                                  (c/make-Import "ml" (list "file") "a" "b" (t/make-Constructor "C"))) null))
                 (me "mo7"
                     "module M where { import ml \"file\" (\"a\" as b :: C) ; import scheme \"file\" (\"d\" as e :: F) }"
-                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "a" "b" (h/make-TypeConstructor "C"))
-                                                  (c/make-Import "scheme" (list "file") "d" "e" (h/make-TypeConstructor "F"))) null))
+                    (c/make-Module "M" null (list (c/make-Import "ml" (list "file") "a" "b" (t/make-Constructor "C"))
+                                                  (c/make-Import "scheme" (list "file") "d" "e" (t/make-Constructor "F"))) null))
                 (me "mo8"
                     "{ x = 1 }"
                     (c/make-Module "None" null null (list (c/make-Declaration "x" (c/make-Integer "1")))))
