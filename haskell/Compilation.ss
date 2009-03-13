@@ -67,12 +67,12 @@
       ((struct c/Character (v)) `,(string-ref v 0))
       ((struct c/Float (v)) `,(string->number v))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "haskell/" p)) ,(compileSyntax b)))
-      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/True)) ,(compileSyntax t) ,(compileSyntax e)))
+      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/Prelude.True)) ,(compileSyntax t) ,(compileSyntax e)))
       ((struct c/Integer (v)) `,(string->number v))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
-      ((struct c/ListConstructor ()) '(force haskell/Nil#))
+      ((struct c/ListConstructor ()) '(force haskell/Prelude.Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))
-      ((struct c/UnitConstructor ()) '(force haskell/Unit#))
+      ((struct c/UnitConstructor ()) '(force haskell/Prelude.Unit#))
       ((struct c/Variable (n)) `(force ,(toSymbol "haskell/" n)))))
   
   (define declarationExport

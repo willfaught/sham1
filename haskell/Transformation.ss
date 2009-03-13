@@ -25,16 +25,16 @@
       ((struct h/Impdecl (l m i)) (map (match-lambda ((struct h/Import (n t)) (c/make-Import l m n t))) i))
       ((struct h/Integer (v)) (c/make-Integer v))
       ((struct h/Let (d b)) (c/make-Let (map transformSyntax d) (transformSyntax b)))
-      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable ":") (transformSyntax x)) y)) (c/make-ListConstructor) e))
+      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable "Prelude.:") (transformSyntax x)) y)) (c/make-ListConstructor) e))
       ((struct h/ListConstructor ()) (c/make-ListConstructor))
       ((struct h/Module (n e i d))
        (c/make-Module n
                       (match e
                         ((struct Nothing ())
-                         (let ((datas (filter c/Data? d))
-                               (decls (filter c/Declaration? d)))
+                         (let ((datas (filter h/Data? d))
+                               (decls (filter h/Declaration? d)))
                            (append (map c/make-Export (map typeDeclarations datas))
-                                   (map (match-lambda ((struct c/Declaration (l _)) (c/make-Export l))) decls))))
+                                   (map (match-lambda ((struct h/Declaration ((struct h/LHS (n _)) _)) (c/make-Export n))) decls))))
                         ((struct Just (e))
                          (map c/make-Export e)))
                       (foldl append null (map transformSyntax (cons preludeImpdecl i)))
@@ -46,7 +46,7 @@
   
   (define typeDeclarations
     (match-lambda
-      ((struct c/Data (_ c)) (map (match-lambda ((struct c/Constructor (n f)) (cons n (map (match-lambda ((struct c/Field (n _)) n)) f)))) c))))
+      ((struct h/Data (_ c)) (map (match-lambda ((struct h/Constructor (n f)) (cons n (foldl append null (map (match-lambda ((struct h/Field (n _)) n)) f))))) c))))
   
   (define preludeTypes
     (let* ((typeParsers (parsers "Transformation"))

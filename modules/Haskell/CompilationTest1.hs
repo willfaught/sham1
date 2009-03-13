@@ -1,6 +1,6 @@
 #reader (lib "Reader.ss" "sham" "haskell")
 
-module CompilationTest1 (ap1, ap2) where {
+module CompilationTest1 (ap1) where {
 
 ap1 = (\x -> x) 1;
 
