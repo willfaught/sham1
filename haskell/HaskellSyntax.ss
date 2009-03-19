@@ -13,7 +13,7 @@
   
   (define-struct (Declaration HaskellSyntax) (lhs rhs) #:transparent)
   
-  (define-struct (Field HaskellSyntax) (names type) #:transparent)
+  (define-struct (Field HaskellSyntax) (name type) #:transparent)
   
   (define-struct (Float HaskellSyntax) (value) #:transparent)
   

@@ -1,6 +1,8 @@
 #reader (lib "Reader.ss" "sham" "haskell")
 
-module CompilationTest1 (ap1) where {
+module CompilationTest1 where {
+
+data A = B { a, b :: C };
 
 ap1 = (\x -> x) 1;
 
@@ -22,29 +24,29 @@ fu2 = \x y -> x;
 
 fu3 = \x y -> y;
 
-id1 = Prelude.fst;
+id1 = Haskell.fst;
 
-id2 = Prelude.head;
+id2 = Haskell.head;
 
-id3 = Prelude.isFalse;
+id3 = Haskell.isFalse;
 
-id4 = Prelude.isTrue;
+id4 = Haskell.isTrue;
 
-id5 = Prelude.null;
+id5 = Haskell.null;
 
-id6 = Prelude.snd;
+id6 = Haskell.snd;
 
-id7 = Prelude.tail;
+id7 = Haskell.tail;
 
-id8 = Prelude.False;
+id8 = Haskell.False;
 
-id9 = Prelude.True;
+id9 = Haskell.True;
 
-id10 = (Prelude.:);
+id10 = (Haskell.:);
 
-if1 = if Prelude.True then 1 else 2;
+if1 = if Haskell.True then 1 else 2;
 
-if2 = if Prelude.False then 1 else 2;
+if2 = if Haskell.False then 1 else 2;
 
 in1 = 1;
 

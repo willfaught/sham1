@@ -3,7 +3,7 @@
            (planet schematics/schemeunit:3:3)
            (lib "Compilation.ss" "sham" "haskell")
            (lib "Parsing.ss" "sham" "haskell")
-           (lib "Prelude.hs" "sham" "src" "Haskell")
+           (prefix-in p/ (lib "Prelude.ss" "sham" "modules"))
            (lib "Transformation.ss" "sham" "haskell"))
   
   (provide testSuite)
@@ -31,11 +31,9 @@
   
   (define (equal x y)
     (cond ((and (promise? x) (promise? y)) (equal (force x) (force y)))
-          ((and (Cons#? x) (haskell/constructor/#Cons? y))
-           (and (equal (force (haskell/constructor/#Cons-head x))
-                       (force (haskell/constructor/#Cons-head y)))
-                (equal (force (haskell/constructor/#Cons-tail x))
-                       (force (haskell/constructor/#Cons-tail y)))))
+          ((and (p/isCons (force x)) (p/isCons (force y)))
+           (and (equal (p/head (delay x)) (p/head (delay y)))
+                (equal (p/tail (delay x)) (p/tail (delay y))))
           ((and (vector? x) (vector? y) (equal? (vector-length x) (vector-length y)))
            (foldl (lambda (x y) (and y (equal (list-ref x 0) (list-ref x 1)))) #t (zip (vector->list x) (vector->list y))))
           (else (equal? x y))))

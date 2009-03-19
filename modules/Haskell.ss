@@ -1,4 +1,4 @@
-(module Prelude scheme
+(module Haskell scheme
   (provide Bool? Char?)
   
   (provide (rename-out (make-constructor/Char# Char#)

@@ -21,8 +21,8 @@
        `(define ,(toSymbol "haskell/is" n)
           (delay (lambda (x)
                    (if (,(toSymbol "haskell/constructor/" n "?") (force x))
-                       (force haskell/True)
-                       (force haskell/False))))))))
+                       (force haskell/Haskell.True)
+                       (force haskell/Haskell.False))))))))
   
   (define (constructorType typeName constructor)
     (match-let (((struct c/Constructor (n f)) constructor))
@@ -40,7 +40,7 @@
                    (c/Constructor-fields syntax)))))
   
   (define data
-    (match-lambda ((struct c/Data (n c)) (cons (dataDefinition n) (map (curry constructor n) c)))))
+    (match-lambda ((struct c/Data (n c)) (cons (dataDefinition n) (foldl append null (map (curry constructor n) c))))))
   
   (define (dataDefinition typeName)
     `(define-struct ,(toSymbol "haskell/type/" typeName) () #:transparent))
@@ -57,22 +57,22 @@
          `(module ,(toSymbol n) scheme
             ,@(map importRequire i)
             ,@(map importDefinition i)
-            ,@(map export e)
             ,@(foldl append null (map data datas))
-            ,@(map moduleDeclaration decls))))))
+            ,@(map moduleDeclaration decls)
+            ,@(map export e))))))
   
   (define compileSyntax
     (match-lambda 
       ((struct c/Application (r d)) `(,(compileSyntax r) (delay ,(compileSyntax d))))
-      ((struct c/Character (v)) `,(string-ref v 0))
-      ((struct c/Float (v)) `,(string->number v))
+      ((struct c/Character (v)) `(Char# ,(string-ref v 0)))
+      ((struct c/Float (v)) `(Float# ,(string->number v)))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "haskell/" p)) ,(compileSyntax b)))
-      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/Prelude.True)) ,(compileSyntax t) ,(compileSyntax e)))
-      ((struct c/Integer (v)) `,(string->number v))
+      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
+      ((struct c/Integer (v)) `(Int# ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
-      ((struct c/ListConstructor ()) '(force haskell/Prelude.Nil#))
+      ((struct c/ListConstructor ()) '(force haskell/Haskell.Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))
-      ((struct c/UnitConstructor ()) '(force haskell/Prelude.Unit#))
+      ((struct c/UnitConstructor ()) '(force haskell/Haskell.Unit#))
       ((struct c/Variable (n)) `(force ,(toSymbol "haskell/" n)))))
   
   (define declarationExport

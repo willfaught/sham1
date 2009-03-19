@@ -25,7 +25,7 @@
       ((struct h/Impdecl (l m i)) (map (match-lambda ((struct h/Import (n t)) (c/make-Import l m n t))) i))
       ((struct h/Integer (v)) (c/make-Integer v))
       ((struct h/Let (d b)) (c/make-Let (map transformSyntax d) (transformSyntax b)))
-      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable "Prelude.:") (transformSyntax x)) y)) (c/make-ListConstructor) e))
+      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable "Haskell.:") (transformSyntax x)) y)) (c/make-ListConstructor) e))
       ((struct h/ListConstructor ()) (c/make-ListConstructor))
       ((struct h/Module (n e i d))
        (c/make-Module n
@@ -33,7 +33,7 @@
                         ((struct Nothing ())
                          (let ((datas (filter h/Data? d))
                                (decls (filter h/Declaration? d)))
-                           (append (map c/make-Export (map typeDeclarations datas))
+                           (append (map c/make-Export (foldl append null (map typeDeclarations datas)))
                                    (map (match-lambda ((struct h/Declaration ((struct h/LHS (n _)) _)) (c/make-Export n))) decls))))
                         ((struct Just (e))
                          (map c/make-Export e)))
@@ -46,7 +46,7 @@
   
   (define typeDeclarations
     (match-lambda
-      ((struct h/Data (_ c)) (map (match-lambda ((struct h/Constructor (n f)) (cons n (foldl append null (map (match-lambda ((struct h/Field (n _)) n)) f))))) c))))
+      ((struct h/Data (_ c)) (foldl append null (map (match-lambda ((struct h/Constructor (n f)) (cons n (map (match-lambda ((struct h/Field (n _)) n)) f)))) c)))))
   
   (define preludeTypes
     (let* ((typeParsers (parsers "Transformation"))
@@ -58,10 +58,11 @@
                     (list "error" (parseT "[Char] -> a"))
                     (list "fst" (parseT "(a, b) -> a"))
                     (list "head" (parseT "[a] -> a"))
+                    (list "isCons" (parseT "[a] -> Bool"))
                     (list "null" (parseT "[a] -> Bool"))
                     (list "snd" (parseT "(a, b) -> b"))
                     (list "tail" (parseT "[a] -> [a]"))
                     (list ":" (parseT "a -> [a] -> [a]"))))))
   
   (define preludeImpdecl
-    (h/make-Impdecl "haskell" "Prelude" (map (match-lambda ((list n t) (h/make-Import n t))) preludeTypes))))
+    (h/make-Impdecl "haskell" "Haskell" (map (match-lambda ((list n t) (h/make-Import n t))) preludeTypes))))
