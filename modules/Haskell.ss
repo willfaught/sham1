@@ -22,7 +22,7 @@
   
   (define-struct constructor/Char# (value) #:transparent)
   
-  (define-struct constructor/Cons# (head tail) #:transparent)
+  (define-contract-struct constructor/Cons# (head tail))
   
   (define-struct constructor/False () #:transparent)
   
@@ -30,7 +30,7 @@
   
   (define-struct constructor/Int# (value) #:transparent)
   
-  (define-struct constructor/Nil# () #:transparent)
+  (define-contract-struct constructor/Nil# ())
   
   (define-struct constructor/True () #:transparent)
   
@@ -43,6 +43,9 @@
   
   (define Char?
     (curry (lambda (language value) (contract (struct/c constructor/Char# char?) value language 'haskell))))
+  
+  (define (List#? contract1)
+    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
   
   (define variable/False
     (delay (make-constructor/False)))
@@ -93,9 +96,6 @@
   
   (define variable/:
     (delay (lambda (x) (lambda (y) (make-constructor/Cons# x y)))))
-  
-  (define (List#? valueContract language)
-    (lambda (value) (contract (or/c (struct/c constructor/Nil#) (struct/c constructor/Cons# valueContract (List#? valueContract ))) value language 'haskell)))
   
   ;;;;;;;;;
   
