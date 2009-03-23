@@ -12,7 +12,6 @@
                        (variable/error error)
                        (variable/fst fst)
                        (variable/head head)
-                       (variable/isCons isCons)
                        (variable/isFalse isFalse)
                        (variable/isTrue isTrue)
                        (variable/null null)
@@ -67,11 +66,6 @@
   
   (define variable/head
     (delay (lambda (x) (force (constructor/Cons#-head (force x))))))
-  
-  (define variable/isCons
-    (delay (lambda (x) (if (constructor/Cons#? (force x))
-                           (force variable/True)
-                           (force variable/False)))))
   
   (define variable/isFalse
     (delay (lambda (x) (if (constructor/False? (force x))

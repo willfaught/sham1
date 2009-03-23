@@ -58,7 +58,6 @@
                     (list "error" (parseT "[Char] -> a"))
                     (list "fst" (parseT "(a, b) -> a"))
                     (list "head" (parseT "[a] -> a"))
-                    (list "isCons" (parseT "[a] -> Bool"))
                     (list "null" (parseT "[a] -> Bool"))
                     (list "snd" (parseT "(a, b) -> b"))
                     (list "tail" (parseT "[a] -> [a]"))
