@@ -9,45 +9,41 @@
   
   (provide compileModule compileSyntax)
   
-  (define constructorDefinition
-    (match-lambda
-      ((struct c/Constructor (n _))
-       `(define ,(toSymbol "haskell/" n)
-          (delay (curry ,(toSymbol "make-haskell/constructor/" n)))))))
-  
   (define constructorPredicate
     (match-lambda
       ((struct c/Constructor (n _))
-       `(define ,(toSymbol "haskell/is" n)
+       `(define ,(toSymbol "variable/is" n)
           (delay (lambda (x)
-                   (if (,(toSymbol "haskell/constructor/" n "?") (force x))
-                       (force haskell/Haskell.True)
-                       (force haskell/Haskell.False))))))))
+                   (if (,(toSymbol "constructor/" n "?") (force x))
+                       (force variable/Haskell.True)
+                       (force variable/Haskell.False))))))))
   
-  (define (constructorType typeName constructor)
+  (define (constructorDefinition typeName constructor)
     (match-let (((struct c/Constructor (n f)) constructor))
-      (let ((cs (toSymbol "haskell/constructor/" n))
-            (ts (toSymbol "haskell/type/" typeName))
+      (let ((cs (toSymbol "constructor/" n))
             (fs (map (lambda (x) (toSymbol x)) (map (match-lambda ((struct c/Field (n _)) n)) f))))
-        `(define-struct (,cs ,ts) ,fs #:transparent))))
+        `(define-struct ,cs ,fs #:transparent))))
   
   (define (constructor typeName syntax)
-    (let ((type (constructorType typeName syntax))
-          (definition (constructorDefinition syntax))
+    (let ((type (constructorDefinition typeName syntax))
+          (definition (curriedConstructor syntax))
           (predicate (constructorPredicate syntax)))
       (append (list type definition predicate)
               (map (match-lambda ((struct c/Field (n _)) (field (c/Constructor-name syntax) n)))
                    (c/Constructor-fields syntax)))))
   
-  (define data
-    (match-lambda ((struct c/Data (n c)) (cons (dataDefinition n) (foldl append null (map (curry constructor n) c))))))
+  (define curriedConstructor
+    (match-lambda
+      ((struct c/Constructor (n _))
+       `(define ,(toSymbol "variable/" n)
+          (delay (curry ,(toSymbol "make-constructor/" n)))))))
   
-  (define (dataDefinition typeName)
-    `(define-struct ,(toSymbol "haskell/type/" typeName) () #:transparent))
+  (define data
+    (match-lambda ((struct c/Data (n c)) (cons (typePredicate n) (foldl append null (map (curry constructor n) c))))))
   
   (define (field constructorName fieldName)
-    `(define ,(toSymbol "haskell/" fieldName)
-       (delay (lambda (x) (force (,(toSymbol "haskell/constructor/" constructorName "-" fieldName) (force x)))))))
+    `(define ,(toSymbol "variable/" fieldName)
+       (delay (lambda (x) (force (,(toSymbol "constructor/" constructorName "-" fieldName) (force x)))))))
   
   (define (compileModule syntax types)
     (match syntax
@@ -55,6 +51,9 @@
        (let ((datas (filter c/Data? d))
              (decls (filter c/Declaration? d)))
          `(module ,(toSymbol n) scheme
+            (define (coffer)
+              (define-struct haskell/Coffer (value))
+              (list make-haskell/Coffer haskell/Coffer-value haskell/Coffer?))
             ,@(map importRequire i)
             ,@(map importDefinition i)
             ,@(foldl append null (map data datas))
@@ -66,29 +65,29 @@
       ((struct c/Application (r d)) `(,(compileSyntax r) (delay ,(compileSyntax d))))
       ((struct c/Character (v)) `(Char# ,(string-ref v 0)))
       ((struct c/Float (v)) `(Float# ,(string->number v)))
-      ((struct c/Function (p b)) `(lambda (,(toSymbol "haskell/" p)) ,(compileSyntax b)))
-      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force haskell/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
+      ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileSyntax b)))
+      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force variable/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
       ((struct c/Integer (v)) `(Int# ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
-      ((struct c/ListConstructor ()) '(force haskell/Haskell.Nil#))
+      ((struct c/ListConstructor ()) '(force variable/Haskell.Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))
-      ((struct c/UnitConstructor ()) '(force haskell/Haskell.Unit#))
-      ((struct c/Variable (n)) `(force ,(toSymbol "haskell/" n)))))
+      ((struct c/UnitConstructor ()) '(force variable/Haskell.Unit#))
+      ((struct c/Variable (n)) `(force ,(toSymbol "variable/" n)))))
   
   (define declarationExport
     (match-lambda
-      ((struct c/Declaration (l _)) (list (string-append "haskell/" l) l))))
+      ((struct c/Declaration (l _)) (list (string-append "variable/" l) l))))
   
   (define export
     (match-lambda
-      ((struct c/Export (n)) `(provide (rename-out (,(toSymbol "haskell/" n) ,(toSymbol n)))))))
+      ((struct c/Export (n)) `(provide (rename-out (,(toSymbol "variable/" n) ,(toSymbol n)))))))
   
   (define importDefinition
     (match-lambda
       ((struct c/Import (l m n t))
        (let* ((qualifiedName (string-append m "." n))
               (importQualifiedName (toSymbol "import/" qualifiedName)))
-         `(define ,(toSymbol "haskell/" qualifiedName)
+         `(define ,(toSymbol "variable/" qualifiedName)
             ,(match l
                ("haskell" (boundaryHH t importQualifiedName))
                ("ml" (boundaryHM t importQualifiedName))
@@ -104,11 +103,11 @@
   (define letDeclaration
     (match-lambda
       ((struct c/Declaration (l r))
-       `(,(toSymbol "haskell/" l) (delay ,(compileSyntax r))))))
+       `(,(toSymbol "variable/" l) (delay ,(compileSyntax r))))))
   
   (define moduleDeclaration
     (match-lambda
-      ((struct c/Declaration (l r)) `(define ,(toSymbol "haskell/" l) (delay ,(compileSyntax r))))))
+      ((struct c/Declaration (l r)) `(define ,(toSymbol "variable/" l) (delay ,(compileSyntax r))))))
   
   (define toSymbol
     (lambda s (string->symbol (foldl (lambda (x y) (string-append y x)) "" s))))
@@ -120,5 +119,8 @@
     (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))))
       `(curry (lambda ,vars (list ,@vars)))))
   
+  (define (typePredicate type)
+    `(define ,(toSymbol type "?") "TODO"))
+  
   (define (typePredicateExport typeName)
-    `(provide (rename-out (,(toSymbol "haskell/type/" typeName "?") ,(toSymbol typeName "?"))))))
+    `(provide ,(toSymbol typeName "?"))))
