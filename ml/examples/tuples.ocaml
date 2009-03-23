@@ -1,4 +1,4 @@
-#reader(lib "reader.ss" "smootxes")
+#reader(lib "reader.ss" "sham" "ml")
 
 #module ("tuples")
 #include ("vector-stuff.ss")
