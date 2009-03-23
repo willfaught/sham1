@@ -14,7 +14,8 @@
            (lib "list.ss")
            "stack.ss"
            "ml-expander.ss"
-           "ml-typechecker.ss")
+           "ml-typechecker.ss"
+           scheme/pretty)
   (require (planet "test.ss" ("schematics" "schemeunit.plt" 2))
            (only (lib "list.ss" "srfi" "1") lset=))
   
@@ -296,7 +297,7 @@
                        (provide (all-defined))
                        #,@defn))])
             ;; display the module source:
-            #;(printf "~v\n" (syntax-object->datum code))
+            (pretty-print (syntax-object->datum code))
             code)))))
   
       
