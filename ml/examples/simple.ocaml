@@ -1,4 +1,4 @@
-#reader(lib "reader.ss" "smootxes")
+#reader(lib "reader.ss" "sham" "ml")
 
 #module ("simple")
 

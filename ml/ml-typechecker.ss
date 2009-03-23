@@ -4,7 +4,6 @@
            (lib "list.ss")
            "ml-expander.ss"
            "stack.ss"
-           (file "~/clements/scheme-scraps/eli-debug.ss")
            (only (lib "list.ss" "srfi" "1") pair-fold))
   
   (provide (all-defined))

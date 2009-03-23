@@ -291,7 +291,7 @@
                  (let ([defn (map emit-code let-defs types)])
                    #`(module #,(program-module program) mzscheme
                        (require (lib "contract.ss")
-                                (lib "ml-primitives.ss" "smootxes")
+                                (lib "ml-primitives.ss" "sham" "ml")
                                 #,@(map (lambda (include) (list 'file include)) (program-includes program)))      
                        (provide (all-defined))
                        #,@defn))])
