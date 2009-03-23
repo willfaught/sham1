@@ -1,0 +1,35 @@
+(module ml-expander mzscheme
+  (provide (all-defined)
+           (lib "plt-match.ss"))
+  
+  
+  ; Emit a function to do an import check. It will return a value if it passes or raise an error otherwise.
+  ; Return the code to do a first order check or to attach a contract to the value.
+  ; We cannot assume that item is an id. It is just some amount of code that will mean something once in Scheme.
+  (define (emit-import-check type)
+      (match type
+        [($ int-type source) 
+         #`(lambda (item)
+             (if (integer? item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ bool-type source) 
+         #`(lambda (item)
+             (if (boolean? item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ unit-type source) 
+         #`(lambda (item)
+             (if (#,(datum->syntax-object #f 'unit?) item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]        
+        [($ lump-type source) #`(lambda (item) item)]        
+        [($ arrow-type source param-type result-type)
+         #`(lambda (item)
+             (if (procedure? item) 
+                 #,(create-import-wrapper #`(contract #,(create-import-contract type) item 'import-from-scheme 'ml) type)
+                 (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ forall-type source forall-tyvar partial-type) (emit-import-check partial-type)] 
+        [($ tuple-type source member-types) 
+         (let ([member-checks (map emit-import-check member-types)])
+           #`(lambda (item)
+               (if (and (vector? item) (= (vector-length item) #,(length member-types)))
+                   ; The scheme value does not have to be an immutable vector, but it will be converted to one
+                   (vector->immutable-vector (list->vector 
+                                              (map (lambda (member-check member) (member-check member)) (list #,@member-checks) (vector->list item))))
+                   (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item)))))]
+        [_ (error 'emit-code "Invalid type: ~v." type)])))

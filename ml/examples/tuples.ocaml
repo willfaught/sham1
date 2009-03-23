@@ -1,0 +1,29 @@
+#reader(lib "reader.ss" "smootxes")
+
+#module ("tuples")
+#include ("vector-stuff.ss")
+
+let first (x,y) = x;;
+let second (x,y) = y;;
+
+let a-tuple = (true,false);; 
+
+let first-test = first a-tuple;;
+let second-test = second a-tuple;;
+
+let nested-tuple = (1,(false,5));;
+let getz (x,(y,z)) = z;;
+let nested-tuple-test = getz nested-tuple;;
+
+(* import testing *)
+
+let vector-import-test-1 = 
+  let v = (vector1 :G (int * ('a -> 'a))) in
+    (second v) (first v);;  
+ 
+let an-import-test3 = 
+  let v = (vectora :G (int * bool)) in
+    (first v) + 3;; 
+    
+
+let bad1 dc = (inta :G (int * int));;

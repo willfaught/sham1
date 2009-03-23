@@ -1,0 +1,26 @@
+#reader(lib "reader.ss" "smootxes")
+
+#module ("simple")
+
+#include()
+
+let rec fact n = 
+  if n = 0
+    then 1
+    else n * fact (n - 1);;
+    
+let even x = x mod 2 = 0;;
+    
+let sum n =
+  let rec internal n = 
+    if n = 0
+    then 0
+    else n + internal (n - 1)
+  in internal n;;
+  
+let add = function x -> fun y -> x + y;; 
+
+let poly-test =
+  let i = fun x -> x in
+  (i i) 3;;
+  

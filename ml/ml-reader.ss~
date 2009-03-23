@@ -1,0 +1,910 @@
+; This file contains a reader for a subset of OCaml that is able to share higher-order, polymorphic functions with mzscheme, while preserving parametricity
+; By David Kinghorn
+;; now by me too! (JBC, 2007-06-19)
+
+; TODO: get tuples and nested tuples to work properly
+; TODO: do lots of testing
+; TODO: Add units and variants to the language.
+
+(module ml-reader mzscheme
+  (require (lib "lex.ss" "parser-tools")
+           (prefix : (lib "lex-sre.ss" "parser-tools"))
+           (lib "yacc.ss" "parser-tools")
+           (lib "readerr.ss" "syntax")
+           (lib "match.ss")
+           (lib "list.ss")
+           (lib "contract.ss")
+           "stack.ss")
+  (require (planet "test.ss" ("schematics" "schemeunit.plt" 2))
+           (only (lib "list.ss" "srfi" "1") lset=))
+  
+  (provide ml-read-syntax
+           unification-test-suite)
+  
+  (define-struct term (stx))
+  
+  ; The data in a term, may be any of the following. All fields except id will be a term.
+  ; Note: all non-short-circuited operations have been turned into Scheme Imports.
+  ; In order to add new operations just modify simple-parser  
+  (define-struct (program term) (module includes defs))
+  (define-struct (let-def term) (id params exp rec))
+  (define-struct (let-exp term) (id params exp body rec))
+  (define-struct (anonymous-function term) (params exp)) 
+  (define-struct (app term) (fun args))
+  (define-struct (id term) (val))
+  (define-struct (ms term) (id type)) ; A Scheme Import Expression  
+  (define-struct (if-exp term) (guard then else)) ; Cannot be made into an ms because it uses lazy evaluation
+  (define-struct (litnum term) (val))  
+  (define-struct (bool term) (val))
+  (define-struct (tuple term) (members))
+  (define-struct (unit-term term) ())
+  
+  ; In order to add new primitive types, modify the following functions: type-equal? tyrep contains-tyvar? get-unbound-tyvars type create-export-contract create-import-contract create-import-wrapper emit-code
+  ;; why does the type struct have a "source" field?
+  (define-struct type (source) (make-inspector))
+  (define-struct (tyvar type) (val) (make-inspector))
+  (define-struct (arrow-type type) (param-type result-type) (make-inspector))  
+  (define-struct (int-type type) () (make-inspector))
+  (define-struct (bool-type type)() (make-inspector))
+  (define-struct (lump-type type) () (make-inspector))
+  (define-struct (forall-type type) (tyvar partial-type) (make-inspector))
+  (define-struct (tuple-type type) (member-types) (make-inspector))
+  (define-struct (unit-type type) () (make-inspector))
+  
+  (define-struct constraint (first-type second-type) (make-inspector))  
+  
+  (define-tokens regular (ID LITNUM TYVAR FILENAME))
+  (define-empty-tokens keywords (EQUALS IN LET REC SEMICOLON COLON-G LUMP INT ARROW IF THEN ELSE PLUS MINUS STAR LPAREN RPAREN DIVIDE FILE 
+                                        HASH-SCHEME QUOTE TRUE FALSE BOOL AND OR NOT NE GE GT LE LT MODULE INCLUDE MOD FUN FUNCTION COMMA EOF))
+ 
+  
+  (define-lex-abbrevs
+    (lower-letter (:/ "a" "z"))
+    (upper-letter (:/ #\A #\Z))
+    (litnum-start (:or "+" "-" digit))
+    (digit (:/ "0" "9"))
+    (id-start (:or lower-letter upper-letter))    
+    (id-cont (:or id-start digit "_" "-"))
+    (file-cont (:or id-start digit "_" "-" "."))    
+    (comment-start "(*")
+    (comment-end "*)"))
+  
+  (define simple-lexer
+    (lexer-src-pos
+     [whitespace (return-without-pos (simple-lexer input-port))]
+     [comment-start (return-without-pos ((comment-lexer 1) input-port))]
+     ;; TODO: signal a read error here:
+     [comment-end (error 'simple-lexer "End of comment outside of comment block.")]
+     ["=" (token-EQUALS)]
+     [";" (token-SEMICOLON)]
+     [":G" (token-COLON-G)]
+     ["->" (token-ARROW)]
+     ["+" (token-PLUS)]
+     ["-" (token-MINUS)]
+     ["*" (token-STAR)]
+     ["/" (token-DIVIDE)]
+     ["(" (token-LPAREN)]
+     [")" (token-RPAREN)]
+     ["\"" (token-QUOTE)]
+     ["<>" (token-NE)]
+     [">=" (token-GE)]
+     [">" (token-GT)]
+     ["<=" (token-LE)]
+     ["<" (token-LT)]
+     ["&" (token-AND)]
+     ["," (token-COMMA)]     
+     ["#include" (token-INCLUDE)]
+     ["#module" (token-MODULE)]     
+     [(:: id-start (:* id-cont)) (keyword-filter lexeme)]
+     [(:: "'" id-start (:* id-cont)) (token-TYVAR lexeme)]     
+     [(:: litnum-start (:* digit)) (token-LITNUM lexeme)]
+     [(:: id-start (:* file-cont)) (keyword-filter lexeme)]     
+     #;[(:: #\" (:* (:or (:~ #\") "\\\"")) #\") (token-STRING
+                                                 (substring lexeme 1 (- (string-length lexeme) 1)))]
+       [(eof) (token-EOF)]))
+  
+  ; Enable nested comments
+  (define (comment-lexer level)
+    (lexer
+     [comment-start ((comment-lexer (+ level 1)) input-port)]
+     [comment-end (if (= level 1) (simple-lexer input-port) ((comment-lexer (- level 1)) input-port))]     
+     [(:or (:~ whitespace) whitespace) ((comment-lexer level) input-port)]
+     [(eof) (error 'comment-lexer "End of file occured inside a comment.")]))
+  
+  ;; keyword-filter : string -> token
+  (define (keyword-filter str)
+    (let ([maybe-kwd (assoc str keyword-list)])
+      (if maybe-kwd
+          ((cadr maybe-kwd))
+          (token-ID str))))
+  
+  (define keyword-list
+    `(("let" ,token-LET) ("in" ,token-IN) ("if" ,token-IF) ("then" ,token-THEN) ("else" ,token-ELSE) ("lump" ,token-LUMP) ("int" ,token-INT) 
+                         ("rec" ,token-REC) ("file" ,token-FILE) ("true" ,token-TRUE) ("false" ,token-FALSE) ("bool" ,token-BOOL) 
+                         ("not" ,token-NOT) ("or" ,token-OR) ("mod" ,token-MOD) ("fun" ,token-FUN) ("function" ,token-FUNCTION)))
+  
+  (print-struct #t)
+  
+  (define stx-for-original-property (read-syntax #f (open-input-string "original")))  
+  
+  (define-syntax (build-so stx)
+    (syntax-case stx ()
+      ((_ value start end)
+       (with-syntax ((start-pos (datum->syntax-object 
+                                 (syntax end)
+                                 (string->symbol 
+                                  (format "$~a-start-pos"
+                                          (syntax-object->datum (syntax start))))))
+                     (end-pos (datum->syntax-object 
+                               (syntax end)
+                               (string->symbol 
+                                (format "$~a-end-pos"
+                                        (syntax-object->datum (syntax end))))))
+                     (source (datum->syntax-object
+                              (syntax end)
+                              'source-name)))
+         (syntax
+          (datum->syntax-object 
+           #f
+           value
+           (list source 
+                 (position-line start-pos)
+                 (position-col start-pos)
+                 (position-offset start-pos)
+                 (- (position-offset end-pos)
+                    (position-offset start-pos)))
+           stx-for-original-property))))))
+  
+  
+  ; Helper functions to create anonymous types and an anonymous ms
+  ; These are used during parsing when operations and if statements are changed to scheme imports
+  ;; this function maps, e.g., (int bool int unit) to (int -> (bool -> (int -> unit)))
+  (define (anon-arrow . types)
+    (if (null? types)
+        (error 'new-arrow "type list is empty")
+        (if (null? (cdr types))
+            (car types)
+            (make-arrow-type #f (car types) (apply anon-arrow (cdr types))))))
+  
+  (define anon-int (make-int-type #f))
+  (define anon-bool (make-bool-type #f))
+  (define anon-lump (make-lump-type #f))
+  (define (anon-tyvar token) (make-tyvar #f token))
+  (define (anon-forall token type) (make-forall-type #f (anon-tyvar token) type))
+  (define anon-unit-type (make-unit-type #f))
+  
+  (define anon-unit-term (make-unit-term #f))  
+  (define (anon-ms id type) (make-ms #f id (replace-unbound-tyvars-with-fresh-tyvars type)))
+  (define (anon-id id) (make-id #f id))
+  
+  (define (ml-parser source-name)
+    (parser (src-pos) 
+            (start program)
+            (end EOF)
+            (tokens regular keywords)
+            
+            (error (lambda (a name val start end)
+                     (raise-read-error 
+                      "read-error"
+                      source-name
+                      (position-line start)
+                      (position-col start)
+                      (position-offset start)
+                      (- (position-offset end)
+                         (position-offset start)))))    
+            
+            (grammar 
+             (program 
+              [(module includes defs) (make-program (build-so $1 1 3) $1 $2 $3)])
+             (module
+              [(MODULE LPAREN QUOTE ID QUOTE RPAREN) (string->symbol $4)])           
+             (includes
+              [(INCLUDE LPAREN files RPAREN) $3])
+             (files
+              [(file files) (cons $1 $2)]
+              [() null])
+             (file
+              [(QUOTE ID QUOTE) $2])         
+             (defs
+               [(defn defs) (cons $1 $2)]
+               [() null])
+             (defn
+               [(LET REC id params EQUALS exp SEMICOLON SEMICOLON) (make-let-def (build-so $3 1 7) $3 $4 $6 #t)]
+               [(LET id params EQUALS exp SEMICOLON SEMICOLON) (make-let-def (build-so $2 1 6) $2 $3 $5 #f)])
+             (params
+              [(param params) (cons $1 $2)]
+              [() null])
+             (param 
+              [(param-tuple-list) (if (null? (cdr $1)) (car $1) (make-tuple (build-so $1 1 1) $1))])
+             (param-tuple-list
+              [(simple-param COMMA param-tuple-list) (cons $1 $3)]
+              [(simple-param) (list $1)])             
+             (simple-param
+              [(id) $1]
+              [(LPAREN param RPAREN) $2])
+             (exp 
+              [(LET REC id params EQUALS exp IN exp) (make-let-exp (build-so $3 1 8) $3 $4 $6 $8 #t)]
+              [(LET id params EQUALS exp IN exp) (make-let-exp (build-so $2 1 7) $2 $3 $5 $7 #f)]              
+              [(FUNCTION param ARROW exp) (make-anonymous-function (build-so $2 1 4) (list $2) $4)]
+              [(FUN param ARROW exp) (make-anonymous-function (build-so $2 1 4) (list $2) $4)]
+              [(IF exp THEN exp ELSE exp) (make-if-exp (build-so $2 1 6) $2 $4 $6)]
+              [(id COLON-G type) (make-ms (build-so $1 1 3) $1 (replace-unbound-tyvars-with-fresh-tyvars $3))]
+              [(tuple-exp) $1])
+             (tuple-exp
+              [(tuple-list) (if (null? (cdr $1)) (car $1) (make-tuple (build-so $1 1 1) $1))])
+             (tuple-list
+              [(logical-exp COMMA tuple-list) (cons $1 $3)]
+              [(logical-exp) (list $1)])
+             (logical-exp
+              [(NOT comparison-exp) (make-app (build-so $2 1 2) (anon-ms (anon-id 'not) (anon-arrow anon-bool anon-bool)) (list $2))]
+              ; And and Or need to be short circuited, so they are converted to conditional expressions rather than Scheme Imports              
+              [(comparison-exp OR comparison-exp) (make-if-exp (build-so $1 1 3) $1 (make-bool #f #t) $3)]
+              [(comparison-exp AND comparison-exp) (make-if-exp (build-so $1 1 3) $1 $3 (make-bool #f #f))]           
+              [(comparison-exp) $1])
+             (comparison-exp
+              ; I would like to do the following, but I can't because the import hides the actual arguments from Scheme
+              ; Create an import that doesn't do any checking? I can't just change the type of the arguments because I want ML's typechecker run on the two arguments first
+              ; [(mul-exp EQUALS mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-equals) (anon-arrow (anon-tyvar 'a) (anon-tyvar 'a) anon-bool)) (list $1 $3))]
+              ; [(mul-exp NE mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-ne) (anon-arrow (anon-tyvar 'a) (anon-tyvar 'a) anon-bool)) (list $1 $3))]
+              [(mul-exp EQUALS mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-equals) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]
+              [(mul-exp NE mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-ne) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]
+              [(mul-exp GE mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-ge) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]              
+              [(mul-exp GT mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-gt) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]
+              [(mul-exp LE mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-le) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]
+              [(mul-exp LT mul-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-lt) (anon-arrow anon-int anon-int anon-bool)) (list $1 $3))]              
+              [(mul-exp) $1])
+             (mul-exp
+              [(add-exp STAR add-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-times) (anon-arrow anon-int anon-int anon-int)) (list $1 $3))] 
+              [(add-exp DIVIDE add-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-divide) (anon-arrow anon-int anon-int anon-int)) (list $1 $3))]
+              [(add-exp MOD add-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-modulo) (anon-arrow anon-int anon-int anon-int)) (list $1 $3))]
+              [(add-exp) $1])
+             (add-exp 
+              [(app-exp PLUS app-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-plus) (anon-arrow anon-int anon-int anon-int)) (list $1 $3))] 
+              [(app-exp MINUS app-exp) (make-app (build-so $1 1 3) (anon-ms (anon-id 'ml-minus) (anon-arrow anon-int anon-int anon-int)) (list $1 $3))]
+              [(MINUS app-exp) (make-app (build-so $2 1 2) (anon-ms '- (anon-arrow anon-int anon-int)) (list $2))]              
+              [(app-exp) $1])
+             (app-exp
+              [(simple-exp simple-exp args) (make-app (build-so $1 1 3) $1 (cons $2 $3))]
+              [(simple-exp) $1])
+             (args
+              [(simple-exp args) (cons $1 $2)]
+              [() null])
+             (simple-exp
+              [(id) $1]
+              [(litnum) $1]
+              [(TRUE) (make-bool #f #t)]
+              [(FALSE) (make-bool #f #f)]
+              [(LPAREN RPAREN) anon-unit-term]
+              [(LPAREN exp RPAREN) $2])             
+             (id [(ID) (make-id (build-so $1 1 1) (string->symbol $1))])
+             (litnum [(LITNUM) (make-litnum (build-so $1 1 1) (string->number $1))])
+             (type
+              [(tuple-type-list) (if (null? (cdr $1)) (car $1) (make-tuple-type (build-so $1 1 1) $1))])
+             (tuple-type-list
+              [(arrow-type STAR tuple-type-list) (cons $1 $3)]
+              [(arrow-type) (list $1)])
+             (arrow-type
+              [(simple-type ARROW arrow-type) (make-arrow-type (build-so $1 1 3) $1 $3)] ; Right associative
+              [(simple-type) $1])
+             (simple-type 
+              [(INT) (make-int-type #f)]
+              [(BOOL) (make-bool-type #f)]
+              [(LUMP) (make-lump-type #f)]
+              [(TYVAR) (make-tyvar (build-so $1 1 1) (string->symbol $1))]
+              [(LPAREN type RPAREN) $2]
+              [(LPAREN RPAREN) anon-unit-type]))))
+  
+  ; Check for alpha equivalence of two types
+  (define (type-equal? type1 type2)
+    (match (list type1 type2)
+      [(($ int-type _) ($ int-type _)) #t]
+      [(($ lump-type _) ($ lump-type _)) #t]
+      [(($ bool-type _) ($ bool-type _)) #t]
+      [(($ unit-type _) ($ unit-type _)) #t]      
+      [(($ tyvar _ val1) ($ tyvar _ val2)) (eq? val1 val2)]
+      [(($ arrow-type _ from-type1 to-type1) ($ arrow-type _ from-type2 to-type2))
+       (and (type-equal? from-type1 from-type2) (type-equal? to-type1 to-type2))]
+      ;; this could be needlessly slow... :
+      [(($ forall-type _ tyvar1 body-type1) ($ forall-type _ tyvar2 body-type2))
+       (type-equal? body-type1 (tyrep body-type2 tyvar2 tyvar1))]
+      [(($ tuple-type _ member-types1) ($ tuple-type _ member-types2))
+       (and (= (length member-types1) (length member-types2)) (andmap type-equal? member-types1 member-types2))]
+      [_ #f]))
+  
+  ; Return a new type based on source-type with all instances of old-type replaced with new-type
+  (define (tyrep source-type old-type new-type)
+    (if (tyvar? old-type)
+        (begin
+          (match source-type
+            [($ int-type source) source-type]
+            [($ lump-type source) source-type]    
+            [($ bool-type source) source-type]
+            [($ unit-type source) source-type]            
+            [($ tyvar source val)
+             (if (type-equal? source-type old-type) new-type source-type)]      
+            [($ arrow-type source param-type result-type)
+             (make-arrow-type source (tyrep param-type old-type new-type) (tyrep result-type old-type new-type))]
+            [($ forall-type source forall-tyvar partial-type) 
+             (if (type-equal? old-type forall-tyvar)
+                 source-type
+                 (make-forall-type source forall-tyvar (tyrep partial-type old-type new-type)))]
+            [($ tuple-type source member-types)
+             (make-tuple-type source (map (lambda (type) (tyrep type old-type new-type)) member-types))]
+            [_ (error 'tyrep "Invalid type: ~v." source-type)]))
+        (error 'tyrep "Can only replace tyvars, got ~v" old-type)))
+  
+  (define (contains-tyvar? type target-tyvar)
+    (if (tyvar? target-tyvar)
+        (match type
+          [($ int-type source) #f]
+          [($ lump-type source) #f]  
+          [($ bool-type source) #f]
+          [($ unit-type source) #f]          
+          [($ tyvar source val) 
+           (eq? val (tyvar-val target-tyvar))]
+          [($ arrow-type source param-type result-type)
+           (or (contains-tyvar? param-type target-tyvar) (contains-tyvar? result-type target-tyvar))]
+          [($ forall-type source forall-tyvar partial-type)
+           (and (not (type-equal? forall-tyvar target-tyvar)) (contains-tyvar? partial-type target-tyvar))]  
+          [($ tuple-type source member-types)
+           (ormap (lambda (type2) (contains-tyvar? type2 target-tyvar)) member-types)]
+          [_ (error 'contains-tyvar? "Invalid type: ~v." type)])
+        (error 'contains-tyvar? "Invalid tyvar: ~v." target-tyvar)))
+  
+  ; Get the tyvars out of a type with an option to count bound tyvars or not
+  (define (get-tyvars type count-bound-tyvars)
+    (match type
+      [($ int-type _) '()]
+      [($ lump-type _) '()]      
+      [($ bool-type _) '()]
+      [($ unit-type _) '()]      
+      [($ tyvar _ val) (list type)] 
+      [($ arrow-type _ param-type result-type)
+       (tyvar-union (list (get-tyvars param-type count-bound-tyvars)
+                          (get-tyvars result-type count-bound-tyvars)))]
+      [($ forall-type _ forall-tyvar partial-type) 
+       (if count-bound-tyvars
+           (get-tyvars partial-type count-bound-tyvars)
+           (filter (lambda (tyvar) (not (type-equal? forall-tyvar tyvar))) (get-tyvars partial-type count-bound-tyvars)))]      
+      [($ tuple-type source member-types) 
+        (tyvar-union (map (lambda (member-type) (get-tyvars member-type count-bound-tyvars)) member-types))]
+      [_ (error 'get-tyvars "Invalid type: ~v." type)]))  
+  
+  (define (get-unbound-tyvars type) (get-tyvars type #f))
+  (define (get-all-tyvars type) (get-tyvars type #t))
+  
+  ; Take the union of a list of lists and remove all duplicates.
+  ; get-uid is a function that gets a unique identifier for the items in the list
+  (define (list-union lists get-uid)
+    (foldl (lambda (new-list acc)
+             (append (filter 
+                      (lambda (item) (not (member (get-uid item) (map get-uid acc))))
+                      new-list) acc))
+           null
+           lists))
+  
+  (define (tyvar-union lists)
+    (list-union lists tyvar-val))
+
+  (define (id-union lists)
+    (list-union lists id-val))    
+  
+  ; Take a list of lists and flatten them
+  (define (flatten-lists lists)
+    (letrec ([helper 
+              (lambda (lists acc)
+                (if (null? lists)
+                    acc
+                    (append (car lists) (helper (cdr lists) acc))))])
+    (helper lists '())))
+  
+  ; Generalize all tyvars in a type except for the list of external-tyvars passed in
+  (define (generalize type external-tyvars)
+    (wrap-forall-types-around type 
+                              (filter (lambda (tyvar) (not (member (tyvar-val tyvar) (map tyvar-val external-tyvars))))
+                                      (get-unbound-tyvars type))))    
+  
+  ;; maps  T (a b c)  --->   forall c . forall b. forall a . T
+  (define (wrap-forall-types-around type tyvars)
+    (foldl wrap-with-tyvar type tyvars))
+  
+  ;; wrap-with-tyvar tyvar t = forall t.source tyvar t
+  (define (wrap-with-tyvar tyvar t) (make-forall-type (type-source t) tyvar t))
+  
+  (define (replace-unbound-tyvars-with-fresh-tyvars type)
+    (foldl replace-one-tyvar type (get-unbound-tyvars type)))
+  
+  (define (replace-one-tyvar tyvar type)
+    (tyrep type tyvar (make-tyvar (type-source tyvar) (fresh-tyvar))))
+  
+  
+  ; replacements - a hash table whose keys specify a tyvar to be replaced, and whose values represent what to replace the tyvar with
+  (define (unify constraint-stack replacements)
+    (if (stack-empty? constraint-stack)
+        replacements
+        (let ([constraint-replace 
+               (lambda (tyvar new-type) 
+                 (lambda (constraint)
+                   (let ([type1 (constraint-first-type constraint)] [type2 (constraint-second-type constraint)])
+                     (make-constraint (tyrep type1 tyvar new-type) (tyrep type2 tyvar new-type)))))]
+              [replacement-replace
+               (lambda (tyvar1 type1)
+                 (lambda (tyvar2 type2)
+                   (set! tyvar2 (make-tyvar tyvar2 tyvar2))
+                   (if (contains-tyvar? type2 tyvar1)
+                       (hash-table-put! replacements (tyvar-val tyvar2) (tyrep type2 tyvar1 type1)))
+                   (if (contains-tyvar? type1 tyvar2)
+                       (hash-table-put! replacements (tyvar-val tyvar1) (tyrep type1 tyvar1 type2)))))])
+          (let ([constraint (stack-pop! constraint-stack)])
+            (let ([type1 (constraint-first-type constraint)] [type2 (constraint-second-type constraint)])
+              (cond [(type-equal? type1 type2) void]
+                    [(and (tyvar? type1) (not (contains-tyvar? type2 type1))) 
+                     (if (hash-table-get replacements (tyvar-val type1) (lambda () #f))
+                         (stack-push! constraint-stack (make-constraint type2 (hash-table-get replacements (tyvar-val type1))))
+                         (begin
+                           (hash-table-put! replacements (tyvar-val type1) type2)
+                           (hash-table-for-each replacements (replacement-replace type1 type2))
+                           (set! type2 (hash-table-get replacements (tyvar-val type1)))
+                           (set-stack-data! constraint-stack (map (constraint-replace type1 type2) (stack-data constraint-stack)))))]
+                    [(and (tyvar? type2) (not (contains-tyvar? type1 type2))) 
+                     (if (hash-table-get replacements (tyvar-val type2) (lambda () #f))
+                         (stack-push! constraint-stack (make-constraint type1 (hash-table-get replacements (tyvar-val type2))))
+                         (begin 
+                           (hash-table-put! replacements (tyvar-val type2) type1)                     
+                           (hash-table-for-each replacements (replacement-replace type2 type1))
+                           (set! type1 (hash-table-get replacements (tyvar-val type2)))                     
+                           (set-stack-data! constraint-stack (map (constraint-replace type2 type1) (stack-data constraint-stack)))))] 
+                    [(and (arrow-type? type1) (arrow-type? type2))
+                     (match type1 [($ arrow-type source1 param-type1 result-type1) 
+                                   (match type2 [($ arrow-type source2 param-type2 result-type2) 
+                                                 (stack-push! constraint-stack (make-constraint param-type1 param-type2))
+                                                 (stack-push! constraint-stack (make-constraint result-type1 result-type2))])])]
+                    [(forall-type? type1)
+                     (match type1 [($ forall-type source tyvar partial-type) 
+                                    (let ([new-type (tyrep partial-type tyvar (make-tyvar source (fresh-tyvar)))])
+                                      (stack-push! constraint-stack (make-constraint new-type type2)))])]
+                    [(forall-type? type2)
+                     (match type2 [($ forall-type source tyvar partial-type) 
+                                    (let ([new-type (tyrep partial-type tyvar (make-tyvar source (fresh-tyvar)))])
+                                      (stack-push! constraint-stack (make-constraint type1 new-type)))])]                                    
+                    [(and (tuple-type? type1) (tuple-type? type2))
+                     (match type1 [($ tuple-type source1 member-types1) 
+                                   (match type2 [($ tuple-type source2 member-types2)
+                                                 (if (= (length member-types1) (length member-types2))
+                                                     (for-each 
+                                                      (lambda (t1 t2) (stack-push! constraint-stack (make-constraint t1 t2))) 
+                                                      member-types1 member-types2)
+                                                     (error 'unify (string-append "Incompatible types: " (type->string type1) " and " (type->string type2) ".")))])])] 
+                    [else (error 'unify (string-append "Incompatible types: " (type->string type1) " and " (type->string type2) "."))])
+              (unify constraint-stack replacements))))))
+  
+  (define fresh-tyvar-index 0)
+  (define (fresh-tyvar)
+    (set! fresh-tyvar-index (+ fresh-tyvar-index 1))
+    (string->symbol (format "_tyvar_~v" fresh-tyvar-index)))  
+  
+  (define fresh-id-index 0)
+  (define (fresh-id)
+    (set! fresh-id-index (+ fresh-id-index 1))
+    (string->symbol (format "_id_~v" fresh-id-index)))  
+  
+  ; Flatten params
+  ; To test this, use (map id-val (flatten-params (list (make-tuple #f (list (make-tuple #f (list (anon-id 'a) (anon-id 'b))) (anon-id 'c))) (anon-id 'd)))). It should evaluate to (a b c d)
+  (define (flatten-params params)
+    (letrec ([get-ids-from-param 
+              (lambda (param)
+                (match param 
+                  [($ id stx val) (list param)]
+                  [($ tuple stx members) (flatten-lists (map get-ids-from-param members))]
+                  [else (error 'get-ids-from-param "Invalid param: ~v" param)]))])
+      (flatten-lists (map get-ids-from-param params))))
+  
+  ; Flatten params
+  (define (flatten-param-types param-types)
+    (letrec ([helper
+              (lambda (param-type)
+                (match param-type 
+                  [($ tuple-type src member-types) (flatten-lists (map helper member-types))]
+                  [else (list param-type)]))])
+      (flatten-lists (map helper param-types))))
+  
+  (define (param->list tuple)
+    (if (tuple? tuple)
+        (map param->list (tuple-members tuple))
+        tuple))
+  
+  ; Check the type of the expression and make sure that all the variables are bound.
+  ; The css is the constraint stack stack, a stack of stacks of constraints.
+  ; There is one stack of constraints for each nested let expression.
+  (define (typecheck term typemap css)
+    (let ([constraint-stack (stack-peek css)])
+      (match term
+        [($ let-def stx id params body rec) 
+         (letrec 
+             ([set-var-type
+               (lambda (var var-type)
+                 (if (eq? var-type #f)
+                     (hash-table-remove! typemap (id-val var))
+                     (hash-table-put! typemap (id-val var) var-type)))] 
+              [get-fun-type 
+               (lambda (param-types result-type)
+                 (if (null? param-types)
+                     result-type
+                     (make-arrow-type term (car param-types) (get-fun-type (cdr param-types) result-type))))]
+              [replace-in-typemap
+               (lambda (tyvar new-type)
+                 (set! tyvar (make-tyvar tyvar tyvar))
+                 (hash-table-for-each typemap
+                                      (lambda (var type)
+                                        (if (contains-tyvar? type tyvar)
+                                            (hash-table-put! typemap var (tyrep type tyvar new-type))))))]
+              [fresh-param-type 
+               (lambda (param)
+                 (if (tuple? param) 
+                     (make-tuple-type param (map fresh-param-type (tuple-members param)))
+                     (make-tyvar param (fresh-tyvar))))])
+             (let ([param-types (map fresh-param-type params)]
+                   [prev-var-types (map (lambda (param) (hash-table-get typemap (id-val param) (lambda () #f))) (flatten-params params))]
+                   [constraint-stack (new-stack)])
+               (stack-push! css constraint-stack)
+               (if (hash-table-get typemap (id-val id) (lambda () #f)) 
+                   (error 'typecheck "Redefinition of ~v." (id-val id))
+                   (if rec (hash-table-put! typemap (id-val id) (make-tyvar id (fresh-tyvar)))))
+               (let ([external-tyvars (tyvar-union (hash-table-map typemap (lambda (var type) (get-all-tyvars type))))])
+                 (for-each set-var-type (flatten-params params) (flatten-param-types param-types))
+                 (let ([result-type (typecheck body typemap css)])
+                   (let ([fun-type (get-fun-type param-types result-type)])
+                     (if rec
+                         (stack-push! constraint-stack 
+                                    (make-constraint fun-type (hash-table-get typemap (id-val id) 
+                                                                              (lambda () (error 'typecheck "Unbound variable: ~v." (id-val id))))))
+                         (hash-table-put! typemap (id-val id) fun-type))
+                     (let ([replacements (unify constraint-stack (make-hash-table))])
+                       (hash-table-for-each replacements replace-in-typemap)                       
+                       (set! external-tyvars (filter tyvar? (map (lambda (tyvar) 
+                                                    (hash-table-get replacements (tyvar-val tyvar) (lambda () tyvar))) external-tyvars)))
+                       (set! fun-type (generalize (hash-table-get typemap (id-val id)) external-tyvars))
+                       (hash-table-put! typemap (id-val id) fun-type)
+                       (map set-var-type (flatten-params params) prev-var-types)
+                       (stack-pop! css)
+                       
+                     #|(display (string-append (symbol->string (id-val id)) " has type " (type->string fun-type) ". ")) 
+                     (display (format "Parameters: ~v. " (map param->list params)))
+                     (display (format "Parameter Types: ~v. " (map type->string param-types)))
+                     (display (format "Flat params: ~v. " (map id-val (map param->list (flatten-params params)))))
+                     (display (format "Parameter Types: ~v." (map type->string (flatten-param-types param-types))))                     
+                     (display (format "External Tyvars: ~v." (map type->string external-tyvars)))
+                     (newline)                       |#
+                       
+                       fun-type))))))]
+        [($ let-exp stx id params exp body rec) 
+         (let ([prev-id-type (hash-table-get typemap (id-val id) (lambda () #f))])
+           (if prev-id-type (hash-table-remove! typemap (id-val id)))
+           (typecheck (make-let-def (term-stx exp) id params exp rec) typemap css)
+           (let ([body-type (typecheck body typemap css)])
+             (if (eq? prev-id-type #f) 
+                 (hash-table-remove! typemap (id-val id))
+                 (hash-table-put! typemap (id-val id) prev-id-type))
+             body-type))]
+        [($ anonymous-function stx params body) 
+           (typecheck (make-let-def (term-stx body) (make-id #f (fresh-id)) params body #f) typemap css)]
+        [($ app stx fun args)
+         (letrec ([typecheck-app
+                   (lambda (fun-type arg-types)
+                     (if (null? arg-types)
+                         fun-type
+                         (let ([result-type (make-tyvar term (fresh-tyvar))])
+                           (stack-push! constraint-stack (make-constraint fun-type (make-arrow-type term (car arg-types) result-type)))
+                           (typecheck-app result-type (cdr arg-types)))))])
+           (typecheck-app (typecheck fun typemap css) (map (lambda (term) (typecheck term typemap css)) args)))]
+        [($ if-exp stx guard then else) 
+         (let ([guard-type (typecheck guard typemap css)] 
+               [type1 (typecheck then typemap css)] 
+               [type2 (typecheck else typemap css)])
+           (stack-push! constraint-stack (make-constraint guard-type (make-bool-type guard)))
+           (stack-push! constraint-stack (make-constraint type1 type2))
+           type1)]   
+        [($ tuple stx members)
+         (make-tuple-type #f (map (lambda (member) (typecheck member typemap css)) members))]
+        [($ id stx val) 
+         (hash-table-get typemap val
+                         (lambda () (error 'typecheck "Unbound variable: ~v." val)))]
+        [($ litnum stx val) (make-int-type term)]
+        [($ bool stx val) (make-bool-type term)]
+        [($ unit-term stx) (make-unit-type term)]        
+        [($ ms stx id type) type])))
+  
+  (define (type->string type)
+    (match type
+      [($ int-type source) "int"]
+      [($ lump-type source) "lump"]        
+      [($ bool-type source) "bool"]        
+      [($ unit-type source) "()"]            
+      [($ arrow-type source param-type result-type)
+       (string-append (type->string param-type) "->" (type->string result-type))]
+      [($ tyvar source val) (format "~a" val)]
+      [($ forall-type source forall-tyvar partial-type) 
+       (string-append "(forall " (type->string forall-tyvar) " " (type->string partial-type) ")")]
+      [($ tuple-type stx members) 
+       (letrec ([tuple->string (lambda (members str) 
+                               (if (null? members) str (tuple->string (cdr members) (string-append str " * " (type->string (car members))))))])
+         (string-append "(" (tuple->string (cdr members) (type->string (car members))) ")"))]
+      [_ (error 'type->string "Invalid type: ~v." type)]))
+  
+  (define (emit-wrap-code tyvar)
+    (string->symbol (string-append "_wrap_" (symbol->string tyvar))))
+  (define (emit-unwrap-code tyvar)
+    (string->symbol (string-append "_unwrap_" (symbol->string tyvar))))
+  (define (emit-wrapped-code tyvar)
+    (string->symbol (string-append "_" (symbol->string tyvar) "?")))
+  
+  ; Do lump embedding for tyvars
+  (define (create-export-contract type)
+    (match type
+      [($ int-type source) 'integer?]
+      [($ bool-type source) 'boolean?]
+      [($ unit-type source) (datum->syntax-object #f 'unit?)]      
+      [($ lump-type source) 'any/c]        
+      [($ arrow-type source param-type result-type)
+       #`(-> #,(create-export-contract param-type) #,(create-export-contract result-type))]
+      [($ tyvar source val) 'any/c]
+      [($ forall-type source forall-tyvar partial-type) (create-export-contract partial-type)]
+      ; Have to use vector-immutable/c, otherwise it can't have function contracts.
+      [($ tuple-type source member-types) #`(vector-immutable/c #,@(map create-export-contract member-types))]
+      [_ (error 'create-export-contract "Invalid type: ~v." type)])) 
+  
+  ; Here, all tyvars are part of a forall type. These must be wrapped in a struct in order to preserve parametricity.
+  (define (create-import-contract type) 
+    (match type
+      [($ int-type source) 'integer?]
+      [($ bool-type source) 'boolean?]
+      [($ lump-type source) 'any/c]   
+      [($ unit-type source) (datum->syntax-object #f 'unit?)]
+      [($ arrow-type source param-type result-type)
+       #`(-> 
+          #,(create-import-contract param-type) #,(create-import-contract result-type))] 
+      [($ tyvar source val) (emit-wrapped-code val)]
+      [($ forall-type source forall-tyvar partial-type) (create-import-contract partial-type)]
+      ; Have to use vector-immutable/c, otherwise it can't have function contracts.      
+      [($ tuple-type source member-types) #`(vector-immutable/c #,@(map create-export-contract member-types))]
+      [_ (error 'create-import-contract "Invalid type: ~v." type)]))
+  
+  ; Emit a function to do an import check. It will return a value if it passes or raise an error otherwise.
+  ; Return the code to do a first order check or to attach a contract to the value.
+  ; We cannot assume that item is an id. It is just some amount of code that will mean something once in Scheme.
+  (define (emit-import-check type)
+      (match type
+        [($ int-type source) 
+         #`(lambda (item)
+             (if (integer? item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ bool-type source) 
+         #`(lambda (item)
+             (if (boolean? item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ unit-type source) 
+         #`(lambda (item)
+             (if (#,(datum->syntax-object #f 'unit?) item) item (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]        
+        [($ lump-type source) #`(lambda (item) item)]        
+        [($ arrow-type source param-type result-type)
+         #`(lambda (item)
+             (if (procedure? item) 
+                 #,(create-import-wrapper #`(contract #,(create-import-contract type) item 'import-from-scheme 'ml) type)
+                 (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item))))]
+        [($ forall-type source forall-tyvar partial-type) (emit-import-check partial-type)] 
+        [($ tuple-type source member-types) 
+         (let ([member-checks (map emit-import-check member-types)])
+           #`(lambda (item)
+               (if (and (vector? item) (= (vector-length item) #,(length member-types)))
+                   ; The scheme value does not have to be an immutable vector, but it will be converted to one
+                   (vector->immutable-vector (list->vector 
+                                              (map (lambda (member-check member) (member-check member)) (list #,@member-checks) (vector->list item))))
+                   (error (format #,(string-append "Expected something of type " (type->string type) ", got: ~v") item)))))]
+        [_ (error 'emit-code "Invalid type: ~v." type)])) 
+  
+  (define (create-import-wrapper import type)
+    (letrec ([create-import-wrapper-internal
+              (lambda (import type pos tyvars)
+                (match type
+                  [($ int-type source) import]
+                  [($ bool-type source) import]
+                  [($ unit-type source) import]                  
+                  [($ lump-type source) import]        
+                  [($ tuple-type source member-types) import] 
+                  [($ arrow-type source param-type result-type) 
+                   (let ([var (fresh-id)])
+                       (letrec ([param (create-import-wrapper-internal var param-type (not pos) null)]
+                                [result (create-import-wrapper-internal #`(#,import #,param) result-type pos tyvars)])
+                         (if (or (forall-type? param-type) (forall-type? result-type))
+                             (error 'create-import-wrapper "Unexpected nested forall type"))
+                         (if (or (null? tyvars) (arrow-type? result-type))
+                           #`(lambda (#,var) #,result)
+                           #`(lambda (#,var)
+                               (let-values (#,@(map 
+                                         (lambda (tyvar) `((,(emit-wrap-code tyvar) ,(emit-unwrap-code tyvar) ,(emit-wrapped-code tyvar))
+                                                           ,(datum->syntax-object #f '(new-wrapper) #f #f)))
+                                         tyvars))
+                                 #,result)))))]
+                  [($ tyvar source val) 
+                   (if pos
+                       #`(#,(emit-unwrap-code val) #,import)
+                       #`(#,(emit-wrap-code val) #,import))]
+                  [_ (error 'create-import-wrapper "Invalid type: ~v." type)]))])
+      (create-import-wrapper-internal import type #t (map tyvar-val (get-unbound-tyvars type)))))
+
+  ; Bind a set of params structs, which may contain tuples to the parameters of the actual lambda
+  (define (emit-tuple-bindings var param item)
+    (letrec ([bind-params-to-var 
+              (lambda (var params item index)
+                (if (null? params)
+                    item
+                    (bind-params-to-var var (cdr params) (bind-param-to-var var (car params) item index) (if index (+ index 1) #f))))]
+             [bind-param-to-var 
+              (lambda (var param item index)
+                (match param
+                  [($ id stx val) #`(let ((#,val #,(if index #`(vector-ref #,var #,index) var))) #,item)]     
+                  [($ tuple stx members) 
+                   (let ([new-var (fresh-id)])
+                     #`(let ((#,new-var #,(if index #`(vector-ref #,var #,index) var)))
+                         #,(bind-params-to-var new-var members item 0)))]))])
+    (bind-param-to-var var param item #f)))
+  
+  (define emit-code 
+    (case-lambda 
+      ((term) (emit-code term #f))
+      ((term type) ; The type is only used for let-defs
+       (letrec ([emit-curried-lambda
+                 (lambda (params body)
+                   (if (null? params) 
+                       (emit-code body)
+                       (let ([new-id (fresh-id)])
+                         #`(lambda (#,new-id) #,(emit-tuple-bindings new-id (car params) (emit-curried-lambda (cdr params) body))))))])   
+         (match term
+           [($ ms stx id type) 
+            #`(#,(emit-import-check type) #,(emit-code id))]
+           [($ let-def stx id params body rec)
+            (match type
+              [($ int-type source) #`(define #,(emit-code id) #,(emit-code body))]
+              [($ bool-type source) #`(define #,(emit-code id) #,(emit-code body))]              
+              [($ unit-type source) #`(define #,(emit-code id) #,(emit-code body))]                            
+              [($ lump-type source) #`(define #,(emit-code id) #,(emit-code body))]        
+              [($ arrow-type source param-type result-type)
+               #`(define #,(emit-code (let-def-id term)) 
+                   (contract #,(create-export-contract type) #,(emit-curried-lambda params body) 'ml 'scheme))]
+              [($ forall-type source forall-tyvar partial-type) 
+               (emit-code term partial-type)]
+              [($ tuple-type source member-types) #`(define #,(emit-code id) #,(emit-code body))]        
+              [($ tyvar source val) (error 'emit-code "Expression ~v has type ~v.\n" term val)] 
+              [_ (error 'emit-code "Invalid type: ~v." type)])]
+           [($ let-exp stx id params exp body rec) 
+            (if rec
+                #`(letrec ((#,(emit-code id) #,(emit-curried-lambda params exp))) #,(emit-code body))
+                #`(let ((#,(emit-code id) #,(emit-curried-lambda params exp))) #,(emit-code body)))]
+           [($ anonymous-function stx params body) (emit-curried-lambda params body)]
+           [($ app stx fun args) 
+            (letrec ([emit-curried-app
+                      (lambda (fun args)
+                        (if (null? args)
+                            fun
+                            (emit-curried-app `(,fun ,(car args)) (cdr args))))])
+              (emit-curried-app (emit-code fun) (map emit-code args)))]
+           [($ if-exp stx guard then else) 
+            #`(if #,(emit-code guard) #,(emit-code then) #,(emit-code else))]       
+           [($ id stx val) (datum->syntax-object #f val)]
+           [($ tuple stx members) #`(vector-immutable #,@(map emit-code members))]
+           [($ litnum stx val) (datum->syntax-object #f val)] 
+           [($ bool stx val) (datum->syntax-object #f val)]
+           [($ unit-term stx) (datum->syntax-object #f 'unit-value)])))))
+    
+  (define (ml-read-syntax source-name input-port)
+    (port-count-lines! input-port)
+    (let ([program ((ml-parser source-name) (lambda () (simple-lexer input-port)))])
+      (let ([defs (program-defs program)] [typemap (make-hash-table)])
+        (let ([types (map                       
+                      (lambda (def) 
+                        (let ([css (new-stack)])
+                          (stack-push! css (new-stack))
+                          (let ([type (typecheck def typemap css)])
+                            (let ([replacements (unify (stack-peek css) (make-hash-table))])
+                              (hash-table-for-each replacements 
+                                                   (lambda (tyvar new-type)
+                                                     (set! type (tyrep type tyvar new-type))))
+                              (hash-table-put! typemap (id-val (let-def-id def)) type)
+                              type))))
+                      defs)])
+          (let ([code 
+                 (let ([defn (map emit-code defs types)])
+                   #`(module #,(program-module program) mzscheme
+                       (require (lib "contract.ss")
+                                (lib "ml-primitives.ss" "smootxes")
+                                #,@(map (lambda (include) (list 'file include)) (program-includes program)))      
+                       (provide (all-defined))
+                       #,@defn))])
+            ;; display the module source:
+            #;(printf "~v\n" (syntax-object->datum code))
+            code)))))
+
+  
+  ;;; TESTING
+  
+  
+  
+  ;; UNIFICATION TESTS
+  
+  (define (ut . constraint-list)
+    (let ([ht (make-hash-table)])
+      (unify (list->stack (map (lambda (x) (apply make-constraint x)) constraint-list)) ht)
+      (hash-table-map ht list)))
+  
+  ;; my test function. 
+  (define (ls= x y) (lset= equal? x (map (lambda (pr) (list (tyvar-val (car pr)) (cadr pr))) y)))
+  
+  
+  ;; I'm suspicious about the lack of anon-tuple
+  (define (anon-tuple . types)
+    (make-tuple-type #f types))
+  
+  (define int1 (make-int-type 34))
+  (define int2 (make-int-type 37))
+  (define bool1 (make-bool-type 2987))
+  (define bool2 (make-bool-type 223))
+  (define (arr1 t1 t2) (make-arrow-type 327 t1 t2))
+  (define (arr2 t1 t2) (make-arrow-type 272987 t1 t2))
+  (define (tup1 . ts) (make-tuple-type 232 ts))
+  (define (tup2 . ts) (make-tuple-type 2132 ts))
+  (define tv1a (make-tyvar 23 79))
+  (define tv1b (make-tyvar 124 79))
+  (define tv2 (make-tyvar 234 81))
+  (define tv3 (make-tyvar 12 2))
+  
+  
+  (define unification-test-suite
+    (test-suite
+     "unification tests"
+     ;; single constraint:
+     
+     ;; simple types
+     (test-check "trivial" ls= (ut) '())
+     (test-check "success1" ls= (ut (list int1 int2)) '())
+     (test-check "success2" ls= (ut (list bool2 bool1)) '())
+     (test-exn "simple-fail" exn:fail? (lambda () (ut (list bool1 int1))))
+     
+     ;; arrows
+     (test-check "success3" ls= (ut (list (arr1 int1 int2)
+                                          (arr2 int2 int1)))
+                 '())
+
+     (test-exn "fail2" exn:fail? (lambda ()
+                                   (ut (list (anon-arrow anon-bool anon-int) (anon-arrow anon-int anon-int)))))
+     (test-exn "fail3" exn:fail? (lambda ()
+                                   (ut (list (anon-arrow anon-bool anon-int) (anon-arrow anon-bool anon-bool)))))
+     
+     ;; tuples
+     (test-check "tuple1" ls= (ut (list (anon-tuple) (anon-tuple))) '())
+     (test-check "tuple2" ls= (ut (list (anon-tuple anon-int anon-bool) (anon-tuple anon-int (make-bool-type 2387)))) '())
+     (test-exn "tuple-fail" exn:fail? (lambda () (ut (list (anon-tuple anon-int) (tup1 bool2)))))
+     (test-exn "tuple-fail2" exn:fail? (lambda () (ut (list (tup1 bool1 bool2 int2) (tup2 bool2 int1 int2)))))
+     
+     ;; live vars, now:
+     
+     ;; top level
+     (test-check "var1" ls= (ut (list tv1a int2)) `((,tv1a ,int2)))
+     (test-check "var2" ls= (ut (list int2 tv1a)) `((,tv1a ,int2)))
+     (test-check "var3" ls= (ut (list tv1a tv1b)) '())
+     ;; arrows
+     (test-check "var4" ls= (ut (list (arr1 tv2 bool1) (arr2 int2 tv3))) `((,tv2 ,int2) (,tv3 ,bool1)))
+     (test-check "var4" ls= (ut (list (arr1 tv2 tv1a) (arr2 int2 tv3))) `((,tv2 ,int2) (,tv1a ,tv3))) ;; could go either way
+     ;; tuples
+     (test-check "vartup" ls= (ut (list (tup1 int1 tv2 bool1)
+                                        (tup2 tv1a (arr2 int2 tv3) tv3)))
+                 `((,tv1a ,int1)
+                   (,tv2 ,(arr2 int2 bool1))
+                   (,tv3 ,bool1)))
+     
+     
+     (test-check "tpair" ls= (ut (list (arr1 tv2 tv3) (arr2 tv3 tv2))) `((,tv3 ,tv2)))
+     (test-exn "trecursive" exn:fail? (lambda () (ut (list tv1a (arr1 int1 tv1a)))))
+     
+     
+    
+  ))
+
+  )
