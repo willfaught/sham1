@@ -1,0 +1,7 @@
+#reader(lib "reader.ss" "sham" "ml")
+
+#module ("test")
+
+#include("test.ss")
+
+let myid = id :G 'a -> 'b -> int;;
