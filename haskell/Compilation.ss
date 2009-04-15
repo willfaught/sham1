@@ -38,8 +38,44 @@
        `(define ,(toSymbol "variable/" n)
           (delay (curry ,(toSymbol "make-constructor/" n)))))))
   
-  (define data
-    (match-lambda ((struct c/Data (n c)) (cons (typePredicate n) (foldl append null (map (curry constructor n) c))))))
+  (define (data syntax)
+    (match syntax
+      ((struct c/Data (n c)) (cons (dataContractH n) (foldl append null (map (curry constructor n) c))))))
+  
+  (define contractH
+    (match-lambda
+      ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
+      ((struct t/Constructor (n)) (string->symbol (string-append n "/haskell/c")))
+      ((struct t/Function ()) 'type/Haskell.Function#)
+      ((struct t/List ()) 'type/Haskell.List#)
+      ((struct t/Tuple (a)) `(type/Haskell.Tuple# ,a))
+      ((struct t/Unit ()) 'type/Haskell.Unit#)
+      ((struct t/Variable (n)) (string->symbol (string-append "haskell/" n)))))
+  
+  (define (dataContractH syntax)
+    (define constructorContract
+      (match-lambda
+        ((struct c/Constructor (n f)) `(,(toSymbol "constructor/" n "/c") ,@(map fieldContract f)))))
+    (define fieldContract
+      (match-lambda
+        ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
+    (match-let* ((tyvars (remove-duplicates (dataTypeVariables syntax)))
+                 ((struct c/Data (n c)) syntax)
+                 (body `(recursive-contract (or/c ,@(map constructorContract c)))))
+      `(define ,(toSymbol n "/haskell/c")
+         ,(if (null? tyvars)
+             body
+             `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) tyvars) ,body))))))
+  
+  
+  
+  
+  
+  #;(define (List#? contract1)
+      (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
+  
+  (define (dataPredicateExport typeName)
+    `(provide ,(toSymbol typeName "?")))
   
   (define (field constructorName fieldName)
     `(define ,(toSymbol "variable/" fieldName)
@@ -90,15 +126,15 @@
          `(define ,(toSymbol "variable/" qualifiedName)
             ,(match l
                ("haskell" (boundaryHH t importQualifiedName))
-               ("ml" (boundaryHM t importQualifiedName))
-               ("scheme" (boundaryHS t importQualifiedName))))))))
+               #;("ml" (boundaryHM t importQualifiedName))
+               #;("scheme" (boundaryHS t importQualifiedName))))))))
   
   (define importRequire
     (match-lambda
       ((struct c/Import (l m n _))
        (let ((modules (regexp-split #rx"\\." m)))
-         `(require (rename-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
-                              (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
+         `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
+                            (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
   
   (define letDeclaration
     (match-lambda
@@ -119,8 +155,22 @@
     (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))))
       `(curry (lambda ,vars (list ,@vars)))))
   
-  (define (typePredicate type)
-    `(define ,(toSymbol type "?") "TODO"))
+  ; Data declaration type variables
   
-  (define (typePredicateExport typeName)
-    `(provide ,(toSymbol typeName "?"))))
+  (define dataTypeVariables
+    (match-lambda
+      ((struct c/Data (_ c)) (foldl append null (map constructorTypeVariables c)))))
+  
+  (define constructorTypeVariables
+    (match-lambda
+      ((struct c/Constructor (_ f)) (foldl (lambda (x y)
+                                             (match x
+                                               ((struct Just (v)) (cons v y))
+                                               ((struct Nothing ()) y)))
+                                           null
+                                           (map fieldTypeVariable f)))))
+  
+  (define fieldTypeVariable
+    (match-lambda
+      ((struct c/Field (_ (struct t/Variable (n)))) (make-Just n))
+      ((struct c/Field (_ _)) (make-Nothing)))))

@@ -5,7 +5,7 @@
            (lib "List.ss" "sham" "haskell")
            (prefix-in t/ (lib "Types.ss" "sham")))
   
-  (provide dataTypes moduleTypes syntaxType wellTyped)
+  (provide dataTypes moduleTypes syntaxType typeVariables wellTyped)
   
   (define-struct Assumption (name type) #:transparent)
   

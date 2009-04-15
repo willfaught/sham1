@@ -15,4 +15,10 @@
   
   (define-struct (Unit Type) () #:transparent)
   
-  (define-struct (Variable Type) (name) #:transparent))
+  (define-struct (Variable Type) (name) #:transparent)
+  
+  (define variables
+    (match-lambda
+      ((struct Application (r d)) (append (variables r) (variables d)))
+      ((? Variable? x) (list x))
+      (_ null))))

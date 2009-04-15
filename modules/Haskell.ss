@@ -43,6 +43,11 @@
   (define Char?
     (curry (lambda (language value) (contract (struct/c constructor/Char# char?) value language 'haskell))))
   
+  (define Function#?
+    (lambda (contract1)
+      (lambda (contract2)
+        (-> contract1 contract2))))
+  
   (define (List#? contract1)
     (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
   
