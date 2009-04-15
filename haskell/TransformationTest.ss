@@ -48,30 +48,30 @@
                     (c/make-Character "a"))
                 (de "da1"
                     "data A = B"
-                    (c/make-Data "A" (list (c/make-Constructor "B" null))))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" null))))
                 (de "da2"
                     "data A = B {}"
-                    (c/make-Data "A" (list (c/make-Constructor "B" null))))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" null))))
                 (de "da3"
                     "data A = B { c :: D }"
-                    (c/make-Data "A" (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "D")))))))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "D")))))))
                 (de "da4"
                     "data A = B { c, d :: E }"
-                    (c/make-Data "A" (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "E"))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "E"))
                                                                          (c/make-Field "d" (t/make-Constructor "E")))))))
                 (de "da5"
                     "data A = B { c :: D, e :: F }"
-                    (c/make-Data "A" (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "D"))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "D"))
                                                                          (c/make-Field "e" (t/make-Constructor "F")))))))
                 (de "da6"
                     "data A = B { c, d :: E, f, g :: H }"
-                    (c/make-Data "A" (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "E"))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" (list (c/make-Field "c" (t/make-Constructor "E"))
                                                                          (c/make-Field "d" (t/make-Constructor "E"))
                                                                          (c/make-Field "f" (t/make-Constructor "H"))
                                                                          (c/make-Field "g" (t/make-Constructor "H")))))))
                 (de "da7"
                     "data A = B | C"
-                    (c/make-Data "A" (list (c/make-Constructor "B" null) (c/make-Constructor "C" null))))
+                    (c/make-Data "A" null (list (c/make-Constructor "B" null) (c/make-Constructor "C" null))))
                 (de "de1"
                     "x = 1"
                     (c/make-Declaration "x" (c/make-Integer "1")))
@@ -134,11 +134,11 @@
                     (c/make-ListConstructor))
                 (ee "li1"
                     "[1]"
-                    (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "1")) (c/make-ListConstructor)))
+                    (c/make-Application (c/make-Application (c/make-Variable "Haskell.:") (c/make-Integer "1")) (c/make-ListConstructor)))
                 (ee "li2"
                     "[1, 2]"
-                    (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "1"))
-                                        (c/make-Application (c/make-Application (c/make-Variable ":") (c/make-Integer "2")) (c/make-ListConstructor))))
+                    (c/make-Application (c/make-Application (c/make-Variable "Haskell.:") (c/make-Integer "1"))
+                                        (c/make-Application (c/make-Application (c/make-Variable "Haskell.:") (c/make-Integer "2")) (c/make-ListConstructor))))
                 #|(me "mo1"
                     "{}"
                     (c/make-Module "None" null null null))

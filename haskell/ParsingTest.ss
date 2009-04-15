@@ -48,25 +48,31 @@
                     (h/make-Character "a"))
                 (de "da1"
                     "data A = B"
-                    (h/make-Data "A" (list (h/make-Constructor "B" null))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" null))))
                 (de "da2"
                     "data A = B {}"
-                    (h/make-Data "A" (list (h/make-Constructor "B" null))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" null))))
                 (de "da3"
                     "data A = B | C"
-                    (h/make-Data "A" (list (h/make-Constructor "B" null)
-                                           (h/make-Constructor "C" null))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" null)
+                                                (h/make-Constructor "C" null))))
                 (de "da4"
                     "data A = B { c :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A")))))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A")))))))
                 (de "da5"
                     "data A = B { c :: A, d :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
-                                                                         (h/make-Field "d" (t/make-Constructor "A")))))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
+                                                                              (h/make-Field "d" (t/make-Constructor "A")))))))
                 (de "da6"
                     "data A = B { c, d :: A }"
-                    (h/make-Data "A" (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
-                                                                         (h/make-Field "d" (t/make-Constructor "A")))))))
+                    (h/make-Data "A" null (list (h/make-Constructor "B" (list (h/make-Field "c" (t/make-Constructor "A"))
+                                                                              (h/make-Field "d" (t/make-Constructor "A")))))))
+                (de "da7"
+                    "data A b = C"
+                    (h/make-Data "A" (list "b") (list (h/make-Constructor "C" null))))
+                (de "da8"
+                    "data A b c = D"
+                    (h/make-Data "A" (list "b" "c") (list (h/make-Constructor "D" null))))
                 (de "de1"
                     "x = 1"
                     (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))
@@ -160,24 +166,24 @@
                     (h/make-Module "M" (make-Nothing) (list (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A"))))) null))
                 (me "mo6"
                     "module M where { data A = B }"
-                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" (list (h/make-Constructor "B" null))))))
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" null (list (h/make-Constructor "B" null))))))
                 (me "mo7"
                     "module M where { x = 1 }"
                     (h/make-Module "M" (make-Nothing) null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo8"
                     "module M where { x = 1 ; data A = B }"
                     (h/make-Module "M" (make-Nothing) null (list (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1"))
-                                                          (h/make-Data "A" (list (h/make-Constructor "B" null))))))
+                                                                 (h/make-Data "A" null (list (h/make-Constructor "B" null))))))
                 (me "mo9"
                     "module M where { data A = B ; x = 1 }"
-                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
-                                                          (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
+                    (h/make-Module "M" (make-Nothing) null (list (h/make-Data "A" null (list (h/make-Constructor "B" null)))
+                                                                 (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (me "mo10"
                     "module M where { import haskell Test (one :: A) ; data A = B ; x = 1 }"
                     (h/make-Module "M"
                                    (make-Nothing)
                                    (list (h/make-Impdecl "haskell" "Test" (list (h/make-Import "one" (t/make-Constructor "A")))))
-                                   (list (h/make-Data "A" (list (h/make-Constructor "B" null)))
+                                   (list (h/make-Data "A" null (list (h/make-Constructor "B" null)))
                                          (h/make-Declaration (h/make-LHS "x" null) (h/make-Integer "1")))))
                 (ee "tu1"
                     "(1, 2)"

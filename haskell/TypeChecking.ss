@@ -34,7 +34,7 @@
   
   (define dataTypes
     (match-lambda
-      ((struct c/Data (n c)) (foldl append null (map (lambda (x) (constructorTypes (t/make-Constructor n) x)) c)))))
+      ((struct c/Data (n _ c)) (foldl append null (map (lambda (x) (constructorTypes (t/make-Constructor n) x)) c)))))
   
   (define (fieldType dataType syntax)
     (match-let (((struct c/Field (n t)) syntax))
