@@ -40,7 +40,7 @@
   
   (define (data syntax)
     (match syntax
-      ((struct c/Data (n c)) (cons (dataContractH n) (foldl append null (map (curry constructor n) c))))))
+      ((struct c/Data (n _ c)) (foldl append null (map (curry constructor n) c)) #;(cons (dataContractH n) ))))
   
   (define contractH
     (match-lambda
@@ -60,9 +60,10 @@
       (match-lambda
         ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
     (match-let* ((tyvars (remove-duplicates (dataTypeVariables syntax)))
-                 ((struct c/Data (n c)) syntax)
+                 ((struct c/Data (n _ c)) syntax)
                  (body `(recursive-contract (or/c ,@(map constructorContract c)))))
-      `(define ,(toSymbol n "/haskell/c")
+      `(define ,(toSymbol n "/haskell/c") 0)
+      #;`(define ,(toSymbol n "/haskell/c")
          ,(if (null? tyvars)
              body
              `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) tyvars) ,body))))))
@@ -88,8 +89,9 @@
              (decls (filter c/Declaration? d)))
          `(module ,(toSymbol n) scheme
             (define (coffer)
-              (define-struct haskell/Coffer (value))
-              (list make-haskell/Coffer haskell/Coffer-value haskell/Coffer?))
+              (define-struct Coffer (value))
+              (list make-Coffer Coffer-value Coffer?))
+            (require (lib "Primitives.ss" "sham" "haskell"))
             ,@(map importRequire i)
             ,@(map importDefinition i)
             ,@(foldl append null (map data datas))
@@ -99,11 +101,11 @@
   (define compileSyntax
     (match-lambda 
       ((struct c/Application (r d)) `(,(compileSyntax r) (delay ,(compileSyntax d))))
-      ((struct c/Character (v)) `(Char# ,(string-ref v 0)))
-      ((struct c/Float (v)) `(Float# ,(string->number v)))
+      ((struct c/Character (v)) `(make-Char ,(string-ref v 0)))
+      ((struct c/Float (v)) `(make-Float ,(string->number v)))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileSyntax b)))
       ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force variable/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
-      ((struct c/Integer (v)) `(Int# ,(string->number v)))
+      ((struct c/Integer (v)) `(make-Int ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
       ((struct c/ListConstructor ()) '(force variable/Haskell.Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))
@@ -125,9 +127,9 @@
               (importQualifiedName (toSymbol "import/" qualifiedName)))
          `(define ,(toSymbol "variable/" qualifiedName)
             ,(match l
-               ("haskell" (boundaryHH t importQualifiedName))
-               #;("ml" (boundaryHM t importQualifiedName))
-               #;("scheme" (boundaryHS t importQualifiedName))))))))
+               ("haskell" importQualifiedName #;(boundaryHH t importQualifiedName))
+               #;("ml" importQualifiedName #;(boundaryHM t importQualifiedName))
+               #;("scheme" importQualifiedName #;(boundaryHS t importQualifiedName))))))))
   
   (define importRequire
     (match-lambda
@@ -159,7 +161,7 @@
   
   (define dataTypeVariables
     (match-lambda
-      ((struct c/Data (_ c)) (foldl append null (map constructorTypeVariables c)))))
+      ((struct c/Data (_ _ c)) (foldl append null (map constructorTypeVariables c)))))
   
   (define constructorTypeVariables
     (match-lambda

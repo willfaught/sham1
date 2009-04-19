@@ -9,7 +9,7 @@
   
   (define-struct (Constructor CoreSyntax) (name fields) #:transparent)
   
-  (define-struct (Data CoreSyntax) (name constructors) #:transparent)
+  (define-struct (Data CoreSyntax) (name tyvars constructors) #:transparent)
   
   (define-struct (Declaration CoreSyntax) (lhs rhs) #:transparent)
   

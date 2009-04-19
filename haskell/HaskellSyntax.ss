@@ -9,7 +9,7 @@
   
   (define-struct (Constructor HaskellSyntax) (name fields) #:transparent)
   
-  (define-struct (Data HaskellSyntax) (name constructors) #:transparent)
+  (define-struct (Data HaskellSyntax) (name tyvars constructors) #:transparent)
   
   (define-struct (Declaration HaskellSyntax) (lhs rhs) #:transparent)
   

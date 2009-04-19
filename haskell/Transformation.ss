@@ -16,7 +16,7 @@
       ((struct h/Application (r d)) (c/make-Application (transformSyntax r) (transformSyntax d)))
       ((struct h/Character (v)) (c/make-Character v))
       ((struct h/Constructor (n f)) (c/make-Constructor n (map transformSyntax f)))
-      ((struct h/Data (n c)) (c/make-Data n (map transformSyntax c)))
+      ((struct h/Data (n t c)) (c/make-Data n t (map transformSyntax c)))
       ((struct h/Declaration ((struct h/LHS (n p)) r)) (c/make-Declaration n (curryFunction p (transformSyntax r))))
       ((struct h/Field (n t)) (c/make-Field n t))
       ((struct h/Float (v)) (c/make-Float v))
@@ -46,7 +46,7 @@
   
   (define typeDeclarations
     (match-lambda
-      ((struct h/Data (_ c)) (foldl append null (map (match-lambda ((struct h/Constructor (n f)) (cons n (map (match-lambda ((struct h/Field (n _)) n)) f)))) c)))))
+      ((struct h/Data (_ _ c)) (foldl append null (map (match-lambda ((struct h/Constructor (n f)) (cons n (map (match-lambda ((struct h/Field (n _)) n)) f)))) c)))))
   
   (define preludeTypes
     (let* ((typeParsers (parsers "Transformation"))

@@ -34,7 +34,8 @@
   
   (define dataTypes
     (match-lambda
-      ((struct c/Data (n c)) (foldl append null (map (lambda (x) (constructorTypes (t/make-Constructor n) x)) c)))))
+      ((struct c/Data (n t c)) (let ((dataType (foldl (lambda (x y) (t/make-Application y (t/make-Variable x))) (t/make-Constructor n) t)))
+                                  (foldl append null (map (lambda (x) (constructorTypes dataType x)) c))))))
   
   (define (fieldType dataType syntax)
     (match-let (((struct c/Field (n t)) syntax))
@@ -45,7 +46,8 @@
           (types (map (match-lambda ((struct Assumption (_ t)) t)) context)))
       (if (null? tyvars) type (make-Forall (map (match-lambda ((list x _) x))
                                                 (filter (lambda (x) (equal? (list-ref x 1) #f))
-                                                        (map (lambda (x) (list x (findf (lambda (y) (containsType y x)) types))) tyvars))) type))))
+                                                        (map (lambda (x) (list x (findf (lambda (y) (containsType y x)) types))) tyvars)))
+                                           type))))
   
   (define instantiate
     (match-lambda ((struct Forall (v t)) (rename (zip v (map (lambda (x) (newVariable)) v)) t))))
@@ -61,10 +63,10 @@
        (match-let* (((list data decl) (values->list (partition c/Data? d)))
                     (names (map (match-lambda ((struct c/Declaration (n _)) n)) decl))
                     (tyvars (map (lambda (x) (newVariable)) decl))
-                    (dataCxt (map (match-lambda ((list n t) (make-Assumption n t))) (foldl append null (map dataTypes data))))
+                    (dataCxt (map (match-lambda ((list n t) (make-Assumption n (generalize null t)))) (foldl append null (map dataTypes data))))
                     (importTypes (map (match-lambda ((struct c/Import (_ m n t)) (make-Assumption (string-append m "." n) (generalize null t)))) i))
                     (declCxt (append (zipWith make-Assumption names tyvars) dataCxt importTypes))
-                    ((list types constraints) (values->list (unzip2 (map (lambda (x) (reconstructType declCxt x)) decl))))
+                    ((list types constraints) (values->list (unzip2 (map (lambda (x) (reconstruct declCxt x)) decl))))
                     (subst (unify (append (zipWith make-Constraint tyvars types) (foldl append null constraints))))
                     (typesS (map (lambda (x) (substituteManyType subst x)) types)))
          (append importTypes dataCxt (zipWith make-Assumption names typesS))))))
@@ -78,32 +80,32 @@
       (rename (zip vars (map (lambda (x) (t/make-Variable (if (equal? x 0) "t" (string-append "t" (number->string x)))))
                              (iterate (lambda (x) (+ x 1)) 0 (length vars)))) type)))
   
-  (define (reconstructType context syntax)
+  (define (reconstruct context syntax)
     (match syntax
-      ((struct c/Application (r d)) (match-let (((list rt rc) (reconstructType context r))
-                                                ((list dt dc) (reconstructType context d))
+      ((struct c/Application (r d)) (match-let (((list rt rc) (reconstruct context r))
+                                                ((list dt dc) (reconstruct context d))
                                                 (t (newVariable)))
                                       (list t (cons (make-Constraint rt (t/make-Application (t/make-Application (t/make-Function) dt) t)) (append rc dc)))))
       ((? c/Character? _) (list (t/make-Constructor "Char") null))
-      ((struct c/Declaration (_ r)) (reconstructType context r))
+      ((struct c/Declaration (_ r)) (reconstruct context r))
       ((? c/Float? _) (list (t/make-Constructor "Float") null))
       ((struct c/Function (p b)) (match-let* ((pt (newVariable))
-                                              ((list bt bc) (reconstructType (cons (make-Assumption p pt) context) b)))
+                                              ((list bt bc) (reconstruct (cons (make-Assumption p pt) context) b)))
                                    (list (t/make-Application (t/make-Application (t/make-Function) pt) bt) bc)))
-      ((struct c/If (g t e)) (match-let (((list gt gc) (reconstructType context g))
-                                         ((list tt tc) (reconstructType context t))
-                                         ((list et ec) (reconstructType context e)))
+      ((struct c/If (g t e)) (match-let (((list gt gc) (reconstruct context g))
+                                         ((list tt tc) (reconstruct context t))
+                                         ((list et ec) (reconstruct context e)))
                                (list tt (append (list (make-Constraint gt (t/make-Constructor "Bool")) (make-Constraint tt et)) gc tc ec))))
       ((? c/Integer? _) (list (t/make-Constructor "Int") null))
       ((struct c/Let (d b)) (match-let* ((names (map (match-lambda ((struct c/Declaration (l _)) l)) d))
                                          (tyvars (map (lambda (x) (newVariable)) d))
                                          ((list types constraints)
                                           (values->list (unzip2 (map (match-lambda ((struct c/Declaration (_ r))
-                                                                                    (reconstructType (append (zipWith make-Assumption names tyvars) context) r))) d))))
+                                                                                    (reconstruct (append (zipWith make-Assumption names tyvars) context) r))) d))))
                                          (subst (unify (append (zipWith make-Constraint tyvars types) (foldl append null constraints))))
                                          (contextS (substituteContext subst context))
                                          (typesS (map (lambda (x) (generalize contextS (substituteManyType subst x))) types)))
-                              (reconstructType (append (zipWith make-Assumption names typesS) contextS) b)))
+                              (reconstruct (append (zipWith make-Assumption names typesS) contextS) b)))
       ((struct c/ListConstructor ()) (list (t/make-Application (t/make-List) (newVariable)) null))
       ((struct c/TupleConstructor (a)) (let ((t (map (lambda (x) (newVariable)) (make-list a))))
                                          (list (foldr (lambda (x y) (t/make-Application (t/make-Application (t/make-Function) x) y))
@@ -130,7 +132,7 @@
     (if (null? s) t (substituteManyType (cdr s) (substituteType (car s) t))))
   
   (define (syntaxType syntax)
-    (match-let (((list t c) (reconstructType null syntax)))
+    (match-let (((list t c) (reconstruct null syntax)))
       (normalize (substituteManyType (unify c) t))))
   
   (define typeVariables
@@ -154,6 +156,6 @@
              (else (error 'unify "cannot unify ~a with ~a" t1 t2))))))
   
   (define (uniqueTypeVariables type)
-    (delete-duplicates (typeVariables type)))
+    (remove-duplicates (typeVariables type)))
   
   (define (wellTyped syntax) (moduleTypes syntax) #t))

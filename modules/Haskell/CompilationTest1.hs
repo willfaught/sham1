@@ -2,7 +2,9 @@
 
 module CompilationTest1 where {
 
-data A = B { a, b :: C };
+data Maybe a = Nothing | Just { fromJust :: a };
+
+data Either a b = Left { left :: a } | Right { right :: b };
 
 ap1 = (\x -> x) 1;
 
