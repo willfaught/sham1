@@ -75,7 +75,7 @@
                 (de "da8"
                     "data A b = C"
                     (c/make-Data "A" (list "b") (list (c/make-Constructor "C" null))))
-                (de "da1"
+                (de "da9"
                     "data A b c = D"
                     (c/make-Data "A" (list "b" "c") (list (c/make-Constructor "D" null))))
                 (de "de1"
