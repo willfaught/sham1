@@ -101,11 +101,11 @@
   (define compileSyntax
     (match-lambda 
       ((struct c/Application (r d)) `(,(compileSyntax r) (delay ,(compileSyntax d))))
-      ((struct c/Character (v)) `(make-Char ,(string-ref v 0)))
-      ((struct c/Float (v)) `(make-Float ,(string->number v)))
+      ((struct c/Character (v)) `(variable/Char ,(string-ref v 0)))
+      ((struct c/Float (v)) `(variable/Float ,(string->number v)))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileSyntax b)))
       ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force variable/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
-      ((struct c/Integer (v)) `(make-Int ,(string->number v)))
+      ((struct c/Integer (v)) `(variable/Int ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
       ((struct c/ListConstructor ()) '(force variable/Haskell.Nil#))
       ((struct c/TupleConstructor (a)) (tupleConstructor a))

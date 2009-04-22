@@ -1,11 +1,7 @@
 (module Haskell scheme
-  (provide Bool? Char?)
+  (provide Bool/haskell/c)
   
-  (provide (rename-out (make-constructor/Char# Char#)
-                       (make-constructor/Float# Float#)
-                       (make-constructor/Int# Int#)
-                       (make-constructor/Tuple# Tuple#)
-                       (variable/False False)
+  (provide (rename-out (variable/False False)
                        (variable/Nil# Nil#)
                        (variable/True True)
                        (variable/Unit# Unit#)
@@ -19,34 +15,18 @@
                        (variable/tail tail)
                        (variable/: :)))
   
-  (define-struct constructor/Char# (value) #:transparent)
-  
   (define-contract-struct constructor/Cons# (head tail))
   
   (define-struct constructor/False () #:transparent)
-  
-  (define-struct constructor/Float# (value) #:transparent)
-  
-  (define-struct constructor/Int# (value) #:transparent)
   
   (define-contract-struct constructor/Nil# ())
   
   (define-struct constructor/True () #:transparent)
   
-  (define-struct constructor/Tuple# (values) #:transparent)
-  
   (define-struct constructor/Unit# () #:transparent)
   
-  (define Bool?
+  (define Bool/haskell/c
     (curry (lambda (language value) (contract (or/c (struct/c constructor/False) (struct/c constructor/True)) value language 'haskell))))
-  
-  (define Char?
-    (curry (lambda (language value) (contract (struct/c constructor/Char# char?) value language 'haskell))))
-  
-  (define Function#?
-    (lambda (contract1)
-      (lambda (contract2)
-        (-> contract1 contract2))))
   
   (define (List#? contract1)
     (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
