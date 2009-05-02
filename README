@@ -12,8 +12,6 @@ Haskell source files must have the following as their first line:
 
 #reader (lib "Reader.ss" "sham" "haskell")
 
-All top-level Haskell declarations are prefixed with "variable/", but are exported without a prefix.
-
 QUICK START
 
 See modules/Haskell/CompilationTest1.hs for examples of the supported Haskell grammar.
