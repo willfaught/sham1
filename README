@@ -14,6 +14,10 @@ Haskell source files must have the following as their first line:
 
 All top-level Haskell declarations are prefixed with "variable/", but are exported without a prefix.
 
+QUICK START
+
+See modules/Haskell/CompilationTest1.hs for examples of the supported Haskell grammar.
+
 HASKELL
 
 -Grammar Overview-
@@ -45,7 +49,3 @@ The import type declaration syntax is:
 import haskell MyModule (mydecl :: [a], ...)
 
 Module importation is not yet fully implemented, and is not expected to work.  Haskell types are used to describe all data exchanged between interoperating modules.
-
-4. REMARKS
-
-See modules/Haskell/CompilationTest1.hs for examples of the supported Haskell grammar.
