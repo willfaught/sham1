@@ -1,5 +1,7 @@
 (module Haskell scheme
-  (provide Bool/haskell/c)
+  (require (lib "CoreSyntax.ss" "sham" "haskell")
+           (lib "Parsers.ss" "sham" "haskell")
+           (lib "Types.ss" "sham"))
   
   (provide (rename-out (variable/False False)
                        (variable/Nil# Nil#)
@@ -15,15 +17,65 @@
                        (variable/tail tail)
                        (variable/: :)))
   
-  (define-contract-struct constructor/Cons# (head tail))
+  (define preludeParsers (parsers "Prelude"))
   
-  (define-struct constructor/False () #:transparent)
+  (define declarations#
+    (let ((parseT (parser 'type preludeParsers)))
+      (map (match-lambda ((list _ t) (parseT t))) (list (list "False" "Bool")
+                                                        (list "[]" "[a]")
+                                                        (list "True" "Bool")
+                                                        (list "()" "()")
+                                                        (list "error" "[Char] -> a")
+                                                        (list "fst" "(a, b) -> a")
+                                                        (list "head" "[a] -> a")
+                                                        (list "isFalse" "Bool -> Bool")
+                                                        (list "isTrue" "Bool -> Bool")
+                                                        (list "null" "[a] -> Bool")
+                                                        (list "snd" "(a, b) -> b")
+                                                        (list "tail" "[a] -> [a]")
+                                                        (list ":" "a -> [a] -> [a]")))))
   
-  (define-contract-struct constructor/Nil# ())
+  (define types#
+    (map (lambda (x) (parseD x)) (list "data Bool = False | True"
+    
   
-  (define-struct constructor/True () #:transparent)
+  (define-struct Char# (value) #:transparent)
   
-  (define-struct constructor/Unit# () #:transparent)
+  (define-struct Float# (value) #:transparent)
+  
+  (define-struct Int# (value) #:transparent)
+  
+  (define-struct Tuple# (value) #:transparent)
+  
+  (define-contract-struct Cons# (head tail) #:transparent)
+  
+  (define-contract-struct False () #:transparent)
+  
+  (define-contract-struct Nil# () #:transparent)
+  
+  (define-contract-struct True () #:transparent)
+  
+  (define-contract-struct Unit# () #:transparent)
+  
+  (define Char/haskell/c
+    (struct/c Char# char?))
+  
+  (define Float/haskell/c
+    (struct/c Float# number?))
+  
+  (define Int/haskell/c
+    (struct/c Int# integer?))
+  
+  (define (List#/haskell/c haskell/a/c)
+    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a/c) (promise/c (List#? haskell/a/c))))))
+  
+  (define (Tuple#/haskell/c c)
+    (struct/c constructor/Char c))
+  
+  (define Function#?
+    (lambda (contract1)
+      (lambda (contract2)
+        (-> contract1 contract2))))
   
   (define Bool/haskell/c
     (curry (lambda (language value) (contract (or/c (struct/c constructor/False) (struct/c constructor/True)) value language 'haskell))))

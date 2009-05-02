@@ -46,34 +46,28 @@
     (match-lambda
       ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
       ((struct t/Constructor (n)) (string->symbol (string-append n "/haskell/c")))
-      ((struct t/Function ()) 'type/Haskell.Function#)
-      ((struct t/List ()) 'type/Haskell.List#)
+      ((struct t/Function ()) 'Function#/c)
+      ((struct t/List ()) 'List#)
       ((struct t/Tuple (a)) `(type/Haskell.Tuple# ,a))
       ((struct t/Unit ()) 'type/Haskell.Unit#)
-      ((struct t/Variable (n)) (string->symbol (string-append "haskell/" n)))))
+      ((struct t/Variable (n)) (string->symbol (string-append "haskell/" n "/wrapped")))))
   
-  (define (dataContractH syntax)
-    (define constructorContract
-      (match-lambda
-        ((struct c/Constructor (n f)) `(,(toSymbol "constructor/" n "/c") ,@(map fieldContract f)))))
-    (define fieldContract
-      (match-lambda
-        ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
-    (match-let* ((tyvars (remove-duplicates (dataTypeVariables syntax)))
-                 ((struct c/Data (n _ c)) syntax)
-                 (body `(recursive-contract (or/c ,@(map constructorContract c)))))
-      `(define ,(toSymbol n "/haskell/c") 0)
-      #;`(define ,(toSymbol n "/haskell/c")
-         ,(if (null? tyvars)
-             body
-             `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) tyvars) ,body))))))
+  (define dataContractH
+    (match-lambda
+      ((struct c/Data (n t c)) 
+       (let ((body `(recursive-contract (or/c ,@(map constructorContractH c)))))
+         `(define ,(toSymbol n "/haskell/c")
+            ,(if (null? t) body `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) t) ,body))))))))
   
+  (define constructorContractH
+    (match-lambda
+      ((struct c/Constructor (n f)) `(,(toSymbol "constructor/" n "/c") ,@(map fieldContractH f)))))
+  
+  (define fieldContractH
+    (match-lambda
+      ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
   
   
-  
-  
-  #;(define (List#? contract1)
-      (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
   
   (define (dataPredicateExport typeName)
     `(provide ,(toSymbol typeName "?")))
