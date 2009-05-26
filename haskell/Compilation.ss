@@ -7,7 +7,89 @@
            (prefix-in t/ (lib "Types.ss" "sham"))
            (lib "TypeChecking.ss" "sham" "haskell"))
   
-  (provide compileModule compileSyntax)
+  (provide compileModule compileExpression)
+
+  ; Modules
+  
+  (define (compileModule syntax types)
+    (match syntax
+      ((struct c/Module (n e i d))
+       (let ((datas (filter c/Data? d))
+             (decls (filter c/Declaration? d)))
+         `(module ,(toSymbol n) scheme
+            (require (lib "Primitives.ss" "sham" "haskell"))
+            ,@(map importRequire i)
+            ,@(map importDefinition i)
+            ,@(foldl append null (map data datas))
+            ,@(map dataContractH datas)
+            ,@(map moduleDeclaration decls)
+            ,@(map exportDataH datas)
+            ,@(map exportDeclaration e))))))
+  
+  (define importRequire
+    (match-lambda
+      ((struct c/Import (l m n _))
+       (let ((modules (regexp-split #rx"\\." m)))
+         `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
+                            (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
+  
+  (define importDefinition
+    (match-lambda
+      ((struct c/Import (l m n t))
+       (let* ((qualifiedName (string-append m "." n))
+              (importQualifiedName (toSymbol "import/" qualifiedName)))
+         `(define ,(toSymbol "variable/" qualifiedName)
+            ,(match l
+               ("haskell" importQualifiedName #;(boundaryHH t importQualifiedName))
+               #;("ml" importQualifiedName #;(boundaryHM t importQualifiedName))
+               #;("scheme" importQualifiedName #;(boundaryHS t importQualifiedName))))))))
+  
+  (define moduleDeclaration
+    (match-lambda
+      ((struct c/Declaration (l r)) `(define ,(toSymbol "variable/" l) (delay ,(compileExpression r))))))
+  
+  (define exportDeclaration
+    (match-lambda
+      ((struct c/Export (n)) `(provide (rename-out (,(toSymbol "variable/" n) ,(toSymbol n)))))))
+  
+  (define exportDataH
+    (match-lambda
+      ((struct c/Data (n _ _)) `(provide ,(toSymbol "type/haskell/" n)))))
+  
+  ; Data contracts
+  
+  (define contractH
+    (match-lambda
+      ((struct t/Application ((struct t/Application ((struct t/Function ()) p)) r))
+       (let ((tyvarContract (lambda (x) (toSymbol "haskell/" x))))
+         (match (list p r)
+           ((list (struct t/Variable (p)) (struct t/Variable (r))) `(-> ,(tyvarContract p) ,(tyvarContract r)))
+           ((list (struct t/Variable (p)) r) `(-> ,(tyvarContract p) ,(contractH r)))
+           ((list p (struct t/Variable (r))) `(-> ,(contractH p) ,(tyvarContract r)))
+           ((list p r) `(-> ,(contractH p) ,(contractH r))))))
+      ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
+      ((struct t/Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
+      ((struct t/List ()) 'Haskell.List#/haskell/c)
+      ((struct t/Tuple (a)) `(Haskell.Tuple#/haskell/c ,a))
+      ((struct t/Unit ()) 'Haskell.Unit#/haskell/c)
+      ((struct t/Variable (n)) (toSymbol "haskell/" n))))
+  
+  (define dataContractH
+    (match-lambda
+      ((struct c/Data (n t c)) 
+       (let ((body `(recursive-contract (or/c ,@(map constructorContractH c)))))
+         `(define ,(toSymbol "type/haskell/" n)
+            ,(if (null? t) body `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) t) ,body))))))))
+  
+  (define constructorContractH
+    (match-lambda
+      ((struct c/Constructor (n f)) `(,(toSymbol "constructor/" n "/c") ,@(map fieldContractH f)))))
+  
+  (define fieldContractH
+    (match-lambda
+      ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
+  
+  ; Data
   
   (define constructorPredicate
     (match-lambda
@@ -22,7 +104,7 @@
     (match-let (((struct c/Constructor (n f)) constructor))
       (let ((cs (toSymbol "constructor/" n))
             (fs (map (lambda (x) (toSymbol x)) (map (match-lambda ((struct c/Field (n _)) n)) f))))
-        `(define-struct ,cs ,fs #:transparent))))
+        `(define-contract-struct ,cs ,fs))))
   
   (define (constructor typeName syntax)
     (let ((type (constructorDefinition typeName syntax))
@@ -42,131 +124,36 @@
     (match syntax
       ((struct c/Data (n _ c)) (foldl append null (map (curry constructor n) c)) #;(cons (dataContractH n) ))))
   
-  (define contractH
-    (match-lambda
-      ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
-      ((struct t/Constructor (n)) (string->symbol (string-append n "/haskell/c")))
-      ((struct t/Function ()) 'Function#/c)
-      ((struct t/List ()) 'List#)
-      ((struct t/Tuple (a)) `(type/Haskell.Tuple# ,a))
-      ((struct t/Unit ()) 'type/Haskell.Unit#)
-      ((struct t/Variable (n)) (string->symbol (string-append "haskell/" n "/wrapped")))))
-  
-  (define dataContractH
-    (match-lambda
-      ((struct c/Data (n t c)) 
-       (let ((body `(recursive-contract (or/c ,@(map constructorContractH c)))))
-         `(define ,(toSymbol n "/haskell/c")
-            ,(if (null? t) body `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) t) ,body))))))))
-  
-  (define constructorContractH
-    (match-lambda
-      ((struct c/Constructor (n f)) `(,(toSymbol "constructor/" n "/c") ,@(map fieldContractH f)))))
-  
-  (define fieldContractH
-    (match-lambda
-      ((struct c/Field (_ t)) `(promise/c ,(contractH t)))))
-  
-  
-  
-  (define (dataPredicateExport typeName)
-    `(provide ,(toSymbol typeName "?")))
-  
   (define (field constructorName fieldName)
     `(define ,(toSymbol "variable/" fieldName)
        (delay (lambda (x) (force (,(toSymbol "constructor/" constructorName "-" fieldName) (force x)))))))
   
-  (define (compileModule syntax types)
-    (match syntax
-      ((struct c/Module (n e i d))
-       (let ((datas (filter c/Data? d))
-             (decls (filter c/Declaration? d)))
-         `(module ,(toSymbol n) scheme
-            (define (coffer)
-              (define-struct Coffer (value))
-              (list make-Coffer Coffer-value Coffer?))
-            (require (lib "Primitives.ss" "sham" "haskell"))
-            ,@(map importRequire i)
-            ,@(map importDefinition i)
-            ,@(foldl append null (map data datas))
-            ,@(map moduleDeclaration decls)
-            ,@(map export e))))))
+  ; Expressions
   
-  (define compileSyntax
+  (define compileExpression
     (match-lambda 
-      ((struct c/Application (r d)) `(,(compileSyntax r) (delay ,(compileSyntax d))))
-      ((struct c/Character (v)) `(variable/Char ,(string-ref v 0)))
-      ((struct c/Float (v)) `(variable/Float ,(string->number v)))
-      ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileSyntax b)))
-      ((struct c/If (g t e)) `(if (equal? ,(compileSyntax g) (force variable/Haskell.True)) ,(compileSyntax t) ,(compileSyntax e)))
-      ((struct c/Integer (v)) `(variable/Int ,(string->number v)))
-      ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileSyntax b)))
+      ((struct c/Application (r d)) `(,(compileExpression r) (delay ,(compileExpression d))))
+      ((struct c/Character (v)) `(make-Char# ,(string-ref v 0)))
+      ((struct c/Float (v)) `(make-Float# ,(string->number v)))
+      ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileExpression b)))
+      ((struct c/If (g t e)) `(if (equal? ,(compileExpression g) (force variable/Haskell.True)) ,(compileExpression t) ,(compileExpression e)))
+      ((struct c/Integer (v)) `(make-Int# ,(string->number v)))
+      ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileExpression b)))
       ((struct c/ListConstructor ()) '(force variable/Haskell.Nil#))
-      ((struct c/TupleConstructor (a)) (tupleConstructor a))
+      ((struct c/TupleConstructor (a)) (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 a))))
+                                         `(curry (lambda ,vars (make-Tuple# (list ,@vars))))))
       ((struct c/UnitConstructor ()) '(force variable/Haskell.Unit#))
       ((struct c/Variable (n)) `(force ,(toSymbol "variable/" n)))))
-  
-  (define declarationExport
-    (match-lambda
-      ((struct c/Declaration (l _)) (list (string-append "variable/" l) l))))
-  
-  (define export
-    (match-lambda
-      ((struct c/Export (n)) `(provide (rename-out (,(toSymbol "variable/" n) ,(toSymbol n)))))))
-  
-  (define importDefinition
-    (match-lambda
-      ((struct c/Import (l m n t))
-       (let* ((qualifiedName (string-append m "." n))
-              (importQualifiedName (toSymbol "import/" qualifiedName)))
-         `(define ,(toSymbol "variable/" qualifiedName)
-            ,(match l
-               ("haskell" importQualifiedName #;(boundaryHH t importQualifiedName))
-               #;("ml" importQualifiedName #;(boundaryHM t importQualifiedName))
-               #;("scheme" importQualifiedName #;(boundaryHS t importQualifiedName))))))))
-  
-  (define importRequire
-    (match-lambda
-      ((struct c/Import (l m n _))
-       (let ((modules (regexp-split #rx"\\." m)))
-         `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
-                            (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
   
   (define letDeclaration
     (match-lambda
       ((struct c/Declaration (l r))
-       `(,(toSymbol "variable/" l) (delay ,(compileSyntax r))))))
+       `(,(toSymbol "variable/" l) (delay ,(compileExpression r))))))
   
-  (define moduleDeclaration
-    (match-lambda
-      ((struct c/Declaration (l r)) `(define ,(toSymbol "variable/" l) (delay ,(compileSyntax r))))))
+  ; Miscellaneous
   
   (define toSymbol
     (lambda s (string->symbol (foldl (lambda (x y) (string-append y x)) "" s))))
   
   #;(define toSyntax
-      (lambda s `,(string->symbol (foldl (lambda (x y) (string-append y x)) "" s))))
-  
-  (define (tupleConstructor arity)
-    (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 arity))))
-      `(curry (lambda ,vars (list ,@vars)))))
-  
-  ; Data declaration type variables
-  
-  (define dataTypeVariables
-    (match-lambda
-      ((struct c/Data (_ _ c)) (foldl append null (map constructorTypeVariables c)))))
-  
-  (define constructorTypeVariables
-    (match-lambda
-      ((struct c/Constructor (_ f)) (foldl (lambda (x y)
-                                             (match x
-                                               ((struct Just (v)) (cons v y))
-                                               ((struct Nothing ()) y)))
-                                           null
-                                           (map fieldTypeVariable f)))))
-  
-  (define fieldTypeVariable
-    (match-lambda
-      ((struct c/Field (_ (struct t/Variable (n)))) (make-Just n))
-      ((struct c/Field (_ _)) (make-Nothing)))))
+      (lambda s `,(string->symbol (foldl (lambda (x y) (string-append y x)) "" s)))))

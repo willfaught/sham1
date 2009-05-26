@@ -1,9 +1,14 @@
 (module Haskell scheme
-  (require (lib "CoreSyntax.ss" "sham" "haskell")
-           (lib "Parsers.ss" "sham" "haskell")
-           (lib "Types.ss" "sham"))
+  (require (lib "Parsing.ss" "sham" "haskell")
+           (lib "Primitives.ss" "sham" "haskell"))
   
-  (provide (rename-out (variable/False False)
+  (provide type/haskell/Bool
+           type/haskell/Char
+           type/haskell/Float
+           type/haskell/Int
+           type/haskell/List#
+           type/haskell/Tuple#
+           (rename-out (variable/False False)
                        (variable/Nil# Nil#)
                        (variable/True True)
                        (variable/Unit# Unit#)
@@ -17,71 +22,33 @@
                        (variable/tail tail)
                        (variable/: :)))
   
-  (define preludeParsers (parsers "Prelude"))
+  (define-contract-struct constructor/Cons# (head tail))
   
-  (define declarations#
-    (let ((parseT (parser 'type preludeParsers)))
-      (map (match-lambda ((list _ t) (parseT t))) (list (list "False" "Bool")
-                                                        (list "[]" "[a]")
-                                                        (list "True" "Bool")
-                                                        (list "()" "()")
-                                                        (list "error" "[Char] -> a")
-                                                        (list "fst" "(a, b) -> a")
-                                                        (list "head" "[a] -> a")
-                                                        (list "isFalse" "Bool -> Bool")
-                                                        (list "isTrue" "Bool -> Bool")
-                                                        (list "null" "[a] -> Bool")
-                                                        (list "snd" "(a, b) -> b")
-                                                        (list "tail" "[a] -> [a]")
-                                                        (list ":" "a -> [a] -> [a]")))))
+  (define-contract-struct constructor/False ())
   
-  (define types#
-    (map (lambda (x) (parseD x)) (list "data Bool = False | True"
-    
+  (define-contract-struct constructor/Nil# ())
   
-  (define-struct Char# (value) #:transparent)
+  (define-contract-struct constructor/True ())
   
-  (define-struct Float# (value) #:transparent)
+  (define-contract-struct constructor/Unit# ())
   
-  (define-struct Int# (value) #:transparent)
-  
-  (define-struct Tuple# (value) #:transparent)
-  
-  (define-contract-struct Cons# (head tail) #:transparent)
-  
-  (define-contract-struct False () #:transparent)
-  
-  (define-contract-struct Nil# () #:transparent)
-  
-  (define-contract-struct True () #:transparent)
-  
-  (define-contract-struct Unit# () #:transparent)
-  
-  (define Char/haskell/c
-    (struct/c Char# char?))
-  
-  (define Float/haskell/c
-    (struct/c Float# number?))
-  
-  (define Int/haskell/c
-    (struct/c Int# integer?))
-  
-  (define (List#/haskell/c haskell/a/c)
-    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a/c) (promise/c (List#? haskell/a/c))))))
-  
-  (define (Tuple#/haskell/c c)
-    (struct/c constructor/Char c))
-  
-  (define Function#?
-    (lambda (contract1)
-      (lambda (contract2)
-        (-> contract1 contract2))))
-  
-  (define Bool/haskell/c
+  (define type/haskell/Bool
     (curry (lambda (language value) (contract (or/c (struct/c constructor/False) (struct/c constructor/True)) value language 'haskell))))
   
-  (define (List#? contract1)
-    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c contract1) (promise/c (List#? contract1))))))
+  (define type/haskell/Char
+    (struct/c Char# char?))
+  
+  (define type/haskell/Float
+    (struct/c Float# number?))
+  
+  (define type/haskell/Int
+    (struct/c Int# integer?))
+  
+  (define (type/haskell/List# haskell/a)
+    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a) (promise/c (type/haskell/List# haskell/a))))))
+  
+  (define (type/haskell/Tuple# haskell/a)
+    (eval `(list/c ,@haskell/a)))
   
   (define variable/False
     (delay (make-constructor/False)))
