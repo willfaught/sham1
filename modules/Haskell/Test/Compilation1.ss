@@ -1,6 +1,6 @@
 #reader (lib "Reader.ss" "sham" "haskell")
 
-module CompilationTest1 where {
+module Compilation1 where {
 
 data Maybe a = Nothing | Just { fromJust :: a };
 
@@ -26,29 +26,29 @@ fu2 = \x y -> x;
 
 fu3 = \x y -> y;
 
-id1 = Haskell.fst;
+id1 = Haskell.Prelude.fst;
 
-id2 = Haskell.head;
+id2 = Haskell.Prelude.head;
 
-id3 = Haskell.isFalse;
+id3 = Haskell.Prelude.isFalse;
 
-id4 = Haskell.isTrue;
+id4 = Haskell.Prelude.isTrue;
 
-id5 = Haskell.null;
+id5 = Haskell.Prelude.null;
 
-id6 = Haskell.snd;
+id6 = Haskell.Prelude.snd;
 
-id7 = Haskell.tail;
+id7 = Haskell.Prelude.tail;
 
-id8 = Haskell.False;
+id8 = Haskell.Prelude.False;
 
-id9 = Haskell.True;
+id9 = Haskell.Prelude.True;
 
-id10 = (Haskell.:);
+id10 = (Haskell.Prelude.:);
 
-if1 = if Haskell.True then 1 else 2;
+if1 = if Haskell.Prelude.True then 1 else 2;
 
-if2 = if Haskell.False then 1 else 2;
+if2 = if Haskell.Prelude.False then 1 else 2;
 
 in1 = 1;
 
