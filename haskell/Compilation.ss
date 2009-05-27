@@ -69,9 +69,9 @@
            ((list p r) `(-> ,(contractH p) ,(contractH r))))))
       ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
       ((struct t/Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
-      ((struct t/List ()) 'Haskell.List#/haskell/c)
-      ((struct t/Tuple (a)) `(Haskell.Tuple#/haskell/c ,a))
-      ((struct t/Unit ()) 'Haskell.Unit#/haskell/c)
+      ((struct t/List ()) 'type/haskell/Haskell.Prelude.List#)
+      ((struct t/Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
+      ((struct t/Unit ()) 'type/Haskell/Haskell.Prelude.Unit#)
       ((struct t/Variable (n)) (toSymbol "haskell/" n))))
   
   (define dataContractH
@@ -97,8 +97,8 @@
        `(define ,(toSymbol "variable/is" n)
           (delay (lambda (x)
                    (if (,(toSymbol "constructor/" n "?") (force x))
-                       (force variable/Haskell.True)
-                       (force variable/Haskell.False))))))))
+                       (force variable/Haskell.Prelude.True)
+                       (force variable/Haskell.Prelude.False))))))))
   
   (define (constructorDefinition typeName constructor)
     (match-let (((struct c/Constructor (n f)) constructor))
@@ -136,13 +136,13 @@
       ((struct c/Character (v)) `(make-Char# ,(string-ref v 0)))
       ((struct c/Float (v)) `(make-Float# ,(string->number v)))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileExpression b)))
-      ((struct c/If (g t e)) `(if (equal? ,(compileExpression g) (force variable/Haskell.True)) ,(compileExpression t) ,(compileExpression e)))
+      ((struct c/If (g t e)) `(if (equal? ,(compileExpression g) (force variable/Haskell.Prelude.True)) ,(compileExpression t) ,(compileExpression e)))
       ((struct c/Integer (v)) `(make-Int# ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileExpression b)))
-      ((struct c/ListConstructor ()) '(force variable/Haskell.Nil#))
+      ((struct c/ListConstructor ()) '(force variable/Haskell.Prelude.Nil#))
       ((struct c/TupleConstructor (a)) (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 a))))
                                          `(curry (lambda ,vars (make-Tuple# (list ,@vars))))))
-      ((struct c/UnitConstructor ()) '(force variable/Haskell.Unit#))
+      ((struct c/UnitConstructor ()) '(force variable/Haskell.Prelude.Unit#))
       ((struct c/Variable (n)) `(force ,(toSymbol "variable/" n)))))
   
   (define letDeclaration

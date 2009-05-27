@@ -25,7 +25,7 @@
       ((struct h/Impdecl (l m i)) (map (match-lambda ((struct h/Import (n t)) (c/make-Import l m n t))) i))
       ((struct h/Integer (v)) (c/make-Integer v))
       ((struct h/Let (d b)) (c/make-Let (map transformSyntax d) (transformSyntax b)))
-      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable "Haskell.:") (transformSyntax x)) y)) (c/make-ListConstructor) e))
+      ((struct h/List (e)) (foldr (lambda (x y) (c/make-Application (c/make-Application (c/make-Variable "Haskell.Prelude.:") (transformSyntax x)) y)) (c/make-ListConstructor) e))
       ((struct h/ListConstructor ()) (c/make-ListConstructor))
       ((struct h/Module (n e i d))
        (c/make-Module n
@@ -64,4 +64,4 @@
                     (list ":" (parseT "a -> [a] -> [a]"))))))
   
   (define preludeImpdecl
-    (h/make-Impdecl "haskell" "Haskell" (map (match-lambda ((list n t) (h/make-Import n t))) preludeTypes))))
+    (h/make-Impdecl "haskell" "Haskell.Prelude" (map (match-lambda ((list n t) (h/make-Import n t))) preludeTypes))))

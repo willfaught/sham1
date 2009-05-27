@@ -1,4 +1,4 @@
-(module Haskell scheme
+(module Prelude scheme
   (require (lib "Parsing.ss" "sham" "haskell")
            (lib "Primitives.ss" "sham" "haskell"))
   
