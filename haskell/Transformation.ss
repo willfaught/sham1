@@ -61,7 +61,13 @@
                     (list "null" (parseT "[a] -> Bool"))
                     (list "snd" (parseT "(a, b) -> b"))
                     (list "tail" (parseT "[a] -> [a]"))
-                    (list ":" (parseT "a -> [a] -> [a]"))))))
+                    (list ":" (parseT "a -> [a] -> [a]"))
+                    (list "+" (parseT "Int -> Int -> Int"))
+                    (list "-" (parseT "Int -> Int -> Int"))
+                    (list "*" (parseT "Int -> Int -> Int"))
+                    (list "/" (parseT "Int -> Int -> Int"))
+                    (list "==" (parseT "Int -> Int -> Bool"))
+                    (list "/=" (parseT "Int -> Int -> Bool"))))))
   
   (define preludeImpdecl
     (h/make-Impdecl "haskell" "Haskell.Prelude" (map (match-lambda ((list n t) (h/make-Import n t))) preludeTypes))))

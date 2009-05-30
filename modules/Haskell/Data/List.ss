@@ -1,17 +1,11 @@
 #reader (lib "Reader.ss" "sham" "haskell")
 
-module List () where {
+module List ((++), map, filter) where {
 
-x ++ y = if null x then y else (:) (head x) ((++) (tail x) y);
+x ++ y = if Haskell.Prelude.null x then y else (Haskell.Prelude.:) (Haskell.Prelude.head x) ((++) (Haskell.Prelude.tail x) y);
 
---tail
+map f x = if Haskell.Prelude.null x then [] else (Haskell.Prelude.:) (f (Haskell.Prelude.head x)) (Haskell.Prelude.tail x);
 
---init
-
---length x = if null x then 0 else 
-
-map f x = if null x then [] else (:) (f (head x)) (tail x);
-
-reverse x = 
+filter p x = let { h = Haskell.Prelude.head x ; t = Haskell.Prelude.tail x ; rest = filter p t } in if p h then (Haskell.Prelude.:) h rest else rest
 
 }

@@ -20,7 +20,13 @@
                        (variable/null null)
                        (variable/snd snd)
                        (variable/tail tail)
-                       (variable/: :)))
+                       (variable/: :)
+                       (variable/+ +)
+                       (variable/- -)
+                       (variable/* *)
+                       (variable// /)
+                       (variable/== ==)
+                       (variable//= /=)))
   
   (define-contract-struct constructor/Cons# (head tail))
   
@@ -95,22 +101,37 @@
   (define variable/:
     (delay (lambda (x) (lambda (y) (make-constructor/Cons# x y)))))
   
-  ;;;;;;;;;
+  (define variable/+
+    (delay (lambda (x)
+             (lambda (y)
+               (+ (force x) (force y))))))
   
-  #;(define variable/trace
-      (delay (lambda (x) (lambda (y) (print ((force primitive/show) x)) (force y)))))
+  (define variable/-
+    (delay (lambda (x)
+             (lambda (y)
+               (- (force x) (force y))))))
   
-  (define primitive/equal (delay (lambda (x) (lambda (y) (if (equal? (force x) (force y))
-                                                             (force variable/True)
-                                                             (force variable/False))))))
+  (define variable/*
+    (delay (lambda (x)
+             (lambda (y)
+               (* (force x) (force y))))))
   
-  (define primitive/numberAdd (delay (lambda (x) (lambda (y) (+ (force x) (force y))))))
+  (define variable//
+    (delay (lambda (x)
+             (lambda (y)
+               (quotient (force x) (force y))))))
   
-  (define primitive/numberDivide (delay (lambda (x) (lambda (y) (/ (force x) (force y))))))
+  (define variable/==
+    (delay (lambda (x)
+             (lambda (y)
+               (= (force x) (force y))))))
   
-  (define primitive/numberMultiply (delay (lambda (x) (lambda (y) (* (force x) (force y))))))
+  (define variable//=
+    (delay (lambda (x)
+             (lambda (y)
+               (not (= (force x) (force y)))))))
   
-  (define primitive/numberSubtract (delay (lambda (x) (lambda (y) (- (force x) (force y))))))
+  #;(define variable/trace 'TODO)
   
   #;(define primitive/show 'TODO)
   
