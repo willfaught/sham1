@@ -1,7 +1,7 @@
 (module Boundary scheme
   (require (lib "Types.ss" "sham"))
   
-  (provide boundaryHH #;boundaryHM #;boundaryHS #;boundaryMH #;boundaryMS #;boundarySH #;boundarySM)
+  (provide boundaryHH #;boundaryHM #;boundaryHS #;boundaryMH #;boundaryMS #;boundarySH #;boundarySM contractH)
   
   (define variableBindings
     (match-lambda ((struct Variable (n)) `((list ,(string->symbol (string-append "haskell/wrap/" n))
@@ -16,8 +16,8 @@
         ((list) cont)
         (_ `((lambda () (match-let ,(map variableBindings tyvars) ,cont)))))))
   
-  (define (boundaryHH type syntax)
-    `(contract ,(contractHH type) syntax 'ThatHaskell 'ThisHaskell))
+  (define (boundaryHH type)
+    `(lambda (x) (contract ,(contractHH type) x 'ThatHaskell 'ThisHaskell)))
   
   #;(define (boundaryHM type syntax)
       #`(contract #,(contractHM type) #,(convertHM type syntax 1) 'ml 'haskell))
@@ -33,22 +33,28 @@
   
   (define contractH
     (match-lambda
+      ((struct Application ((struct Application ((struct Function ()) p)) r))
+       (let ((tyvarContract (lambda (x) (string->symbol (string-append "haskell/" x)))))
+         (match (list p r)
+           ((list (struct Variable (p)) (struct Variable (r))) `(-> ,(tyvarContract p) ,(tyvarContract r)))
+           ((list (struct Variable (p)) r) `(-> ,(tyvarContract p) ,(contractH r)))
+           ((list p (struct Variable (r))) `(-> ,(contractH p) ,(tyvarContract r)))
+           ((list p r) `(-> ,(contractH p) ,(contractH r))))))
       ((struct Application (r d)) `(,(contractH r) ,(contractH d)))
-      ((struct Constructor (n)) (string->symbol (string-append "type/" n)))
-      ((struct Function ()) 'type/Haskell.Function#)
-      ((struct List ()) 'type/Haskell.List#)
-      ((struct Tuple (a)) `(type/Haskell.Tuple# ,a))
-      ((struct Unit ()) 'type/Haskell.Unit#)
+      ((struct Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
+      ((struct List ()) 'type/haskell/Haskell.Prelude.List#)
+      ((struct Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
+      ((struct Unit ()) 'type/Haskell/Haskell.Prelude.Unit#)
       ((struct Variable (n)) (string->symbol (string-append "haskell/" n)))))
   
   (define contractHH
     (match-lambda
       ((struct Application (r d)) `(,(contractHH r) (contractHH d)))
-      ((struct Constructor (n)) (string->symbol (string-append n "?")))
-      ((struct Function ()) 'Haskell.Function#?)
-      ((struct List ()) 'Haskell.List#?)
-      ((struct Tuple (a)) `(Haskell.Tuple#? ,a))
-      ((struct Unit ()) 'Haskell.Unit#?)
+      ((struct Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
+      ((struct Function ()) '->)
+      ((struct List ()) 'type/haskell/Haskell.Prelude.List#)
+      ((struct Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
+      ((struct Unit ()) 'type/haskell/Haskell.Prelude.Unit#)
       ((struct Variable (_)) 'any/c)))
   
   (define contractHM any/c

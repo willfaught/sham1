@@ -19,6 +19,7 @@
          `(module ,(toSymbol n) scheme
             (require (lib "Primitives.ss" "sham" "haskell"))
             ,@(map importRequire i)
+            ,@(remove-duplicates (foldl append null (map importTypes i)))
             ,@(map importDefinition i)
             ,@(foldl append null (map data datas))
             ,@(map dataContractH datas)
@@ -33,6 +34,21 @@
          `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
                             (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
   
+  (define importTypes
+    (match-lambda
+      ((struct c/Import (l m _ t))
+       (let ((modules (regexp-split #rx"\\." m)))
+         (map (match-lambda
+                ((struct t/Constructor (n))
+                 `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1)) ,(toSymbol "type/" l "/" n)))))
+              (typeConstructors t))))))
+  
+  (define typeConstructors
+    (match-lambda
+      ((struct t/Application (r d)) (append (typeConstructors r) (typeConstructors d)))
+      ((? t/Constructor? x) (list x))
+      (_ null)))
+  
   (define importDefinition
     (match-lambda
       ((struct c/Import (l m n t))
@@ -40,7 +56,7 @@
               (importQualifiedName (toSymbol "import/" qualifiedName)))
          `(define ,(toSymbol "variable/" qualifiedName)
             ,(match l
-               ("haskell" importQualifiedName #;(boundaryHH t importQualifiedName))
+               ("haskell" `(,(boundaryHH t) ,importQualifiedName))
                #;("ml" importQualifiedName #;(boundaryHM t importQualifiedName))
                #;("scheme" importQualifiedName #;(boundaryHS t importQualifiedName))))))))
   
@@ -57,22 +73,6 @@
       ((struct c/Data (n _ _)) `(provide ,(toSymbol "type/haskell/" n)))))
   
   ; Data contracts
-  
-  (define contractH
-    (match-lambda
-      ((struct t/Application ((struct t/Application ((struct t/Function ()) p)) r))
-       (let ((tyvarContract (lambda (x) (toSymbol "haskell/" x))))
-         (match (list p r)
-           ((list (struct t/Variable (p)) (struct t/Variable (r))) `(-> ,(tyvarContract p) ,(tyvarContract r)))
-           ((list (struct t/Variable (p)) r) `(-> ,(tyvarContract p) ,(contractH r)))
-           ((list p (struct t/Variable (r))) `(-> ,(contractH p) ,(tyvarContract r)))
-           ((list p r) `(-> ,(contractH p) ,(contractH r))))))
-      ((struct t/Application (r d)) `(,(contractH r) ,(contractH d)))
-      ((struct t/Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
-      ((struct t/List ()) 'type/haskell/Haskell.Prelude.List#)
-      ((struct t/Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
-      ((struct t/Unit ()) 'type/Haskell/Haskell.Prelude.Unit#)
-      ((struct t/Variable (n)) (toSymbol "haskell/" n))))
   
   (define dataContractH
     (match-lambda
