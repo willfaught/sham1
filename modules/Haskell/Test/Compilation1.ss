@@ -46,6 +46,34 @@ id9 = Haskell.Prelude.True;
 
 id10 = (Haskell.Prelude.:);
 
+id11 = Haskell.Prelude.intAdd;
+
+id12 = Haskell.Prelude.intDivide;
+
+id13 = Haskell.Prelude.intMultiply;
+
+id14 = Haskell.Prelude.intSubtract;
+
+id15 = Haskell.Prelude.floatAdd;
+
+id16 = Haskell.Prelude.floatDivide;
+
+id17 = Haskell.Prelude.floatMultiply;
+
+id18 = Haskell.Prelude.floatSubtract;
+
+id19 = (Haskell.Prelude.+);
+
+id20 = (Haskell.Prelude.-);
+
+id21 = (Haskell.Prelude.*);
+
+id22 = (Haskell.Prelude./);
+
+id23 = (Haskell.Prelude.==);
+
+id24 = (Haskell.Prelude./=);
+
 if1 = if Haskell.Prelude.True then 1 else 2;
 
 if2 = if Haskell.Prelude.False then 1 else 2;
