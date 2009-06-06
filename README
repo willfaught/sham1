@@ -1,58 +1,49 @@
-Author: Will Faught (wfaught@calpoly.edu)
-Date: May 6, 2008
+SCHEME, HASKELL, AND ML (SHAM)
 
-1. GRAMMAR
+Author: Will Faught
+Contact: will dot faught at gmail dot com
+Date: May 1, 2009
 
-A subset of the Haskell 98 grammar, extended with a Scheme embedding expression, is supported.
+INSTALLATION
+
+Name the root directory 'sham' and move it to the DrScheme collects directory.
+
+Haskell source files must have the following as their first line:
+
+#reader (lib "Reader.ss" "sham" "haskell")
+
+QUICK START
+
+See modules/Haskell/CompilationTest1.hs for examples of the supported Haskell grammar.
+
+HASKELL
+
+-Grammar Overview-
+
+SHAM Haskell provides a subset of the Haskell 98 grammar, extended with import type declarations.
 
 The following notable grammar is not supported:
 
-  - Layout
+* Layout - Braces and semicolons must be used where appropriate.
 
-    Braces and semicolons must be used where appropriate.
+* Pattern matching - Only variable patterns are supported.
 
-  - Pattern matching
+* Infix application - Binary functions must be applied in prefix position.  For example, (:) x y instead of x : y.
 
-    Only variable patterns are supported.
+* Case expressions - Case expressions are useless without pattern matching.
 
-  - Infix application
+* Anonymous data constructor fields - Fields must be named since pattern matching is not supported.  For example, data Tree = Branch { left, right :: Tree } | Leaf { leaf :: Int }.
 
-    Binary functions must be applied in prefix position.  For example, (:) 1 [2] instead of 1 : [2].
+Many other grammar features are also not supported, but too numerous to enumerate here.  Stick to the "basics," look at example code, or check the parser definition in Parsing.ss to be sure you use only supported correct grammar.
 
-  - Case expressions
-
-    Case expressions are useless without pattern matching.
-
-  - Parameterized data types
-
-    Data declaration type variables are not supported.  Types must appear alone on the left hand side of a data type declaration.
-
-  - Anonymous data fields
-
-    Data fields must be named since pattern matching is not supported.  For example, data Tree = Branch { left, right :: Tree } | Leaf { leaf :: Int }.  Empty braces for empty data constructors can be included or excluded.  For example, data Bool = True {} | False.
-
-Many other grammar features are also not supported, but too numerous to enumerate here.  Stick to the "basics" or check the parser definition in parsers.ss to be sure you use correct grammar.
-
-The Scheme embedding expression grammar is:
-
-  :scheme <type> "<identifier>"
-
-where <type> is a Haskell type and <identifier> is a Scheme identifier defined in primitives.ss.
-
-2. EXTENSIONS
+-Extensions-
 
 The Bool type is built in and satisfies the declaration data Bool = True | False.
 
 Since pattern matching is not supported, special predicates are generated for every data constructor C of type T of the form isC :: T -> Bool.  For example, for the type Bool, the predicates isTrue :: Bool -> Bool and isFalse :: Bool -> Bool are generated.
 
-3. RUNNING
+The import type declaration syntax is:
 
-Put the following line at the top of any Haskell file:
+import haskell MyModule (mydecl :: [a], ...)
 
-#reader (lib "reader.ss" "haskell")
-
-The file can then be run.  All top-level Haskell identifiers are prefixed with "scheme:", but are exported unchanged.
-
-4. REMARKS
-
-See lib/Test.hs for an example of the supported grammar in use.
+Module importation is not yet fully implemented, and is not expected to work.  Haskell types are used to describe all data exchanged between interoperating modules.
