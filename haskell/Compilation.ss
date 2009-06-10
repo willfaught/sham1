@@ -20,18 +20,19 @@
             (require (lib "Primitives.ss" "sham" "haskell"))
             ,@(map importData i)
             ,@(remove-duplicates (foldl append null (map importTypes i)))
+            ,@(map exportDataH datas)
+            ,@(map exportDeclaration e)
             ,@(map importDefinition i)
             ,@(foldl append null (map data datas))
             ,@(map dataContractH datas)
             ,@(map moduleDeclaration decls)
-            ,@(map exportDataH datas)
-            ,@(map exportDeclaration e))))))
+            )))))
   
   (define (importRequire item)
     `(require ,item))
   
-  (define (importRequireOnly library items)
-    (importRequire `(only-in ,library ,@items)))
+  (define (importRequireOnly library item)
+    (importRequire `(only-in ,library ,item)))
   
   (define (importLibrary modules)
     `(lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1)))
@@ -41,38 +42,42 @@
   
   (define importData
     (match-lambda
-      ((struct c/Import (l m n _)) (importRequireOnly (importLibrary (splitModules m)) (list `(,(toSymbol n) ,(toSymbol "import/" m "." n)))))))
+      ((struct c/Import (l m n _)) (importRequireOnly (importLibrary (splitModules m)) `(,(toSymbol n) ,(toSymbol "import/" m "." n))))))
   
-  (define (importName language module name)
-    (toSymbol "type/" language "/" module "." name))
-  
-  (define (qualifiedType type language module)
+  (define (importModule language module type)
     (match type
-      ((struct t/Constructor (n)) (string-append module "." n))
+      ((struct t/Application (_ _)) (error 'importType "Unexpected type application"))
+      ((struct t/Constructor (_)) module)
+      ((struct t/Variable (_)) (error 'importType "Unexpected type variable"))
+      (_ (match language
+           ("haskell" "Haskell.Prelude")
+           #;("ml" 'TODO)
+           #;("scheme" 'TODO)))))
+  
+  (define (importName language module type)
+    (match type
+      ((struct t/Constructor (n)) `(,(toSymbol n "/" language) ,(toSymbol "type/" module "." n "/" language)))
+      ((struct t/Function ()) (error 'importType "Unexpected function type constructor"))
       ((struct t/List ()) (match language
-                            ("haskell" "Haskell.Prelude.List#")
-                            ("ml" 'TODO)
-                            ("scheme" 'TODO)))
+                            ("haskell" `(List#/haskell type/Haskell.Prelude.List#/haskell))
+                            #;("ml" 'TODO)
+                            #;("scheme" 'TODO)))
       ((struct t/Tuple (_)) (match language
-                              ("haskell" "Haskell.Prelude.Tuple#")
-                              ("ml" 'TODO)
-                              ("scheme" 'TODO)))
+                              ("haskell" `(Tuple#/haskell type/Haskell.Prelude.Tuple#/haskell))
+                              #;("ml" 'TODO)
+                              #;("scheme" 'TODO)))
       ((struct t/Unit ()) (match language
-                            ("haskell" "Haskell.Prelude.Unit#")
-                            ("ml" 'TODO)
-                            ("scheme" 'TODO)))))
+                            ("haskell" `(Unit#/haskell type/Haskell.Prelude.Unit#/haskell))
+                            #;("ml" 'TODO)
+                            #;("scheme" 'TODO)))))
   
   (define (importType language module type)
-    (importRequireOnly (importLibrary (splitModules module)) (toSymbol "type/" language "/" module "." (t/Constructor-name type))))
+    (importRequireOnly (importLibrary (splitModules (importModule language module type)))
+                       (importName language module type)))
   
   (define importTypes
     (match-lambda
-      ((struct c/Import (l m _ t)) (map (curry importType l m) (remove-duplicates (filter t/Constructor? (t/typeConstructors t)))))))
-  
-  (define preludeLibrary (importLibrary (list "Haskell" "Prelude")))
-  
-  (define importPreludeTypes
-    (importRequireOnly preludeLibrary (toSymbol "type/haskell/
+      ((struct c/Import (l m _ t)) (map (curry importType l m) (remove-duplicates (filter (lambda (x) (not (t/Function? x))) (t/typeConstructors t)))))))
   
   (define importDefinition
     (match-lambda
@@ -82,8 +87,8 @@
          `(define ,(toSymbol "variable/" qualifiedName)
             ,(match l
                ("haskell" `(,(boundaryHH t) ,importQualifiedName))
-               #;("ml" importQualifiedName #;(boundaryHM t importQualifiedName))
-               #;("scheme" importQualifiedName #;(boundaryHS t importQualifiedName))))))))
+               #;("ml" 'TODO)
+               #;("scheme" 'TODO)))))))
   
   (define moduleDeclaration
     (match-lambda
@@ -95,7 +100,7 @@
   
   (define exportDataH
     (match-lambda
-      ((struct c/Data (n _ _)) `(provide ,(toSymbol "type/haskell/" n)))))
+      ((struct c/Data (n _ _)) `(provide (rename-out (,(toSymbol "type/" n "/haskell") (toSymbol n "/haskell")))))))
   
   ; Data contracts
   
@@ -103,8 +108,8 @@
     (match-lambda
       ((struct c/Data (n t c)) 
        (let ((body `(recursive-contract (or/c ,@(map constructorContractH c)))))
-         `(define ,(toSymbol "type/haskell/" n)
-            ,(if (null? t) body `(curry (lambda ,(map (lambda (x) (toSymbol "haskell/" x)) t) ,body))))))))
+         `(define ,(toSymbol "type/" n "/haskell")
+            ,(if (null? t) body `(curry (lambda ,(map (lambda (x) (toSymbol "variable/" x)) t) ,body))))))))
   
   (define constructorContractH
     (match-lambda

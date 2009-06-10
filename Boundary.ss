@@ -34,7 +34,7 @@
            ((list p (struct Variable (r))) `(-> ,(contractH p) ,(tyvarContract r)))
            ((list p r) `(-> ,(contractH p) ,(contractH r))))))
       ((struct Application (r d)) `(,(contractH r) ,(contractH d)))
-      ((struct Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
+      ((struct Constructor (n)) (string->symbol (string-append "type/" n "/haskell")))
       ((struct List ()) 'type/haskell/Haskell.Prelude.List#)
       ((struct Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
       ((struct Unit ()) 'type/Haskell/Haskell.Prelude.Unit#)

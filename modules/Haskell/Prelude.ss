@@ -2,13 +2,14 @@
   (require (lib "Parsing.ss" "sham" "haskell")
            (lib "Primitives.ss" "sham" "haskell"))
   
-  (provide type/haskell/Bool
-           type/haskell/Char
-           type/haskell/Float
-           type/haskell/Int
-           type/haskell/List#
-           type/haskell/Tuple#
-           (rename-out (variable/False False)
+  (provide (rename-out (type/Bool/haskell Bool/haskell)
+                       (type/Char/haskell Char/haskell)
+                       (type/Float/haskell Float/haskell)
+                       (type/Int/haskell Int/haskell)
+                       (type/List#/haskell List#/haskell)
+                       (type/Tuple#/haskell Tuple#/haskell)
+                       (type/Unit#/haskell Unit#/haskell)
+                       (variable/False False)
                        (variable/Nil# Nil#)
                        (variable/True True)
                        (variable/Unit# Unit#)
@@ -52,23 +53,26 @@
   
   (define-contract-struct constructor/Unit# ())
   
-  (define type/haskell/Bool
+  (define type/Bool/haskell
     (curry (lambda (language value) (contract (or/c (struct/c constructor/False) (struct/c constructor/True)) value language 'haskell))))
   
-  (define type/haskell/Char
+  (define type/Char/haskell
     (struct/c Char# char?))
   
-  (define type/haskell/Float
+  (define type/Float/haskell
     (struct/c Float# number?))
   
-  (define type/haskell/Int
+  (define type/Int/haskell
     (struct/c Int# integer?))
   
-  (define (type/haskell/List# haskell/a)
-    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a) (promise/c (type/haskell/List# haskell/a))))))
+  (define (type/List#/haskell haskell/a)
+    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a) (promise/c (type/List#/haskell haskell/a))))))
   
-  (define (type/haskell/Tuple# haskell/a)
+  (define (type/Tuple#/haskell haskell/a)
     (eval `(list/c ,@haskell/a)))
+  
+  (define type/Unit#/haskell
+    (recursive-contract (or/c (constructor/Unit#/c))))
   
   (define variable/False
     (delay (make-constructor/False)))
