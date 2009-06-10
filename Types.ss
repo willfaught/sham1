@@ -17,8 +17,14 @@
   
   (define-struct (Variable Type) (name) #:transparent)
   
-  (define variables
+  (define typeConstructors
     (match-lambda
-      ((struct Application (r d)) (append (variables r) (variables d)))
+      ((struct Application (r d)) (append (typeConstructors r) (typeConstructors d)))
+      ((struct Variable (_)) null)
+      (x (list x))))
+  
+  (define typeVariables
+    (match-lambda
+      ((struct Application (r d)) (append (typeVariables r) (typeVariables d)))
       ((? Variable? x) (list x))
       (_ null))))

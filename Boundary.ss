@@ -3,21 +3,14 @@
   
   (provide boundaryHH #;boundaryHM #;boundaryHS #;boundaryMH #;boundaryMS #;boundarySH #;boundarySM contractH)
   
-  (define variableBindings
-    (match-lambda ((struct Variable (n)) `((list ,(string->symbol (string-append "haskell/wrap/" n))
-                                                 ,(string->symbol (string-append "haskell/unwrap/" n))
-                                                 ,(string->symbol (string-append "haskell/wrapped/" n)))
-                                           (make-haskell/Coffer)))))
-  
-  (define (boundaryH type syntax)
-    (let ((tyvars (remove-duplicates (variables type)))
-          (cont `(contract ,(contractH type) ,syntax 'ThatHaskell 'ThisHaskell)))
-      (match tyvars
-        ((list) cont)
-        (_ `((lambda () (match-let ,(map variableBindings tyvars) ,cont)))))))
+  (define tyvarBindings
+    (match-lambda ((struct Variable (n)) `((list ,(string->symbol (string-append "typeVariable/wrap/" n))
+                                                 ,(string->symbol (string-append "typeVariable/unwrap/" n))
+                                                 ,(string->symbol (string-append "typeVariable/" n)))
+                                           (coffer)))))
   
   (define (boundaryHH type)
-    `(lambda (x) (contract ,(contractHH type) x 'ThatHaskell 'ThisHaskell)))
+    `(lambda (x) (contract (match-let ,(map tyvarBindings (remove-duplicates (typeVariables type))) ,(contractH type)) x 'ThatHaskell 'ThisHaskell)))
   
   #;(define (boundaryHM type syntax)
       #`(contract #,(contractHM type) #,(convertHM type syntax 1) 'ml 'haskell))
@@ -34,7 +27,7 @@
   (define contractH
     (match-lambda
       ((struct Application ((struct Application ((struct Function ()) p)) r))
-       (let ((tyvarContract (lambda (x) (string->symbol (string-append "haskell/" x)))))
+       (let ((tyvarContract (lambda (x) (string->symbol (string-append "typeVariable/" x)))))
          (match (list p r)
            ((list (struct Variable (p)) (struct Variable (r))) `(-> ,(tyvarContract p) ,(tyvarContract r)))
            ((list (struct Variable (p)) r) `(-> ,(tyvarContract p) ,(contractH r)))
@@ -45,17 +38,7 @@
       ((struct List ()) 'type/haskell/Haskell.Prelude.List#)
       ((struct Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
       ((struct Unit ()) 'type/Haskell/Haskell.Prelude.Unit#)
-      ((struct Variable (n)) (string->symbol (string-append "haskell/" n)))))
-  
-  (define contractHH
-    (match-lambda
-      ((struct Application (r d)) `(,(contractHH r) (contractHH d)))
-      ((struct Constructor (n)) (string->symbol (string-append "type/haskell/" n)))
-      ((struct Function ()) '->)
-      ((struct List ()) 'type/haskell/Haskell.Prelude.List#)
-      ((struct Tuple (a)) `(type/haskell/Haskell.Prelude.Tuple# ,a))
-      ((struct Unit ()) 'type/haskell/Haskell.Prelude.Unit#)
-      ((struct Variable (_)) 'any/c)))
+      ((struct Variable (n)) (string->symbol (string-append "typeVariable/" n)))))
   
   (define contractHM any/c
     #;(match-lambda

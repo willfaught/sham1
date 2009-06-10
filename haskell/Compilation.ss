@@ -8,7 +8,7 @@
            (lib "TypeChecking.ss" "sham" "haskell"))
   
   (provide compileModule compileExpression)
-
+  
   ; Modules
   
   (define (compileModule syntax types)
@@ -18,7 +18,7 @@
              (decls (filter c/Declaration? d)))
          `(module ,(toSymbol n) scheme
             (require (lib "Primitives.ss" "sham" "haskell"))
-            ,@(map importRequire i)
+            ,@(map importData i)
             ,@(remove-duplicates (foldl append null (map importTypes i)))
             ,@(map importDefinition i)
             ,@(foldl append null (map data datas))
@@ -27,27 +27,52 @@
             ,@(map exportDataH datas)
             ,@(map exportDeclaration e))))))
   
-  (define importRequire
+  (define (importRequire item)
+    `(require ,item))
+  
+  (define (importRequireOnly library items)
+    (importRequire `(only-in ,library ,@items)))
+  
+  (define (importLibrary modules)
+    `(lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1)))
+  
+  (define (splitModules qualifiedModule)
+    (regexp-split #rx"\\." qualifiedModule))
+  
+  (define importData
     (match-lambda
-      ((struct c/Import (l m n _))
-       (let ((modules (regexp-split #rx"\\." m)))
-         `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1))
-                            (,(toSymbol n) ,(toSymbol "import/" m "." n))))))))
+      ((struct c/Import (l m n _)) (importRequireOnly (importLibrary (splitModules m)) (list `(,(toSymbol n) ,(toSymbol "import/" m "." n)))))))
+  
+  (define (importName language module name)
+    (toSymbol "type/" language "/" module "." name))
+  
+  (define (qualifiedType type language module)
+    (match type
+      ((struct t/Constructor (n)) (string-append module "." n))
+      ((struct t/List ()) (match language
+                            ("haskell" "Haskell.Prelude.List#")
+                            ("ml" 'TODO)
+                            ("scheme" 'TODO)))
+      ((struct t/Tuple (_)) (match language
+                              ("haskell" "Haskell.Prelude.Tuple#")
+                              ("ml" 'TODO)
+                              ("scheme" 'TODO)))
+      ((struct t/Unit ()) (match language
+                            ("haskell" "Haskell.Prelude.Unit#")
+                            ("ml" 'TODO)
+                            ("scheme" 'TODO)))))
+  
+  (define (importType language module type)
+    (importRequireOnly (importLibrary (splitModules module)) (toSymbol "type/" language "/" module "." (t/Constructor-name type))))
   
   (define importTypes
     (match-lambda
-      ((struct c/Import (l m _ t))
-       (let ((modules (regexp-split #rx"\\." m)))
-         (map (match-lambda
-                ((struct t/Constructor (n))
-                 `(require (only-in (lib ,(string-append (last modules) ".ss") "sham" "modules" ,@(drop-right modules 1)) ,(toSymbol "type/" l "/" n)))))
-              (typeConstructors t))))))
+      ((struct c/Import (l m _ t)) (map (curry importType l m) (remove-duplicates (filter t/Constructor? (t/typeConstructors t)))))))
   
-  (define typeConstructors
-    (match-lambda
-      ((struct t/Application (r d)) (append (typeConstructors r) (typeConstructors d)))
-      ((? t/Constructor? x) (list x))
-      (_ null)))
+  (define preludeLibrary (importLibrary (list "Haskell" "Prelude")))
+  
+  (define importPreludeTypes
+    (importRequireOnly preludeLibrary (toSymbol "type/haskell/
   
   (define importDefinition
     (match-lambda
