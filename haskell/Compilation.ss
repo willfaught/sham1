@@ -100,7 +100,7 @@
   
   (define exportDataH
     (match-lambda
-      ((struct c/Data (n _ _)) `(provide (rename-out (,(toSymbol "type/" n "/haskell") (toSymbol n "/haskell")))))))
+      ((struct c/Data (n _ _)) `(provide (rename-out (,(toSymbol "type/" n "/haskell") ,(toSymbol n "/haskell")))))))
   
   ; Data contracts
   
@@ -163,16 +163,16 @@
   (define compileExpression
     (match-lambda 
       ((struct c/Application (r d)) `(,(compileExpression r) (delay ,(compileExpression d))))
-      ((struct c/Character (v)) `(make-Char# ,(string-ref v 0)))
-      ((struct c/Float (v)) `(make-Float# ,(string->number v)))
+      ((struct c/Character (v)) `(make-constructor/Char# ,(string-ref v 0)))
+      ((struct c/Float (v)) `(make-constructor/Float# ,(string->number v)))
       ((struct c/Function (p b)) `(lambda (,(toSymbol "variable/" p)) ,(compileExpression b)))
       ((struct c/If (g t e)) `(if (equal? ,(compileExpression g) (force variable/Haskell.Prelude.True)) ,(compileExpression t) ,(compileExpression e)))
-      ((struct c/Integer (v)) `(make-Int# ,(string->number v)))
+      ((struct c/Integer (v)) `(make-constructor/Int# ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileExpression b)))
       ((struct c/ListConstructor ()) '(force variable/Haskell.Prelude.Nil#))
       ((struct c/TupleConstructor (a)) (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 a))))
-                                         `(curry (lambda ,vars (make-Tuple# (list ,@vars))))))
-      ((struct c/UnitConstructor ()) '(force variable/Haskell.Prelude.Unit#))
+                                         `(curry (lambda ,vars (make-constructor/Tuple# (list ,@vars))))))
+      ((struct c/UnitConstructor ()) 'make-constructor/Unit#)
       ((struct c/Variable (n)) `(force ,(toSymbol "variable/" n)))))
   
   (define letDeclaration

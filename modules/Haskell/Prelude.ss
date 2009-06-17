@@ -1,6 +1,5 @@
 (module Prelude scheme
-  (require (lib "Parsing.ss" "sham" "haskell")
-           (lib "Primitives.ss" "sham" "haskell"))
+  (require (lib "Primitives.ss" "sham" "haskell"))
   
   (provide (rename-out (type/Bool/haskell Bool/haskell)
                        (type/Char/haskell Char/haskell)
@@ -10,7 +9,6 @@
                        (type/Tuple#/haskell Tuple#/haskell)
                        (type/Unit#/haskell Unit#/haskell)
                        (variable/False False)
-                       (variable/Nil# Nil#)
                        (variable/True True)
                        (variable/Unit# Unit#)
                        (variable/error error)
@@ -43,27 +41,17 @@
                        (variable/toUpper toUpper)
                        (variable/: :)))
   
-  (define-contract-struct constructor/Cons# (head tail))
-  
-  (define-contract-struct constructor/False ())
-  
-  (define-contract-struct constructor/Nil# ())
-  
-  (define-contract-struct constructor/True ())
-  
-  (define-contract-struct constructor/Unit# ())
-  
   (define type/Bool/haskell
-    (curry (lambda (language value) (contract (or/c (struct/c constructor/False) (struct/c constructor/True)) value language 'haskell))))
+    (recursive-contract (or/c (constructor/False/c) (constructor/True/c))))
   
   (define type/Char/haskell
-    (struct/c Char# char?))
+    (struct/c constructor/Char# char?))
   
   (define type/Float/haskell
-    (struct/c Float# number?))
+    (struct/c constructor/Float# number?))
   
   (define type/Int/haskell
-    (struct/c Int# integer?))
+    (struct/c constructor/Int# integer?))
   
   (define (type/List#/haskell haskell/a)
     (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a) (promise/c (type/List#/haskell haskell/a))))))
@@ -89,7 +77,7 @@
   (define variable/charEqual
     (delay (lambda (x)
              (lambda (y)
-               (if (equal? (Char#-value (force x)) (Char#-value (force y)))
+               (if (equal? (constructor/Char#-value (force x)) (constructor/Char#-value (force y)))
                    (force variable/True)
                    (force variable/False))))))
   
@@ -99,29 +87,29 @@
   (define variable/floatAdd
     (delay (lambda (x)
              (lambda (y)
-               (+ (Float#-value (force x)) (Float#-value (force y)))))))
+               (+ (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))))))
   
   (define variable/floatDivide
     (delay (lambda (x)
              (lambda (y)
-               (/ (Float#-value (force x)) (Float#-value (force y)))))))
+               (/ (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))))))
   
   (define variable/floatEqual
     (delay (lambda (x)
              (lambda (y)
-               (if (= (Float#-value (force x)) (Float#-value (force y)))
+               (if (= (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))
                    (force variable/True)
                    (force variable/False))))))
   
   (define variable/floatMultiply
     (delay (lambda (x)
              (lambda (y)
-               (* (Float#-value (force x)) (Float#-value (force y)))))))
+               (* (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))))))
   
   (define variable/floatSubtract
     (delay (lambda (x)
              (lambda (y)
-               (- (Float#-value (force x)) (Float#-value (force y)))))))
+               (- (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))))))
   
   (define variable/fst
     (delay (lambda (t) (force (list-ref (force t) 0)))))
@@ -132,29 +120,29 @@
   (define variable/intAdd
     (delay (lambda (x)
              (lambda (y)
-               (+ (Int#-value (force x)) (Int#-value (force y)))))))
+               (+ (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))))))
   
   (define variable/intDivide
     (delay (lambda (x)
              (lambda (y)
-               (quotient (Int#-value (force x)) (Int#-value (force y)))))))
+               (quotient (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))))))
   
   (define variable/intEqual
     (delay (lambda (x)
              (lambda (y)
-               (if (= (Int#-value (force x)) (Int#-value (force y)))
+               (if (= (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))
                    (force variable/True)
                    (force variable/False))))))
   
   (define variable/intMultiply
     (delay (lambda (x)
              (lambda (y)
-               (* (Int#-value (force x)) (Int#-value (force y)))))))
+               (* (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))))))
   
   (define variable/intSubtract
     (delay (lambda (x)
              (lambda (y)
-               (- (Int#-value (force x)) (Int#-value (force y)))))))
+               (- (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))))))
   
   (define variable/isFalse
     (delay (lambda (x) (if (constructor/False? (force x))
@@ -163,11 +151,11 @@
   
   (define variable/isLower
     (delay (lambda (x)
-             (char-lower-case? (Char#-value (force x))))))
+             (char-lower-case? (constructor/Char#-value (force x))))))
   
   (define variable/isUpper
     (delay (lambda (x)
-             (char-upper-case? (Char#-value (force x))))))
+             (char-upper-case? (constructor/Char#-value (force x))))))
   
   (define variable/isTrue
     (delay (lambda (x) (if (constructor/True? (force x))
@@ -187,11 +175,11 @@
   
   (define variable/toLower
     (delay (lambda (x)
-             (char-downcase (Char#-value (force x))))))
+             (char-downcase (constructor/Char#-value (force x))))))
   
   (define variable/toUpper
     (delay (lambda (x)
-             (char-upcase (Char#-value (force x))))))
+             (char-upcase (constructor/Char#-value (force x))))))
   
   (define variable/:
     (delay (lambda (x) (lambda (y) (make-constructor/Cons# x y)))))
@@ -199,15 +187,6 @@
   (define variable//=
     (delay (lambda (x)
              (lambda (y)
-               (if (not (= (Int#-value (force x)) (Int#-value (force y))))
+               (if (not (= (constructor/Int#-value (force x)) (constructor/Int#-value (force y))))
                    (force variable/True)
-                   (force variable/False))))))
-  
-  #;(define variable/trace 'TODO)
-  
-  #;(define primitive/show 'TODO)
-  
-  (define variable/strict
-    (delay (match-lambda
-             ((? struct? x) x)
-             (x (force x))))))
+                   (force variable/False)))))))
