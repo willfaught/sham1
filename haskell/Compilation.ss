@@ -44,20 +44,20 @@
     (match-lambda
       ((struct c/Import (l m n _)) (importRequireOnly (importLibrary (splitModules m)) `(,(toSymbol n) ,(toSymbol "import/" m "." n))))))
   
-  (define (importModule language module type)
+  (define (importModule language type)
     (match type
-      ((struct t/Application (_ _)) (error 'importType "Unexpected type application"))
-      ((struct t/Constructor (_)) module)
-      ((struct t/Variable (_)) (error 'importType "Unexpected type variable"))
+      ((struct t/Application (_ _)) (error 'importModule "Unexpected type application"))
+      ((struct t/Constructor (n)) (foldl1 (lambda (x y) (string-append y "." x)) (drop-right (splitModules n) 1)))
+      ((struct t/Variable (_)) (error 'importModule "Unexpected type variable"))
       (_ (match language
            ("haskell" "Haskell.Prelude")
            #;("ml" 'TODO)
            #;("scheme" 'TODO)))))
   
-  (define (importName language module type)
+  (define (importName language type)
     (match type
-      ((struct t/Constructor (n)) `(,(toSymbol n "/" language) ,(toSymbol "type/" module "." n "/" language)))
-      ((struct t/Function ()) (error 'importType "Unexpected function type constructor"))
+      ((struct t/Constructor (n)) `(,(toSymbol (last (splitModules n)) "/" language) ,(toSymbol "type/" n "/" language)))
+      ((struct t/Function ()) (error 'importName "Unexpected function type constructor"))
       ((struct t/List ()) (match language
                             ("haskell" `(List#/haskell type/Haskell.Prelude.List#/haskell))
                             #;("ml" 'TODO)
@@ -71,13 +71,20 @@
                             #;("ml" 'TODO)
                             #;("scheme" 'TODO)))))
   
-  (define (importType language module type)
-    (importRequireOnly (importLibrary (splitModules (importModule language module type)))
-                       (importName language module type)))
+  (define (importType language type)
+    (importRequireOnly (importLibrary (splitModules (importModule language type)))
+                       (importName language type)))
   
   (define importTypes
     (match-lambda
-      ((struct c/Import (l m _ t)) (map (curry importType l m) (remove-duplicates (filter (lambda (x) (not (t/Function? x))) (t/typeConstructors t)))))))
+      ((struct c/Import (l _ _ t))
+       (let ((qtycons (lambda (x)
+                        (and (not (t/Function? x))
+                             (match x
+                               ((struct t/Constructor (n)) (> (length (splitModules n)) 1))
+                               (_ #t))))))
+         (map (curry importType l)
+              (remove-duplicates (filter qtycons (t/typeConstructors t))))))))
   
   (define importDefinition
     (match-lambda

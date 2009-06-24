@@ -4,15 +4,15 @@
   (provide boundaryHH contractH)
   
   (define tyvarBindings
-    (match-lambda ((struct Variable (n)) `((list ,(string->symbol (string-append "typeVariable/wrap/" n))
-                                                 ,(string->symbol (string-append "typeVariable/unwrap/" n))
+    (match-lambda ((struct Variable (n)) `((list ,(string->symbol (string-append "typeVariable/" n "/wrap"))
+                                                 ,(string->symbol (string-append "typeVariable/" n "/unwrap"))
                                                  ,(string->symbol (string-append "typeVariable/" n)))
                                            (coffer)))))
   
   (define (boundaryHH type)
     (let* ((bindings (map tyvarBindings (remove-duplicates (typeVariables type))))
            (openContract (contractH type))
-           (closedContract (if (null? bindings) openContract `(match-let ,openContract ,(contractH type)))))
+           (closedContract (if (null? bindings) openContract `(match-let ,bindings ,openContract))))
       `(lambda (x) (contract ,closedContract x 'ThatHaskell 'ThisHaskell))))
   
   (define contractH
