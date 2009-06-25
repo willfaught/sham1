@@ -1,5 +1,6 @@
 (module Prelude scheme
-  (require (lib "Primitives.ss" "sham" "haskell"))
+  (require (lib "List.ss" "sham" "haskell")
+           (lib "Primitives.ss" "sham" "haskell"))
   
   (provide (rename-out (type/Bool/haskell Bool/haskell)
                        (type/Char/haskell Char/haskell)
@@ -42,7 +43,7 @@
                        (variable/: :)))
   
   (define type/Bool/haskell
-    (recursive-contract (or/c (constructor/False/c) (constructor/True/c))))
+    (promise/c (recursive-contract (or/c (constructor/False/c) (constructor/True/c)))))
   
   (define type/Char/haskell
     (struct/c constructor/Char# char?))
@@ -53,14 +54,17 @@
   (define type/Int/haskell
     (struct/c constructor/Int# integer?))
   
-  (define (type/List#/haskell haskell/a)
-    (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c haskell/a) (promise/c (type/List#/haskell haskell/a))))))
+  (define type/List#/haskell
+    (lambda (typeVariable/a)
+      (promise/c (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c typeVariable/a) (promise/c (type/List#/haskell typeVariable/a))))))))
   
-  (define (type/Tuple#/haskell haskell/a)
-    (eval `(list/c ,@haskell/a)))
+  (define (type/Tuple#/haskell arity)
+    (let ((vars (map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (iterate (lambda (x) (+ x 1)) 1 arity))))
+      (eval `(curry (lambda ,vars
+                      (promise/c (list/c ,@vars)))))))
   
   (define type/Unit#/haskell
-    (recursive-contract (or/c (constructor/Unit#/c))))
+    (promise/c (recursive-contract (or/c (constructor/Unit#/c)))))
   
   (define variable/False
     (delay (make-constructor/False)))

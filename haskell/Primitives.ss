@@ -21,4 +21,4 @@
   
   (define (coffer)
     (define-struct coffer (value) #:transparent)
-    (list make-coffer coffer-value coffer?)))
+    (list coffer? make-coffer coffer-value)))
