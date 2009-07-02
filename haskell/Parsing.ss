@@ -153,9 +153,8 @@
             (start nt-exp nt-impdecl nt-module nt-topdecl nt-type)
             (end eof)
             (error (lambda (token-ok token-name token-value start-pos end-pos)
-                     (raise-read-error (format "Parsing: Found an unexpected ~a '~a' in ~a at line ~a and column ~a"
+                     (raise-read-error (format "Parsing: Found an unexpected ~a in '~a' at line ~a and column ~a"
                                                token-name
-                                               token-value
                                                source-name
                                                (position-line start-pos)
                                                (position-col start-pos)
