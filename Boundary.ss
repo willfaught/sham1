@@ -43,7 +43,9 @@
       ((struct Application (r d)) `(,(contractH r) ,(contractH d)))
       ((struct Constructor (n)) (string->symbol (string-append "type/" (typeModule "haskell" n) "." (typeName n) "/haskell")))
       ((struct List ()) 'type/Haskell.Prelude.List#/haskell)
-      ((struct Tuple (a)) `(type/Haskell.Prelude.Tuple#/haskell ,a))
+      ((struct Tuple (a)) (let ((vars (map (lambda (x) (string->symbol (string-append "x" (number->string x))))
+                                           (iterate (lambda (x) (+ x 1)) 1 a))))
+                            `(curry (lambda ,vars (constructor/Tuple#/c (list/c ,@(map (lambda (x) `(promise/c ,x)) vars)))))))
       ((struct Unit ()) 'type/Haskell.Prelude.Unit#/haskell)
       ((struct Variable (n)) (string->symbol (string-append "typeVariable/" n)))))
   

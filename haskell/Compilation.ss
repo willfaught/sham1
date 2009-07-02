@@ -91,6 +91,7 @@
       ((struct c/Import (l _ _ t))
        (let ((qtycons (match-lambda
                         ((struct t/Function ()) #f)
+                        ((struct t/Tuple (_)) #f)
                         (_ #t))))
          (map (curry importType l)
               (remove-duplicates (filter qtycons (t/typeConstructors t))))))))

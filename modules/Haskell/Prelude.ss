@@ -7,7 +7,6 @@
                        (type/Float/haskell Float/haskell)
                        (type/Int/haskell Int/haskell)
                        (type/List#/haskell List#/haskell)
-                       (type/Tuple#/haskell Tuple#/haskell)
                        (type/Unit#/haskell Unit#/haskell)
                        (variable/False False)
                        (variable/True True)
@@ -57,11 +56,6 @@
   (define type/List#/haskell
     (lambda (typeVariable/a)
       (promise/c (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c typeVariable/a) (promise/c (type/List#/haskell typeVariable/a))))))))
-  
-  (define (type/Tuple#/haskell arity)
-    (let ((vars (map (lambda (x) (string->symbol (string-append "x" (number->string x)))) (iterate (lambda (x) (+ x 1)) 1 arity))))
-      (eval `(curry (lambda ,vars
-                      (promise/c (list/c ,@vars)))))))
   
   (define type/Unit#/haskell
     (promise/c (recursive-contract (or/c (constructor/Unit#/c)))))
