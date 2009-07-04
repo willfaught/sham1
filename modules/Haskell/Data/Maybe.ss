@@ -1,6 +1,6 @@
 #reader (lib "Reader.ss" "sham" "haskell")
 
-module Maybe (Nothing, Just, fromJust, maybe, fromMaybe, listToMaybe, maybeToList, catMaybes, mapMaybe) where {
+module Haskell.Data.Maybe (Nothing, Just, fromJust, maybe, fromMaybe, listToMaybe, maybeToList, catMaybes, mapMaybe) where {
 
 data Maybe a = Nothing | Just { fromJust :: a };
 
