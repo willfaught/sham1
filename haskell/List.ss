@@ -3,6 +3,11 @@
   
   (provide (all-defined-out))
   
+  (define (elem x xs)
+    (match (member x xs)
+      (#f #f)
+      (_ #t)))
+  
   (define (foldl1 f xs)
     (match xs
       ((cons x xs) (foldl f x xs))

@@ -7,6 +7,8 @@
   
   (provide dataTypes moduleTypes syntaxType typeVariables wellTyped)
   
+  (provide (struct-out Assumption))
+  
   (define-struct Assumption (name type) #:transparent)
   
   (define-struct Constraint (left right) #:transparent)

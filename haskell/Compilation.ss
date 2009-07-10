@@ -12,6 +12,7 @@
   ; Modules
   
   (define (compileModule syntax types)
+    (checkBindingConflicts types)
     (match syntax
       ((struct c/Module (n e i d))
        (let ((datas (filter c/Data? d))
@@ -25,8 +26,18 @@
             ,@(map (curry importDefinition n) i)
             ,@(foldl append null (map data datas))
             ,@(map dataContractH datas)
-            ,@(map moduleDeclaration decls)
-            )))))
+            ,@(map moduleDeclaration decls))))))
+  
+  (define (checkBindingConflicts types)
+    (let ((dups (duplicates (map (match-lambda ((struct Assumption (n _)) n)) types))))
+      (if (> (length dups) 0)
+          (error 'checkBindingConflicts (format "There are conflicting names: ~a" dups)) #f)))
+  
+  (define (duplicates xs)
+    (let ((pair (foldl (lambda (x y) (if (elem x (first y)) y (if (elem x (second y))
+                                                      (list (cons x (first y)) (second y))
+                                                      (list (first y) (cons x (second y)))))) (list null null) xs)))
+      (first pair)))
   
   (define (importRequire item)
     `(require ,item))
