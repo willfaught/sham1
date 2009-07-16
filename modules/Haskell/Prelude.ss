@@ -6,40 +6,52 @@
                        (type/Char/haskell Char/haskell)
                        (type/Float/haskell Float/haskell)
                        (type/Int/haskell Int/haskell)
-                       (type/List#/haskell List#/haskell)
-                       (type/Unit#/haskell Unit#/haskell)
+                       (type/List/haskell List/haskell)
+                       (type/Unit/haskell Unit/haskell)
                        (variable/False False)
+                       (variable/Nil Nil)
                        (variable/True True)
-                       (variable/Unit# Unit#)
+                       (variable/Unit Unit)
+                       (variable/charEquals charEquals)
                        (variable/error error)
+                       (variable/floatAdd floatAdd)
+                       (variable/floatDivide floatDivide)
+                       (variable/floatEquals floatEquals)
+                       (variable/floatMultiply floatMultiply)
+                       (variable/floatSubtract floatSubtract)
                        (variable/fst fst)
                        (variable/head head)
+                       (variable/intAdd intAdd)
+                       (variable/intAdd +)
+                       (variable/intDivide intDivide)
+                       (variable/intDivide /)
+                       (variable/intEquals intEquals)
+                       (variable/intEquals ==)
+                       (variable/intMultiply intMultiply)
+                       (variable/intMultiply *)
+                       (variable/intSubtract intSubtract)
+                       (variable/intSubtract -)
                        (variable/isFalse isFalse)
+                       (variable/isLower isLower)
                        (variable/isTrue isTrue)
+                       (variable/isUpper isUpper)
                        (variable/null null)
                        (variable/snd snd)
                        (variable/tail tail)
-                       (variable/intAdd intAdd)
-                       (variable/intAdd +)
-                       (variable/intSubtract intSubtract)
-                       (variable/intSubtract -)
-                       (variable/intMultiply intMultiply)
-                       (variable/intMultiply *)
-                       (variable/intDivide intDivide)
-                       (variable/intDivide /)
-                       (variable/intEqual intEqual)
-                       (variable/intEqual ==)
-                       (variable//= /=)
-                       (variable/floatAdd floatAdd)
-                       (variable/floatSubtract floatSubtract)
-                       (variable/floatMultiply floatMultiply)
-                       (variable/floatDivide floatDivide)
-                       (variable/charEqual charEqual)
-                       (variable/isLower isLower)
-                       (variable/isUpper isUpper)
                        (variable/toLower toLower)
                        (variable/toUpper toUpper)
-                       (variable/: :)))
+                       (variable/: :)
+                       (variable//= /=)))
+  
+  (define-contract-struct constructor/Cons (head tail))
+  
+  (define-contract-struct constructor/False ())
+  
+  (define-contract-struct constructor/Nil ())
+  
+  (define-contract-struct constructor/True ())
+  
+  (define-contract-struct constructor/Unit ())
   
   (define type/Bool/haskell
     (promise/c (recursive-contract (or/c (constructor/False/c) (constructor/True/c)))))
@@ -53,26 +65,26 @@
   (define type/Int/haskell
     (struct/c constructor/Int# integer?))
   
-  (define type/List#/haskell
+  (define type/List/haskell
     (lambda (typeVariable/a)
-      (promise/c (recursive-contract (or/c (constructor/Nil#/c) (constructor/Cons#/c (promise/c typeVariable/a) (promise/c (type/List#/haskell typeVariable/a))))))))
+      (promise/c (recursive-contract (or/c (constructor/Nil/c) (constructor/Cons/c (promise/c typeVariable/a) (promise/c (type/List/haskell typeVariable/a))))))))
   
-  (define type/Unit#/haskell
-    (promise/c (recursive-contract (or/c (constructor/Unit#/c)))))
+  (define type/Unit/haskell
+    (promise/c (recursive-contract (or/c (constructor/Unit/c)))))
   
   (define variable/False
     (delay (make-constructor/False)))
   
-  (define variable/Nil#
-    (delay (make-constructor/Nil#)))
+  (define variable/Nil
+    (delay (make-constructor/Nil)))
   
   (define variable/True
     (delay (make-constructor/True)))
   
-  (define variable/Unit#
-    (delay (make-constructor/Unit#)))
+  (define variable/Unit
+    (delay (make-constructor/Unit)))
   
-  (define variable/charEqual
+  (define variable/charEquals
     (delay (lambda (x)
              (lambda (y)
                (if (equal? (constructor/Char#-value (force x)) (constructor/Char#-value (force y)))
@@ -92,7 +104,7 @@
              (lambda (y)
                (/ (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))))))
   
-  (define variable/floatEqual
+  (define variable/floatEquals
     (delay (lambda (x)
              (lambda (y)
                (if (= (constructor/Float#-value (force x)) (constructor/Float#-value (force y)))
@@ -113,7 +125,7 @@
     (delay (lambda (t) (force (list-ref (force t) 0)))))
   
   (define variable/head
-    (delay (lambda (x) (force (constructor/Cons#-head (force x))))))
+    (delay (lambda (x) (force (constructor/Cons-head (force x))))))
   
   (define variable/intAdd
     (delay (lambda (x)
@@ -125,7 +137,7 @@
              (lambda (y)
                (quotient (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))))))
   
-  (define variable/intEqual
+  (define variable/intEquals
     (delay (lambda (x)
              (lambda (y)
                (if (= (constructor/Int#-value (force x)) (constructor/Int#-value (force y)))
@@ -161,7 +173,7 @@
                            (force variable/False)))))
   
   (define variable/null
-    (delay (lambda (x) (if (constructor/Nil#? (force x))
+    (delay (lambda (x) (if (constructor/Nil? (force x))
                            (force variable/True)
                            (force variable/False)))))
   
@@ -169,7 +181,7 @@
     (delay (lambda (t) (force (list-ref (force t) 1)))))
   
   (define variable/tail
-    (delay (lambda (x) (force (constructor/Cons#-tail (force x))))))
+    (delay (lambda (x) (force (constructor/Cons-tail (force x))))))
   
   (define variable/toLower
     (delay (lambda (x)
@@ -180,7 +192,7 @@
              (char-upcase (constructor/Char#-value (force x))))))
   
   (define variable/:
-    (delay (lambda (x) (lambda (y) (make-constructor/Cons# x y)))))
+    (delay (lambda (x) (lambda (y) (make-constructor/Cons x y)))))
   
   (define variable//=
     (delay (lambda (x)

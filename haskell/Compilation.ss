@@ -79,7 +79,7 @@
       ((struct t/Constructor (n)) n)
       ((struct t/Function ()) (error 'typeToString "Unexpected function type constructor."))
       ((struct t/List ()) (match language
-                            ("haskell" "List#")
+                            ("haskell" "List")
                             #;("ml" 'TODO)
                             #;("scheme" 'TODO)))
       ((struct t/Tuple (_)) (match language
@@ -87,7 +87,7 @@
                               #;("ml" 'TODO)
                               #;("scheme" 'TODO)))
       ((struct t/Unit ()) (match language
-                            ("haskell" "Unit#")
+                            ("haskell" "Unit")
                             #;("ml" 'TODO)
                             #;("scheme" 'TODO)))
       ((struct t/Variable (_)) (error 'typeToString "Unexpected type variable."))))
@@ -197,10 +197,10 @@
       ((struct c/If (g t e)) `(if (equal? ,(compileExpression g) (force variable/Haskell.Prelude.True)) ,(compileExpression t) ,(compileExpression e)))
       ((struct c/Integer (v)) `(make-constructor/Int# ,(string->number v)))
       ((struct c/Let (d b)) `(letrec ,(map letDeclaration d) ,(compileExpression b)))
-      ((struct c/ListConstructor ()) '(force variable/Haskell.Prelude.Nil#))
+      ((struct c/ListConstructor ()) '(force variable/Haskell.Prelude.Nil))
       ((struct c/TupleConstructor (a)) (let ((vars (map (lambda (x) (toSymbol "x" (number->string x))) (iterate (lambda (x) (+ x 1)) 1 a))))
                                          `(curry (lambda ,vars (make-constructor/Tuple# (list ,@vars))))))
-      ((struct c/UnitConstructor ()) 'make-constructor/Unit#)
+      ((struct c/UnitConstructor ()) 'make-constructor/Unit)
       ((struct c/Variable (n)) `(force ,(toSymbol "variable/" n)))))
   
   (define letDeclaration
